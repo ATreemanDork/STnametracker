@@ -368,7 +368,8 @@ async function callLLM(messages) {
     
     const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\n${msg}`).join('\n\n');
     
-    const prompt = `${getSystemPrompt()}\n\nAnalyze these messages and extract character information:\n\n${messagesText}`;
+    // Format the prompt to clearly separate instructions from data
+    const prompt = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\n${getSystemPrompt()}\n\n[DATA TO ANALYZE]\n${messagesText}\n\n[RESPOND WITH JSON ONLY - NO STORY CONTINUATION]`;
     
     let result;
     
@@ -402,28 +403,33 @@ async function callSillyTavern(prompt) {
             throw new Error('No API connection available. Please connect to an API first.');
         }
         
-        // Use the new object-based API for generateRaw
+        // Build messages array in the format generateRaw expects
+        // This matches the MessageSummarize extension pattern (line 3695-3720)
+        const messages = [
+            {
+                role: 'system',
+                content: prompt
+            }
+        ];
+        
+        // Use generateRaw with object syntax matching MessageSummarize
+        // See: qvink/SillyTavern-MessageSummarize index.js line 3713
         const result = await generateRaw({
-            prompt: prompt,
-            use_mancer: false,
-            quiet_prompt: '',
-            quietToLoud: false,
-            skipWIAN: true,
-            force_name2: false,
-            quiet_image: '',
-            max_context_unlocked: false
+            prompt: messages,
+            trimNames: false,
+            prefill: ''  // Empty prefill for clean JSON response
         });
         
         debugLog('SillyTavern LLM raw response:', result);
         
-        // The result might be the text directly
+        // The result should be a string
         if (typeof result === 'string') {
             debugLog('Response is string, parsing...');
             return parseJSONResponse(result);
         }
         
-        // Or it might be in result.text or result.response
-        const text = result?.text || result?.response || result;
+        // Fallback if result is an object
+        const text = result?.text || result?.response || String(result);
         debugLog('Extracted text from result:', text?.substring(0, 200));
         return parseJSONResponse(text);
     } catch (error) {
