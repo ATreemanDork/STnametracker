@@ -1,0 +1,41 @@
+<!-- Settings UI for the Name Tracker extension -->
+<div class="name-tracker-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Name Tracker</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="name-tracker_block flex-container">
+                <label for="name_tracker_enabled">
+                    <input id="name_tracker_enabled" type="checkbox" />
+                    Enable Name Tracking
+                </label>
+            </div>
+
+            <div class="name-tracker_block flex-container">
+                <label for="name_tracker_auto_refresh">
+                    <input id="name_tracker_auto_refresh" type="checkbox" />
+                    Auto-refresh on new messages
+                </label>
+            </div>
+
+            <div class="name-tracker_block">
+                <input id="name_tracker_refresh" class="menu_button" type="submit" value="Refresh Names" />
+            </div>
+
+            <div class="name-tracker_block">
+                <input id="name_tracker_clear" class="menu_button" type="submit" value="Clear Tracked Names" />
+            </div>
+
+            <div class="name-tracker_block">
+                <label>Tracked Names:</label>
+                <div id="name_tracker_list" class="name-tracker-list">
+                    <div class="name-tracker-empty">No names tracked yet</div>
+                </div>
+            </div>
+
+            <hr class="sysHR" />
+        </div>
+    </div>
+</div>
