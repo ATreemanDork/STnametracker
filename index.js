@@ -2,7 +2,7 @@
 // Tracks character details and manages chat-level lorebook entries
 
 import { extension_settings, getContext } from "../../../extensions.js";
-import { saveSettingsDebounced, generateRaw } from "../../../../script.js";
+import { saveSettingsDebounced, generateRaw, createRawPrompt } from "../../../../script.js";
 import { eventSource, event_types, chat, chat_metadata } from "../../../../script.js";
 
 // Extension constants
@@ -403,14 +403,16 @@ async function callSillyTavern(prompt) {
             throw new Error('No API connection available. Please connect to an API first.');
         }
         
-        // Build messages array in the format generateRaw expects
-        // This matches the MessageSummarize extension pattern (line 3695-3720)
+        // Build messages array with user message to trigger generation
+        // System-only messages don't trigger LLM responses
         const messages = [
             {
-                role: 'system',
+                role: 'user',
                 content: prompt
             }
         ];
+        
+        debugLog('Formatted messages:', JSON.stringify(messages, null, 2));
         
         // Use generateRaw with object syntax matching MessageSummarize
         // See: qvink/SillyTavern-MessageSummarize index.js line 3713
@@ -423,6 +425,10 @@ async function callSillyTavern(prompt) {
         debugLog('SillyTavern LLM raw response:', result);
         
         // The result should be a string
+        if (!result) {
+            throw new Error('Empty response from SillyTavern LLM');
+        }
+        
         if (typeof result === 'string') {
             debugLog('Response is string, parsing...');
             return parseJSONResponse(result);
