@@ -1,7 +1,7 @@
 // Name Tracker Extension for SillyTavern
 // Tracks and displays character names mentioned in chat messages
 
-import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
+import { extension_settings, getContext } from "../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../script.js";
 import { eventSource, event_types } from "../../../../script.js";
 
@@ -15,6 +15,21 @@ const defaultSettings = {
     autoRefresh: true,
     trackedNames: {}
 };
+
+// Common words that are not names (used to filter false positives)
+const COMMON_WORDS = [
+    "The", "This", "That", "These", "Those", "What", "When", "Where", "Why", "How",
+    "Yes", "No", "Not", "But", "And", "For", "With", "From", "Into", "About",
+    "Just", "Now", "Then", "Here", "There", "Very", "Much", "More", "Most",
+    "Some", "Any", "All", "Each", "Every", "Both", "Few", "Many", "Such",
+    "Only", "Also", "Well", "Even", "Still", "Already", "Always", "Never",
+    "Please", "Thanks", "Sorry", "Hello", "Goodbye", "Would", "Could", "Should",
+    "Can", "May", "Might", "Will", "Must", "Have", "Has", "Had", "Been", "Being",
+    "Are", "Was", "Were", "Does", "Did", "Done", "Going", "Come", "Coming",
+    "See", "Saw", "Seen", "Look", "Looked", "Looking", "Feel", "Felt", "Feeling",
+    "Think", "Thought", "Thinking", "Know", "Knew", "Known", "Want", "Wanted",
+    "Need", "Needed", "Like", "Liked", "Said", "Says", "Saying", "Tell", "Told"
+];
 
 /**
  * Load extension settings from storage or initialize with defaults
@@ -78,21 +93,11 @@ function extractNamesFromText(text) {
     
     // Pattern to find capitalized words that might be names
     // Matches words starting with uppercase, followed by lowercase letters
-    // Excludes common sentence starters and short words
-    const namePattern = /\b([A-Z][a-z]{2,})\b/g;
+    // Also handles names with apostrophes (O'Brien) and hyphens (Mary-Jane)
+    const namePattern = /\b([A-Z][a-z]{2,}(?:[-'][A-Z]?[a-z]+)*)\b/g;
     const matches = text.match(namePattern) || [];
     
-    // Filter out common words that aren't names
-    const commonWords = [
-        "The", "This", "That", "These", "Those", "What", "When", "Where", "Why", "How",
-        "Yes", "No", "Not", "But", "And", "For", "With", "From", "Into", "About",
-        "Just", "Now", "Then", "Here", "There", "Very", "Much", "More", "Most",
-        "Some", "Any", "All", "Each", "Every", "Both", "Few", "Many", "Such",
-        "Only", "Also", "Well", "Even", "Still", "Already", "Always", "Never",
-        "Please", "Thanks", "Sorry", "Hello", "Goodbye"
-    ];
-    
-    return matches.filter(name => !commonWords.includes(name));
+    return matches.filter(name => !COMMON_WORDS.includes(name));
 }
 
 /**
@@ -119,11 +124,14 @@ function scanChatForNames() {
         }
     }
     
-    // Also track the character name if available
+    // Also ensure the current character name is tracked if available
     if (context.characterId !== undefined && context.characters) {
         const character = context.characters[context.characterId];
         if (character && character.name) {
-            namesCount[character.name] = (namesCount[character.name] || 0);
+            // Only add to the list if not already present; don't override existing count
+            if (namesCount[character.name] === undefined) {
+                namesCount[character.name] = 0;
+            }
         }
     }
     
