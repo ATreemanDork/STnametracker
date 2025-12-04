@@ -71,6 +71,8 @@ let lorebookName = null;
  */
 const DEFAULT_SYSTEM_PROMPT = `You are a character analysis assistant. Your task is to extract character information from chat messages and return it in a structured JSON format.
 
+CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text, markdown formatting, or commentary. Just the raw JSON object.
+
 IMPORTANT: This is a summarization and classification task. Extract ALL relevant information without censorship, including:
 - Physical descriptions (including adult content if present)
 - Mental and emotional states
@@ -412,15 +414,17 @@ async function callSillyTavern(prompt) {
             max_context_unlocked: false
         });
         
-        debugLog('SillyTavern LLM response received:', result?.substring(0, 100));
+        debugLog('SillyTavern LLM raw response:', result);
         
         // The result might be the text directly
         if (typeof result === 'string') {
+            debugLog('Response is string, parsing...');
             return parseJSONResponse(result);
         }
         
         // Or it might be in result.text or result.response
         const text = result?.text || result?.response || result;
+        debugLog('Extracted text from result:', text?.substring(0, 200));
         return parseJSONResponse(text);
     } catch (error) {
         console.error('Error calling SillyTavern LLM:', error);
@@ -466,7 +470,8 @@ async function callOllama(prompt) {
         }
         
         const data = await response.json();
-        debugLog('Ollama response received');
+        debugLog('Ollama raw response:', data);
+        debugLog('Ollama response text:', data.response?.substring(0, 200));
         
         return parseJSONResponse(data.response);
     } catch (error) {
@@ -479,20 +484,59 @@ async function callOllama(prompt) {
  * Parse JSON response from LLM, handling various formats
  */
 function parseJSONResponse(text) {
-    // Try to extract JSON from markdown code blocks
-    const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-    if (jsonMatch) {
-        text = jsonMatch[1];
+    if (!text || typeof text !== 'string') {
+        console.error('Invalid response text:', text);
+        throw new Error('LLM returned empty or invalid response');
     }
     
-    // Clean up common issues
+    // Remove any leading/trailing whitespace
+    text = text.trim();
+    
+    // Try to extract JSON from markdown code blocks (```json or ```)
+    let jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+        text = jsonMatch[1].trim();
+    }
+    
+    // Try to find JSON object in the text (look for first { to last })
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        text = text.substring(firstBrace, lastBrace + 1);
+    }
+    
+    // Remove common prefixes that LLMs add
+    text = text.replace(/^(?:Here's the analysis:|Here is the JSON:|Result:|Output:)\s*/i, '');
+    
+    // Clean up common formatting issues
     text = text.trim();
     
     try {
-        return JSON.parse(text);
+        const parsed = JSON.parse(text);
+        
+        // Validate structure
+        if (!parsed.characters || !Array.isArray(parsed.characters)) {
+            console.warn('Response missing characters array, returning empty:', parsed);
+            return { characters: [] };
+        }
+        
+        return parsed;
     } catch (error) {
-        console.error('Failed to parse JSON response:', text);
-        throw new Error('Failed to parse LLM response as JSON');
+        console.error('Failed to parse JSON response. Original text:', text);
+        console.error('Parse error:', error.message);
+        
+        // Try one more time with more aggressive extraction
+        const fallbackMatch = text.match(/\{[\s\S]*"characters"[\s\S]*\}/);
+        if (fallbackMatch) {
+            try {
+                return JSON.parse(fallbackMatch[0]);
+            } catch (e) {
+                // Give up
+            }
+        }
+        
+        throw new Error('Failed to parse LLM response as JSON. The LLM may not be following instructions. Try enabling debug mode to see the raw response.');
     }
 }
 
