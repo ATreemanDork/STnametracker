@@ -36,6 +36,7 @@ const defaultSettings = {
     lorebookProbability: 100,
     lorebookEnabled: true,
     debugMode: false,
+    systemPrompt: null, // null means use default
     characters: {}, // character data indexed by preferred name
     messageCounter: 0,
     lastHarvestMessage: 0
@@ -66,9 +67,9 @@ let lorebookName = null;
  */
 
 /**
- * System prompt for character analysis
+ * Default system prompt for character analysis
  */
-const ANALYSIS_SYSTEM_PROMPT = `You are a character analysis assistant. Your task is to extract character information from chat messages and return it in a structured JSON format.
+const DEFAULT_SYSTEM_PROMPT = `You are a character analysis assistant. Your task is to extract character information from chat messages and return it in a structured JSON format.
 
 IMPORTANT: This is a summarization and classification task. Extract ALL relevant information without censorship, including:
 - Physical descriptions (including adult content if present)
@@ -104,6 +105,14 @@ Return a JSON object with this structure:
 }
 
 Only include characters that are explicitly mentioned or described in the messages. If no character information is found, return {"characters": []}.`;
+
+/**
+ * Get the current system prompt (custom or default)
+ */
+function getSystemPrompt() {
+    const settings = getSettings();
+    return settings.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+}
 
 /**
  * Load extension settings from storage or initialize with defaults
@@ -357,7 +366,7 @@ async function callLLM(messages) {
     
     const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\n${msg}`).join('\n\n');
     
-    const prompt = `${ANALYSIS_SYSTEM_PROMPT}\n\nAnalyze these messages and extract character information:\n\n${messagesText}`;
+    const prompt = `${getSystemPrompt()}\n\nAnalyze these messages and extract character information:\n\n${messagesText}`;
     
     let result;
     
@@ -385,12 +394,26 @@ async function callSillyTavern(prompt) {
     try {
         debugLog('Calling SillyTavern LLM...');
         
-        const result = await generateRaw(prompt, '', false, false);
+        // Use the new object-based API for generateRaw
+        const result = await generateRaw({
+            prompt: prompt,
+            use_mancer: false,
+            quiet_prompt: '',
+            quietToLoud: false,
+            skipWIAN: true,
+            force_name2: false
+        });
         
-        debugLog('SillyTavern LLM response received');
+        debugLog('SillyTavern LLM response received:', result?.substring(0, 100));
         
-        // Try to parse JSON from the response
-        return parseJSONResponse(result);
+        // The result might be the text directly
+        if (typeof result === 'string') {
+            return parseJSONResponse(result);
+        }
+        
+        // Or it might be in result.text or result.response
+        const text = result?.text || result?.response || result;
+        return parseJSONResponse(text);
     } catch (error) {
         console.error('Error calling SillyTavern LLM:', error);
         throw error;
@@ -1144,6 +1167,100 @@ async function onUndoMergeClick() {
     await undoLastMerge();
 }
 
+async function onEditSystemPromptClick() {
+    const settings = getSettings();
+    const currentPrompt = settings.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+    
+    // Create popup HTML
+    const popupHtml = `
+        <div class="system-prompt-editor">
+            <h3>Edit System Prompt</h3>
+            <p>Customize the instructions sent to the LLM for character analysis.</p>
+            <textarea id="system_prompt_editor" rows="20" style="width: 100%; font-family: monospace; font-size: 12px;">${escapeHtml(currentPrompt)}</textarea>
+            <div class="system-prompt-actions" style="margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="system_prompt_reset" class="menu_button">Reset to Default</button>
+                <button id="system_prompt_cancel" class="menu_button">Cancel</button>
+                <button id="system_prompt_save" class="menu_button">Save</button>
+            </div>
+        </div>
+    `;
+    
+    // Create and show popup
+    const popup = $('<div></div>').html(popupHtml);
+    $('body').append(popup);
+    
+    // Style the popup
+    popup.css({
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        backgroundColor: 'var(--SmartThemeBodyColor)',
+        border: '1px solid var(--SmartThemeBorderColor)',
+        borderRadius: '5px',
+        padding: '20px',
+        zIndex: 9999,
+        maxWidth: '800px',
+        width: '90%',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+    });
+    
+    // Add backdrop
+    const backdrop = $('<div></div>').css({
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 9998
+    });
+    $('body').append(backdrop);
+    
+    // Handle reset button
+    $('#system_prompt_reset').on('click', function() {
+        if (confirm('Reset to default system prompt? This will discard your custom prompt.')) {
+            $('#system_prompt_editor').val(DEFAULT_SYSTEM_PROMPT);
+        }
+    });
+    
+    // Handle cancel button
+    $('#system_prompt_cancel').on('click', function() {
+        popup.remove();
+        backdrop.remove();
+    });
+    
+    // Handle save button
+    $('#system_prompt_save').on('click', function() {
+        const newPrompt = $('#system_prompt_editor').val().trim();
+        
+        if (!newPrompt) {
+            toastr.error('System prompt cannot be empty', 'Name Tracker');
+            return;
+        }
+        
+        // Save the prompt (null if it matches default)
+        if (newPrompt === DEFAULT_SYSTEM_PROMPT) {
+            settings.systemPrompt = null;
+        } else {
+            settings.systemPrompt = newPrompt;
+        }
+        
+        saveSettingsDebounced();
+        toastr.success('System prompt updated', 'Name Tracker');
+        
+        popup.remove();
+        backdrop.remove();
+    });
+    
+    // Close on backdrop click
+    backdrop.on('click', function() {
+        $('#system_prompt_cancel').trigger('click');
+    });
+}
+
 // Character action handlers
 $(document).on('click', '.char-action-view', function() {
     const name = $(this).data('name');
@@ -1214,6 +1331,7 @@ jQuery(async () => {
     $("#name_tracker_scan_all").on("click", onScanAllClick);
     $("#name_tracker_clear_cache").on("click", onClearCacheClick);
     $("#name_tracker_undo_merge").on("click", onUndoMergeClick);
+    $("#name_tracker_edit_prompt").on("click", onEditSystemPromptClick);
     
     // Subscribe to SillyTavern events
     eventSource.on(event_types.MESSAGE_RECEIVED, onMessageReceived);

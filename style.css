@@ -252,3 +252,39 @@ button:disabled {
 .name-tracker-character.new {
     animation: fadeIn 0.3s ease;
 }
+
+/* System Prompt Editor */
+.system-prompt-editor h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--SmartThemeBodyColor);
+}
+
+.system-prompt-editor p {
+    margin-bottom: 10px;
+    color: var(--SmartThemeQuoteColor);
+    font-size: 0.9em;
+}
+
+#system_prompt_editor {
+    background-color: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 3px;
+    padding: 10px;
+    resize: vertical;
+}
+
+#system_prompt_editor:focus {
+    outline: none;
+    border-color: var(--SmartThemeEmColor);
+}
+
+.system-prompt-actions button {
+    min-width: 100px;
+}
+
+#system_prompt_reset {
+    margin-right: auto;
+}
+
