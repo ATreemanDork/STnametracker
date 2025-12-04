@@ -249,14 +249,23 @@ function updateCharacterList() {
         return;
     }
     
-    // Sort by name
-    characters.sort((a, b) => a.preferredName.localeCompare(b.preferredName));
+    // Sort: Main characters first, then by name
+    characters.sort((a, b) => {
+        // {{char}} always comes first
+        if (a.isMainChar && !b.isMainChar) return -1;
+        if (!a.isMainChar && b.isMainChar) return 1;
+        // Otherwise sort alphabetically
+        return a.preferredName.localeCompare(b.preferredName);
+    });
     
     for (const char of characters) {
+        const charIcon = char.isMainChar ? '<i class="fa-solid fa-user" title="Active Character"></i> ' : '';
+        
         const item = $(`
-            <div class="name-tracker-character" data-name="${escapeHtml(char.preferredName)}">
+            <div class="name-tracker-character ${char.isMainChar ? 'main-character' : ''}" data-name="${escapeHtml(char.preferredName)}">
                 <div class="character-header">
-                    <span class="character-name ${char.ignored ? 'ignored' : ''}">${escapeHtml(char.preferredName)}</span>
+                    <span class="character-name ${char.ignored ? 'ignored' : ''}">${charIcon}${escapeHtml(char.preferredName)}</span>
+                    ${char.isMainChar ? '<span class="character-badge main-char">ACTIVE</span>' : ''}
                     ${char.ignored ? '<span class="character-badge ignored">IGNORED</span>' : ''}
                     ${hasUnresolvedRelationships(char) ? '<span class="character-badge unresolved">NEEDS REVIEW</span>' : ''}
                 </div>
@@ -934,7 +943,7 @@ async function scanEntireChat() {
     
     let successfulBatches = 0;
     let failedBatches = 0;
-    let totalCharactersFound = 0;
+    const uniqueCharacters = new Set(); // Track unique character names
     
     // Process from oldest to newest
     for (let i = 0; i < numBatches; i++) {
@@ -954,8 +963,9 @@ async function scanEntireChat() {
             // Process the analysis
             if (analysis.characters && Array.isArray(analysis.characters)) {
                 await processAnalysisResults(analysis.characters);
-                totalCharactersFound += analysis.characters.length;
-                debugLog(`Batch ${i + 1}: Found ${analysis.characters.length} character(s)`);
+                // Track unique characters
+                analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                debugLog(`Batch ${i + 1}: Found ${analysis.characters.length} character(s) in this batch`);
             }
             
             successfulBatches++;
@@ -968,6 +978,44 @@ async function scanEntireChat() {
         } catch (error) {
             console.error(`Error processing batch ${i + 1}:`, error);
             failedBatches++;
+            
+            // If it's a "No message generated" error, try splitting this batch in half
+            if (error.message.includes('API failed to generate response') && batchMessages.length > 1) {
+                const retrySplit = confirm(`Batch ${i + 1} failed (possibly too large). Try splitting it into smaller sub-batches?`);
+                if (retrySplit) {
+                    try {
+                        // Split the batch in half and retry
+                        const midPoint = Math.floor(batchMessages.length / 2);
+                        const firstHalf = batchMessages.slice(0, midPoint);
+                        const secondHalf = batchMessages.slice(midPoint);
+                        
+                        // Process first half
+                        showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + 1}-${startIdx + midPoint} (retry)...`);
+                        const characterRoster1 = buildCharacterRoster();
+                        const analysis1 = await callLLM(firstHalf, characterRoster1);
+                        if (analysis1.characters) {
+                            await processAnalysisResults(analysis1.characters);
+                            analysis1.characters.forEach(char => uniqueCharacters.add(char.name));
+                        }
+                        
+                        // Process second half
+                        showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + midPoint + 1}-${endIdx} (retry)...`);
+                        const characterRoster2 = buildCharacterRoster();
+                        const analysis2 = await callLLM(secondHalf, characterRoster2);
+                        if (analysis2.characters) {
+                            await processAnalysisResults(analysis2.characters);
+                            analysis2.characters.forEach(char => uniqueCharacters.add(char.name));
+                        }
+                        
+                        successfulBatches++;
+                        failedBatches--; // Remove the original failure count
+                        debugLog(`Batch ${i + 1}: Retry successful after splitting`);
+                        continue;
+                    } catch (retryError) {
+                        console.error(`Retry of batch ${i + 1} also failed:`, retryError);
+                    }
+                }
+            }
             
             // Ask user if they want to continue on error
             const continueOnError = confirm(`Batch ${i + 1} failed with error: ${error.message}\n\nContinue with remaining batches?`);
@@ -986,7 +1034,8 @@ async function scanEntireChat() {
     updateStatusDisplay();
     
     // Show summary
-    const summary = `Scan complete!\n\nBatches processed: ${successfulBatches}/${numBatches}\nTotal characters found: ${totalCharactersFound}\nFailed batches: ${failedBatches}`;
+    const totalUniqueCharacters = uniqueCharacters.size;
+    const summary = `Scan complete!\n\nBatches processed: ${successfulBatches}/${numBatches}\nUnique characters found: ${totalUniqueCharacters}\nFailed batches: ${failedBatches}`;
     if (failedBatches > 0) {
         toastr.warning(summary, 'Name Tracker', { timeOut: 8000 });
     } else {
@@ -999,11 +1048,41 @@ async function scanEntireChat() {
  */
 async function processAnalysisResults(analyzedChars) {
     const settings = getSettings();
+    const context = SillyTavern.getContext();
+    
+    // Get list of loaded SillyTavern characters for comparison
+    const loadedCharacters = context.characters || [];
+    const loadedCharNames = loadedCharacters.map(c => c.name || c.avatar?.replace(/\.(png|jpg|jpeg|webp)$/i, ''));
     
     for (const analyzedChar of analyzedChars) {
         if (!analyzedChar.name) {
             continue;
         }
+        
+        // Special handling for {{user}} - always ignore
+        if (analyzedChar.name === '{{user}}' || analyzedChar.name.toLowerCase() === 'user') {
+            debugLog(`Auto-ignoring {{user}} character - user characteristics are managed by user`);
+            continue;
+        }
+        
+        // Check if this name matches a loaded SillyTavern character
+        // If so, mark as main character (they're part of the active cast)
+        const isLoadedChar = loadedCharNames.some(name => 
+            name && (
+                name.toLowerCase() === analyzedChar.name.toLowerCase() ||
+                analyzedChar.name.toLowerCase().includes(name.toLowerCase()) ||
+                name.toLowerCase().includes(analyzedChar.name.toLowerCase())
+            )
+        );
+        
+        // Also check for {{char}} placeholder (but this can match multiple characters)
+        const mentionsCharPlaceholder = analyzedChar.name === '{{char}}';
+        
+        if (isLoadedChar || mentionsCharPlaceholder) {
+            debugLog(`Detected loaded character: ${analyzedChar.name}${mentionsCharPlaceholder ? ' (via {{char}})' : ''} - marking as main`);
+        }
+        
+        const isMainChar = isLoadedChar;
         
         // Check if this character should be ignored
         if (isIgnoredCharacter(analyzedChar.name)) {
@@ -1016,7 +1095,7 @@ async function processAnalysisResults(analyzedChars) {
         
         if (existingChar) {
             // Update existing character
-            await updateCharacter(existingChar, analyzedChar);
+            await updateCharacter(existingChar, analyzedChar, false, isMainChar);
         } else {
             // Check if this might be an alias of an existing character
             const matchedChar = await findPotentialMatch(analyzedChar);
@@ -1024,10 +1103,10 @@ async function processAnalysisResults(analyzedChars) {
             if (matchedChar) {
                 // High confidence match - merge automatically
                 debugLog(`Auto-merging ${analyzedChar.name} into ${matchedChar.preferredName}`);
-                await updateCharacter(matchedChar, analyzedChar, true);
+                await updateCharacter(matchedChar, analyzedChar, true, isMainChar);
             } else {
                 // Create new character entry
-                await createCharacter(analyzedChar);
+                await createCharacter(analyzedChar, isMainChar);
             }
         }
     }
@@ -1120,7 +1199,7 @@ function calculateNameSimilarity(name1, name2) {
 /**
  * Create a new character entry
  */
-async function createCharacter(analyzedChar) {
+async function createCharacter(analyzedChar, isMainChar = false) {
     const settings = getSettings();
     
     const character = {
@@ -1132,7 +1211,8 @@ async function createCharacter(analyzedChar) {
         ignored: false,
         confidence: analyzedChar.confidence || 50,
         lorebookUid: null,
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
+        isMainChar: isMainChar || false  // Flag for {{char}}
     };
     
     settings.characters[character.preferredName] = character;
@@ -1140,13 +1220,18 @@ async function createCharacter(analyzedChar) {
     // Create lorebook entry
     await updateLorebookEntry(character);
     
-    debugLog(`Created new character: ${character.preferredName}`);
+    debugLog(`Created new character: ${character.preferredName}${isMainChar ? ' (MAIN CHARACTER)' : ''}`);
 }
 
 /**
  * Update existing character with new information
  */
-async function updateCharacter(existingChar, analyzedChar, addAsAlias = false) {
+async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, isMainChar = false) {
+    // Mark as main character if detected
+    if (isMainChar) {
+        existingChar.isMainChar = true;
+    }
+    
     // If adding as alias, add the analyzed name to aliases if not already present
     if (addAsAlias && analyzedChar.name !== existingChar.preferredName) {
         if (!existingChar.aliases.includes(analyzedChar.name)) {
@@ -1376,11 +1461,8 @@ async function viewInLorebook(characterName) {
         return;
     }
     
-    // Ensure lorebook exists
-    await ensureLorebookExists();
-    
     if (!lorebookName) {
-        toastr.error('Failed to create or find lorebook', 'Name Tracker');
+        toastr.warning('No active chat or lorebook', 'Name Tracker');
         return;
     }
     
@@ -1390,7 +1472,7 @@ async function viewInLorebook(characterName) {
     // Open the lorebook editor
     if (typeof context.openWorldInfoEditor === 'function') {
         await context.openWorldInfoEditor(lorebookName);
-        toastr.success(`Opened lorebook editor for ${characterName}`, 'Name Tracker');
+        toastr.success(`Opened lorebook for ${characterName}`, 'Name Tracker');
     } else {
         // Fallback: show the world info panel if openWorldInfoEditor doesn't exist
         $('#WorldInfo').click();
@@ -1755,85 +1837,68 @@ $(document).on('click', '.char-action-ignore', function() {
 });
 
 /**
- * Add chat extension shortcut buttons
+ * Open the chat lorebook in the World Info editor
  */
-function addChatShortcuts() {
-    // Create the shortcut container if it doesn't exist
-    let shortcutContainer = $('#name_tracker_shortcuts');
-    if (shortcutContainer.length === 0) {
-        // Try to find a good place to insert - after the chat input area
-        const insertionPoint = $('#send_form') || $('#chat');
-        if (insertionPoint.length) {
-            shortcutContainer = $('<div id="name_tracker_shortcuts" class="name-tracker-shortcuts"></div>');
-            insertionPoint.after(shortcutContainer);
-        }
-    }
-    
-    if (shortcutContainer.length === 0) {
-        console.warn('Name Tracker: Could not find insertion point for chat shortcuts');
+async function openChatLorebook() {
+    if (!lorebookName) {
+        toastr.warning('No active chat or lorebook', 'Name Tracker');
         return;
     }
     
-    // Clear existing shortcuts
-    shortcutContainer.empty();
+    const context = SillyTavern.getContext();
+    if (typeof context.openWorldInfoEditor === 'function') {
+        await context.openWorldInfoEditor(lorebookName);
+    } else {
+        // Fallback: show the world info panel
+        $('#WorldInfo').click();
+        toastr.info(`Please select "${lorebookName}" from the World Info panel`, 'Name Tracker');
+    }
+}
+
+/**
+ * Toggle auto-harvest on/off
+ */
+function toggleAutoHarvest() {
+    const settings = getSettings();
+    settings.autoAnalyze = !settings.autoAnalyze;
+    
+    // Update the settings UI
+    $('#name_tracker_auto_analyze').prop('checked', settings.autoAnalyze);
+    
+    // Save settings
+    SillyTavern.getContext().saveSettingsDebounced();
+    
+    toastr.success(
+        `Auto-harvest ${settings.autoAnalyze ? 'enabled' : 'disabled'}`,
+        'Name Tracker'
+    );
+}
+
+/**
+ * Initialize extension menu buttons
+ */
+function initializeMenuButtons() {
+    const context = SillyTavern.getContext();
     
     // Add "Open Chat Lorebook" button
-    const openLorebookBtn = $(`
-        <button id="name_tracker_open_lorebook" class="menu_button" title="Open Name Tracker Chat Lorebook">
-            <i class="fa-solid fa-book"></i>
-            <span>Chat Lorebook</span>
-        </button>
-    `);
-    
-    openLorebookBtn.on('click', async () => {
-        await ensureLorebookExists();
-        if (!lorebookName) {
-            toastr.error('Failed to create or find lorebook', 'Name Tracker');
-            return;
-        }
-        
-        const context = SillyTavern.getContext();
-        if (typeof context.openWorldInfoEditor === 'function') {
-            await context.openWorldInfoEditor(lorebookName);
-        } else {
-            $('#WorldInfo').click();
-            toastr.info(`Please select "${lorebookName}" from the World Info panel`, 'Name Tracker');
-        }
-    });
+    if (typeof context.addExtensionMenuButton === 'function') {
+        context.addExtensionMenuButton(
+            'Open Chat Lorebook',
+            'fa-solid fa-book',
+            openChatLorebook,
+            'Open the Name Tracker chat lorebook in the World Info editor'
+        );
+    }
     
     // Add "Toggle Auto-Harvest" button
-    const settings = getSettings();
-    const toggleHarvestBtn = $(`
-        <button id="name_tracker_toggle_harvest" class="menu_button ${settings.autoAnalyze ? 'active' : ''}" 
-                title="Toggle automatic character harvesting">
-            <i class="fa-solid fa-seedling"></i>
-            <span>Auto-Harvest: ${settings.autoAnalyze ? 'ON' : 'OFF'}</span>
-        </button>
-    `);
-    
-    toggleHarvestBtn.on('click', () => {
-        const currentSettings = getSettings();
-        currentSettings.autoAnalyze = !currentSettings.autoAnalyze;
-        
-        // Update the button
-        toggleHarvestBtn.toggleClass('active', currentSettings.autoAnalyze);
-        toggleHarvestBtn.find('span').text(`Auto-Harvest: ${currentSettings.autoAnalyze ? 'ON' : 'OFF'}`);
-        
-        // Update the settings UI
-        $('#name_tracker_auto_analyze').prop('checked', currentSettings.autoAnalyze);
-        
-        // Save settings
-        SillyTavern.getContext().saveSettingsDebounced();
-        
-        toastr.success(
-            `Auto-harvest ${currentSettings.autoAnalyze ? 'enabled' : 'disabled'}`,
-            'Name Tracker'
+    if (typeof context.addExtensionMenuButton === 'function') {
+        context.addExtensionMenuButton(
+            'Toggle Auto-Harvest',
+            'fa-solid fa-seedling',
+            toggleAutoHarvest,
+            'Toggle automatic character harvesting on/off'
         );
-    });
-    
-    // Add buttons to container
-    shortcutContainer.append(openLorebookBtn);
-    shortcutContainer.append(toggleHarvestBtn);
+    }
 }
 
 // Initialize extension when jQuery is ready
@@ -1873,8 +1938,8 @@ jQuery(async () => {
     // Load settings
     await loadSettings();
     
-    // Add chat extension shortcuts
-    addChatShortcuts();
+    // Initialize extension menu buttons
+    initializeMenuButtons();
     
     console.log("Name Tracker extension loaded");
 });

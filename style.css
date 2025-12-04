@@ -51,6 +51,12 @@
     margin-bottom: 0;
 }
 
+/* Active/loaded character styling (characters that are loaded in SillyTavern) */
+.name-tracker-character.main-character {
+    border-left: 3px solid #4CAF50;
+    background-color: rgba(76, 175, 80, 0.05);
+}
+
 .character-header {
     display: flex;
     justify-content: space-between;
@@ -62,6 +68,11 @@
     font-weight: bold;
     font-size: 1.1em;
     color: var(--SmartThemeBodyColor);
+}
+
+.character-name .fa-user {
+    color: #4CAF50;
+    margin-right: 5px;
 }
 
 .character-name.ignored {
@@ -76,6 +87,11 @@
     font-size: 0.75em;
     font-weight: bold;
     margin-left: 5px;
+}
+
+.character-badge.main-char {
+    background-color: #4CAF50;
+    color: #fff;
 }
 
 .character-badge.ignored {
@@ -286,46 +302,6 @@ button:disabled {
 
 #system_prompt_reset {
     margin-right: auto;
-}
-
-/* Chat Extension Shortcuts */
-.name-tracker-shortcuts {
-    display: flex;
-    gap: 5px;
-    padding: 5px;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-.name-tracker-shortcuts .menu_button {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    border-radius: 5px;
-    border: 1px solid var(--SmartThemeBorderColor);
-    background-color: var(--SmartThemeBlurTintColor);
-    color: var(--SmartThemeBodyColor);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.9em;
-}
-
-.name-tracker-shortcuts .menu_button:hover {
-    background-color: var(--SmartThemeEmColor);
-    border-color: var(--SmartThemeEmColor);
-    transform: translateY(-1px);
-}
-
-.name-tracker-shortcuts .menu_button.active {
-    background-color: var(--green);
-    border-color: var(--green);
-    color: white;
-}
-
-.name-tracker-shortcuts .menu_button i {
-    font-size: 1em;
 }
 
 

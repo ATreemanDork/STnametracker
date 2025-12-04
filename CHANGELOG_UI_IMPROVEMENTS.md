@@ -1,6 +1,6 @@
 # Name Tracker UI Improvements - Changelog
 
-## Version 2.1.0 - Chat UI Integration
+## Version 2.1.0 - Extension Menu Integration
 
 ### New Features
 
@@ -8,24 +8,23 @@
 - **"View in Lorebook" button now opens the actual lorebook editor**
   - Previously showed a toast notification with character data
   - Now directly opens the SillyTavern World Info editor
-  - Automatically ensures the chat lorebook exists
+  - Uses the chat's existing lorebook (initialized on chat change)
   - Falls back to opening World Info panel if `openWorldInfoEditor()` API isn't available
   - Shows success toast when editor opens
 
-#### 2. **Chat Extension Shortcuts**
-Two new quick-access buttons added to the chat interface:
+#### 2. **Extension Menu Shortcuts**
+Two new buttons added to SillyTavern's extension menu (three-dot menu):
 
-##### **📖 Chat Lorebook Button**
+##### **📖 Open Chat Lorebook**
 - Opens the Name Tracker chat lorebook directly in the editor
-- Located conveniently near the chat input area
+- Accessible from the extension menu dropdown
 - One-click access to view/edit all tracked characters
 - Icon: Book (fa-book)
 
-##### **🌱 Auto-Harvest Toggle Button**
+##### **🌱 Toggle Auto-Harvest**
 - Toggle automatic character harvesting on/off with one click
-- Visual indicator: Green when enabled, default color when disabled
-- Updates both the button and extension settings in sync
-- Shows current status: "Auto-Harvest: ON" or "Auto-Harvest: OFF"
+- Syncs with the extension settings panel
+- Shows toast notification of current state
 - Icon: Seedling (fa-seedling)
 
 ### Technical Changes
@@ -33,33 +32,32 @@ Two new quick-access buttons added to the chat interface:
 #### Modified Files:
 
 **index.js:**
-- Updated `viewInLorebook()` function (lines 1368-1402)
-  - Now async function
-  - Calls `ensureLorebookExists()` first
-  - Uses `context.openWorldInfoEditor(lorebookName)` API
+- Updated `viewInLorebook()` function (lines 1368-1400)
+  - Removed non-existent `ensureLorebookExists()` call
+  - Uses existing `lorebookName` from chat initialization
+  - Calls `context.openWorldInfoEditor(lorebookName)` API
   - Includes fallback for older SillyTavern versions
   
-- Added `addChatShortcuts()` function (lines 1757-1838)
-  - Creates shortcut container div after `#send_form`
-  - Builds "Open Chat Lorebook" button with click handler
-  - Builds "Toggle Auto-Harvest" button with state management
-  - Updates button styling based on active state
-  - Syncs with extension settings
+- Added `openChatLorebook()` function (lines 1755-1772)
+  - Opens chat lorebook in World Info editor
+  - Checks for active chat/lorebook first
+  - Uses same API pattern as viewInLorebook()
 
-- Modified initialization (line 1877)
-  - Added `addChatShortcuts()` call after loading settings
+- Added `toggleAutoHarvest()` function (lines 1774-1787)
+  - Toggles `settings.autoAnalyze` flag
+  - Syncs with settings UI checkbox
+  - Saves settings via `saveSettingsDebounced()`
+  - Shows toast notification
+
+- Added `initializeMenuButtons()` function (lines 1789-1809)
+  - Uses `context.addExtensionMenuButton()` API
+  - Registers two menu items with callbacks
+  - Follows same pattern as Qvink Memory extension
+  - Called during extension initialization
 
 **style.css:**
-- Added `.name-tracker-shortcuts` styles (lines 291-332)
-  - Flexbox layout for button arrangement
-  - Responsive with gap spacing
-  - Uses SillyTavern theme variables for consistency
-  
-- Added `.menu_button` styles for shortcut buttons
-  - Inline-flex display with icons
-  - Hover effects with transform animation
-  - Active state styling (green background)
-  - Font Awesome icon spacing
+- Removed custom `.name-tracker-shortcuts` styles (no longer needed)
+- Uses SillyTavern's built-in extension menu styling
 
 ### User Experience Improvements
 
@@ -68,34 +66,43 @@ Two new quick-access buttons added to the chat interface:
    - Edit character entries immediately
    - Seamless integration with SillyTavern's World Info system
 
-2. **Quick Toggle Controls:**
-   - Enable/disable auto-harvest without opening settings
-   - Visual feedback of current state
-   - Convenient for testing or manual control scenarios
+2. **Native Extension Menu:**
+   - Consistent with other SillyTavern extensions
+   - Accessible from the standard three-dot menu
+   - No custom UI elements cluttering the chat
 
-3. **Consistent UI:**
-   - Buttons use SillyTavern theme colors
-   - Smooth hover animations
-   - Clear iconography
+3. **Quick Toggle Controls:**
+   - Enable/disable auto-harvest without opening settings
+   - Toast feedback of current state
+   - Settings persist across sessions
 
 ### Compatibility
 
-- **Requires:** SillyTavern with World Info support
-- **API Used:** `context.openWorldInfoEditor()` (with fallback)
-- **Graceful Degradation:** Falls back to opening World Info panel if API unavailable
+- **Requires:** SillyTavern with extension menu support
+- **API Used:** 
+  - `context.openWorldInfoEditor()` (with fallback)
+  - `context.addExtensionMenuButton()` (with safety check)
+- **Graceful Degradation:** Functions check for API availability before use
 
 ### Usage
 
 **Opening Lorebook Editor:**
 1. Click "View" button next to any character in the roster
-2. **OR** click the "Chat Lorebook" shortcut button
+2. **OR** click the three-dot extension menu → "Open Chat Lorebook"
 3. Lorebook editor opens automatically to the Name Tracker chat lorebook
 
 **Toggling Auto-Harvest:**
-1. Click the "Auto-Harvest" button in chat shortcuts
-2. Button turns green when enabled, gray when disabled
-3. Status text updates: "Auto-Harvest: ON" / "Auto-Harvest: OFF"
+1. Click the three-dot extension menu → "Toggle Auto-Harvest"
+2. Toast shows new state: "Auto-harvest enabled/disabled"
+3. Setting syncs with extension settings panel
 4. Setting persists across sessions
+
+### Bug Fixes
+
+- Fixed `ensureLorebookExists is not defined` error
+  - Removed calls to non-existent function
+  - Lorebook is already initialized in `onChatChanged()` event handler
+  - Uses existing `lorebookName` variable
 
 ### Known Issues
 
@@ -103,7 +110,8 @@ None currently identified.
 
 ### Future Enhancements (Ideas)
 
-- Add shortcut to trigger manual character analysis
-- Add character count badge to Chat Lorebook button
+- Add menu shortcut to trigger manual character analysis
+- Add character count badge indicator
 - Add keyboard shortcuts for common actions
-- Add "Scan Last N Messages" quick action button
+- Add "Scan Last N Messages" quick action
+
