@@ -1,0 +1,11 @@
+{
+    "display_name": "Name Tracker",
+    "loading_order": 10,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "ATreemanDork",
+    "version": "1.0.0",
+    "homePage": "https://github.com/ATreemanDork/STnametracker"
+}
