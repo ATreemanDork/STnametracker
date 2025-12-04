@@ -1,8 +1,12 @@
 # SillyTavern Name Tracker Extension
 
+## Version 2.0.0 - Beta
+
+**IMPORTANT NOTE**: This version currently stores character data in chat metadata only. Direct lorebook integration is temporarily disabled while we ensure compatibility with all SillyTavern versions. Character data is fully preserved and will be automatically migrated to lorebook entries in a future update.
+
 ## Overview
 
-The Name Tracker extension is an advanced character tracking system for SillyTavern that automatically analyzes chat messages to extract and maintain detailed information about characters, including their physical descriptions, mental/emotional states, and relationships. All data is stored in chat-level lorebook entries for seamless integration with your conversations.
+The Name Tracker extension is an advanced character tracking system for SillyTavern that automatically analyzes chat messages to extract and maintain detailed information about characters, including their physical descriptions, mental/emotional states, and relationships.
 
 ## Features
 

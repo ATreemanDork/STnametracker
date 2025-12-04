@@ -4,13 +4,21 @@
 import { extension_settings, getContext } from "../../../extensions.js";
 import { saveSettingsDebounced, generateRaw } from "../../../../script.js";
 import { eventSource, event_types, chat, chat_metadata } from "../../../../script.js";
-import { loadWorldInfo, saveWorldInfo, createWorldInfoEntry } from "../../../../world-info.js";
-import { getStringHash } from "../../../../utils.js";
-import { callPopup } from "../../../../popup.js";
 
 // Extension constants
 const extensionName = "STnametracker";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+
+// Simple hash function to replace getStringHash
+function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash.toString(36);
+}
 
 // Default settings
 const defaultSettings = {
@@ -292,15 +300,7 @@ async function initializeLorebook() {
     // Create a chat-specific lorebook name
     lorebookName = `NameTracker_${context.chatId}`;
     
-    debugLog(`Initializing lorebook: ${lorebookName}`);
-    
-    // Check if lorebook exists, if not it will be created when we first save
-    try {
-        await loadWorldInfo(lorebookName);
-        debugLog(`Lorebook ${lorebookName} loaded successfully`);
-    } catch (error) {
-        debugLog(`Lorebook ${lorebookName} doesn't exist yet, will be created on first save`);
-    }
+    debugLog(`Initialized lorebook name: ${lorebookName}`);
 }
 
 /**
@@ -347,7 +347,7 @@ async function callLLM(messages) {
     const settings = getSettings();
     
     // Create cache key
-    const cacheKey = getStringHash(messages.join('\n') + settings.llmSource + settings.ollamaModel);
+    const cacheKey = simpleHash(messages.join('\n') + settings.llmSource + settings.ollamaModel);
     
     // Check cache
     if (analysisCache.has(cacheKey)) {
@@ -721,6 +721,8 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false) {
 
 /**
  * Update or create lorebook entry for a character
+ * NOTE: Simplified version - stores data in chat metadata only
+ * Future version will integrate with World Info when API is stable
  */
 async function updateLorebookEntry(character) {
     if (!lorebookName) {
@@ -728,54 +730,8 @@ async function updateLorebookEntry(character) {
         return;
     }
     
-    const settings = getSettings();
-    
-    try {
-        // Load or create lorebook
-        let worldInfo;
-        try {
-            worldInfo = await loadWorldInfo(lorebookName);
-        } catch (error) {
-            // Lorebook doesn't exist, create it
-            worldInfo = { entries: {} };
-        }
-        
-        // Create entry content
-        const entryContent = createLorebookContent(character);
-        
-        // Find or create entry
-        let entry;
-        if (character.lorebookUid && worldInfo.entries[character.lorebookUid]) {
-            // Update existing entry
-            entry = worldInfo.entries[character.lorebookUid];
-            entry.content = entryContent;
-            entry.key = [character.preferredName, ...character.aliases];
-            entry.comment = character.preferredName;
-        } else {
-            // Create new entry
-            entry = createWorldInfoEntry(lorebookName, worldInfo);
-            entry.key = [character.preferredName, ...character.aliases];
-            entry.comment = character.preferredName;
-            entry.content = entryContent;
-            entry.constant = false;
-            entry.selective = true;
-            entry.position = settings.lorebookPosition;
-            entry.depth = settings.lorebookDepth;
-            entry.probability = settings.lorebookProbability;
-            entry.enabled = settings.lorebookEnabled;
-            
-            // Store the UID
-            character.lorebookUid = entry.uid;
-            worldInfo.entries[entry.uid] = entry;
-        }
-        
-        // Save the lorebook
-        await saveWorldInfo(lorebookName, worldInfo);
-        
-        debugLog(`Updated lorebook entry for ${character.preferredName}`);
-    } catch (error) {
-        console.error('Error updating lorebook entry:', error);
-    }
+    debugLog(`Character data updated for ${character.preferredName} (lorebook integration pending)`);
+    // Data is already saved in chat_metadata via saveChatData()
 }
 
 /**
@@ -948,17 +904,14 @@ async function viewInLorebook(characterName) {
     const settings = getSettings();
     const character = settings.characters[characterName];
     
-    if (!character || !character.lorebookUid) {
-        toastr.error('Character has no lorebook entry', 'Name Tracker');
+    if (!character) {
+        toastr.error('Character not found', 'Name Tracker');
         return;
     }
     
-    // Open the world info panel
-    // This is a simplified approach - you may need to adjust based on ST's actual UI
-    toastr.info(`Opening lorebook entry for ${characterName}`, 'Name Tracker');
-    
-    // Trigger the world info panel to open
-    $('#WIDrawerIcon').trigger('click');
+    // Show character data in a popup since we can't direct link to lorebook yet
+    const content = createLorebookContent(character);
+    toastr.info(`Character: ${characterName}<br><pre>${content}</pre>`, 'Name Tracker', { timeOut: 10000 });
 }
 
 /**
@@ -1219,14 +1172,14 @@ $(document).on('click', '.char-action-merge', async function() {
     </div>`;
     
     const template = $(`<div>${html}</div>`);
-    callPopup(template, 'text', '', { okButton: 'Merge', cancelButton: 'Cancel' }).then(async (confirmed) => {
-        if (confirmed) {
-            const targetName = $('#merge-target-select').val();
-            if (targetName) {
-                await mergeCharacters(sourceName, targetName);
-            }
-        }
-    });
+    
+    // Use native confirm dialog instead of callPopup
+    const targetName = prompt(`Merge "${sourceName}" into which character? Available: ${otherCharacters.map(c => c.preferredName).join(', ')}`);
+    if (targetName && settings.characters[targetName]) {
+        await mergeCharacters(sourceName, targetName);
+    } else if (targetName) {
+        toastr.error('Invalid target character name', 'Name Tracker');
+    }
 });
 
 $(document).on('click', '.char-action-ignore', function() {
