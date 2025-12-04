@@ -142,6 +142,11 @@ async function loadSettings() {
     // Update UI with current settings
     updateUI();
     
+    // Auto-add user's character to ignored list if extension is enabled
+    if (extension_settings[extensionName].enabled) {
+        ensureUserCharacterIgnored();
+    }
+    
     // Initialize lorebook for this chat
     await initializeLorebook();
     
@@ -173,6 +178,45 @@ function saveChatData() {
  */
 function getSettings() {
     return extension_settings[extensionName];
+}
+
+/**
+ * Add user's character to ignored list if not already present
+ */
+function ensureUserCharacterIgnored() {
+    const settings = getSettings();
+    const context = SillyTavern.getContext();
+    const userName = context.name2;
+    
+    if (!userName) {
+        debugLog('No user character name available (context.name2 is empty)');
+        return;
+    }
+    
+    // Check if user's character already exists and is ignored
+    if (settings.characters[userName]) {
+        if (!settings.characters[userName].ignored) {
+            settings.characters[userName].ignored = true;
+            saveChatData();
+            debugLog(`Marked existing user character "${userName}" as ignored`);
+        }
+        return;
+    }
+    
+    // Add user's character as ignored
+    settings.characters[userName] = {
+        preferredName: userName,
+        aliases: [],
+        notes: 'Auto-added: User character',
+        ignored: true,
+        isMainChar: false,
+        appearances: 0,
+        lastMentioned: 0
+    };
+    
+    saveChatData();
+    updateCharacterList();
+    debugLog(`Auto-added user character "${userName}" to ignored list`);
 }
 
 /**
@@ -1585,6 +1629,11 @@ function onEnabledChange(event) {
     extension_settings[extensionName].enabled = value;
     SillyTavern.getContext().saveSettingsDebounced();
     updateStatusDisplay();
+    
+    // Auto-add user's character to ignored list when enabling
+    if (value) {
+        ensureUserCharacterIgnored();
+    }
     
     toastr.info(value ? 'Name tracking enabled' : 'Name tracking disabled', 'Name Tracker');
 }
