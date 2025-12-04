@@ -353,12 +353,42 @@ async function loadOllamaModels() {
 }
 
 /**
- * Call LLM for character analysis
- * @param {string[]} messages - Array of message texts to analyze
- * @returns {Promise<Object>} Analysis result
+ * Build a roster of known characters for context
+ * @returns {string} Formatted roster text
  */
-async function callLLM(messages) {
+function buildCharacterRoster() {
     const settings = getSettings();
+    const characters = settings.characters || {};
+    const characterNames = Object.keys(characters);
+    
+    if (characterNames.length === 0) {
+        return '';
+    }
+    
+    const roster = characterNames.map(name => {
+        const char = characters[name];
+        const aliases = char.aliases && char.aliases.length > 0 
+            ? ` (also known as: ${char.aliases.join(', ')})`
+            : '';
+        const relationships = char.relationships && char.relationships.length > 0
+            ? `\n    Relationships: ${char.relationships.join('; ')}`
+            : '';
+        return `  - ${name}${aliases}${relationships}`;
+    }).join('\n');
+    
+    return `\n\n[KNOWN CHARACTERS]\nThe following characters have already been identified. If you encounter them again, use the same name and add any new details:\n${roster}\n`;
+}
+
+/**
+ * Call LLM for character analysis with automatic batch splitting if prompt is too long
+ * @param {string[]} messages - Array of message texts to analyze
+ * @param {string} knownCharacters - Roster of previously identified characters
+ * @param {number} depth - Recursion depth (for logging)
+ * @returns {Promise<Object>} Analysis result with merged characters
+ */
+async function callLLM(messages, knownCharacters = '', depth = 0) {
+    const settings = getSettings();
+    const MAX_PROMPT_LENGTH = 15000; // Conservative limit to avoid API issues
     
     // Create cache key
     const cacheKey = simpleHash(messages.join('\n') + settings.llmSource + settings.ollamaModel);
@@ -369,17 +399,54 @@ async function callLLM(messages) {
         return analysisCache.get(cacheKey);
     }
     
+    // Build the prompt
     const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\n${msg}`).join('\n\n');
+    const systemInstructions = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\n${getSystemPrompt()}${knownCharacters}\n\n[DATA TO ANALYZE]`;
+    const fullPrompt = `${systemInstructions}\n${messagesText}\n\n[RESPOND WITH JSON ONLY - NO STORY CONTINUATION]`;
     
-    // Format the prompt to clearly separate instructions from data
-    const prompt = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\n${getSystemPrompt()}\n\n[DATA TO ANALYZE]\n${messagesText}\n\n[RESPOND WITH JSON ONLY - NO STORY CONTINUATION]`;
+    // If prompt is too long, split into sub-batches
+    if (fullPrompt.length > MAX_PROMPT_LENGTH && messages.length > 1) {
+        const indent = '  '.repeat(depth);
+        debugLog(`${indent}Prompt too long (${fullPrompt.length} chars), splitting ${messages.length} messages into 2 sub-batches`);
+        
+        // Split messages in half
+        const midPoint = Math.floor(messages.length / 2);
+        const firstHalf = messages.slice(0, midPoint);
+        const secondHalf = messages.slice(midPoint);
+        
+        // Process each half recursively with same character context
+        const [result1, result2] = await Promise.all([
+            callLLM(firstHalf, knownCharacters, depth + 1),
+            callLLM(secondHalf, knownCharacters, depth + 1)
+        ]);
+        
+        // Merge the results
+        const mergedResult = {
+            characters: [
+                ...(result1.characters || []),
+                ...(result2.characters || [])
+            ]
+        };
+        
+        debugLog(`${indent}Merged ${result1.characters?.length || 0} + ${result2.characters?.length || 0} = ${mergedResult.characters.length} characters from sub-batches`);
+        
+        // Cache the merged result
+        if (analysisCache.size > 50) {
+            const firstKey = analysisCache.keys().next().value;
+            analysisCache.delete(firstKey);
+        }
+        analysisCache.set(cacheKey, mergedResult);
+        
+        return mergedResult;
+    }
     
+    // Prompt is acceptable length, proceed with analysis
     let result;
     
     if (settings.llmSource === 'ollama') {
-        result = await callOllama(prompt);
+        result = await callOllama(fullPrompt);
     } else {
-        result = await callSillyTavern(prompt);
+        result = await callSillyTavern(fullPrompt);
     }
     
     // Cache the result
@@ -410,6 +477,11 @@ async function callSillyTavern(prompt) {
         
         debugLog('Generating with prompt length:', prompt.length);
         
+        // Check if prompt is too long (>15000 chars might cause issues)
+        if (prompt.length > 15000) {
+            debugLog('WARNING: Prompt is very long, may exceed context limits');
+        }
+        
         // Use generateRaw as documented in:
         // https://docs.sillytavern.app/for-contributors/writing-extensions/#raw-generation
         const result = await context.generateRaw({
@@ -429,12 +501,15 @@ async function callSillyTavern(prompt) {
     } catch (error) {
         console.error('Error calling SillyTavern LLM:', error);
         
-        // Provide helpful error message
+        // Provide helpful error messages
         if (error.message.includes('No message generated')) {
-            toastr.error('Please connect to an API (OpenAI, Claude, etc.) before using Name Tracker', 'Name Tracker');
-        } else {
-            toastr.error(`LLM Error: ${error.message}`, 'Name Tracker');
+            // This often means context overflow or API issue
+            const contextHint = prompt.length > 10000 
+                ? ' (Prompt may be too long - try reducing Message Frequency in settings)' 
+                : '';
+            throw new Error(`API failed to generate response${contextHint}`);
         }
+        
         throw error;
     }
 }
@@ -673,8 +748,11 @@ async function scanEntireChat() {
                 return JSON.stringify(msg);
             });
             
-            // Call LLM for analysis
-            const analysis = await callLLM(messages);
+            // Build roster of characters found so far
+            const characterRoster = buildCharacterRoster();
+            
+            // Call LLM for analysis with character context
+            const analysis = await callLLM(messages, characterRoster);
             
             // Process the analysis
             if (analysis.characters && Array.isArray(analysis.characters)) {
