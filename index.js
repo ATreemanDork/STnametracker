@@ -394,6 +394,12 @@ async function callSillyTavern(prompt) {
     try {
         debugLog('Calling SillyTavern LLM...');
         
+        // Check if we have an active API connection
+        const context = getContext();
+        if (!context.onlineStatus) {
+            throw new Error('No API connection available. Please connect to an API first.');
+        }
+        
         // Use the new object-based API for generateRaw
         const result = await generateRaw({
             prompt: prompt,
@@ -401,7 +407,9 @@ async function callSillyTavern(prompt) {
             quiet_prompt: '',
             quietToLoud: false,
             skipWIAN: true,
-            force_name2: false
+            force_name2: false,
+            quiet_image: '',
+            max_context_unlocked: false
         });
         
         debugLog('SillyTavern LLM response received:', result?.substring(0, 100));
@@ -416,6 +424,13 @@ async function callSillyTavern(prompt) {
         return parseJSONResponse(text);
     } catch (error) {
         console.error('Error calling SillyTavern LLM:', error);
+        
+        // Provide helpful error message
+        if (error.message.includes('No message generated')) {
+            toastr.error('Please connect to an API (OpenAI, Claude, etc.) before using Name Tracker', 'Name Tracker');
+        } else {
+            toastr.error(`LLM Error: ${error.message}`, 'Name Tracker');
+        }
         throw error;
     }
 }
@@ -494,9 +509,19 @@ async function harvestMessages(messageCount, showProgress = true) {
         return;
     }
     
+    // Check API connection for SillyTavern mode
+    if (settings.llmSource === 'sillytavern') {
+        const context = getContext();
+        if (!context.onlineStatus) {
+            toastr.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages', 'Name Tracker');
+            return;
+        }
+    }
+    
     const context = getContext();
     if (!context.chat || context.chat.length === 0) {
         debugLog('No chat messages to harvest');
+        toastr.info('No messages in chat to analyze', 'Name Tracker');
         return;
     }
     
@@ -548,6 +573,99 @@ async function harvestMessages(messageCount, showProgress = true) {
         console.error('Error during harvest:', error);
         toastr.error(`Analysis failed: ${error.message}`, 'Name Tracker');
     }
+}
+
+/**
+ * Scan entire chat in batches from oldest to newest
+ * Processes in chunks equal to messageFrequency for progressive context building
+ */
+async function scanEntireChat() {
+    const settings = getSettings();
+    const context = getContext();
+    
+    if (!context.chat || context.chat.length === 0) {
+        toastr.warning('No chat messages to scan', 'Name Tracker');
+        return;
+    }
+    
+    // Check API connection for SillyTavern mode
+    if (settings.llmSource === 'sillytavern') {
+        if (!context.onlineStatus) {
+            toastr.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages', 'Name Tracker');
+            return;
+        }
+    }
+    
+    const totalMessages = context.chat.length;
+    const batchSize = settings.messageFrequency || 10;
+    const numBatches = Math.ceil(totalMessages / batchSize);
+    
+    const confirmed = confirm(`This will analyze all ${totalMessages} messages in ${numBatches} batches of ${batchSize}. This may take a while. Continue?`);
+    
+    if (!confirmed) {
+        return;
+    }
+    
+    toastr.info(`Starting batch scan: ${numBatches} batches to process...`, 'Name Tracker', { timeOut: 3000 });
+    
+    let successfulBatches = 0;
+    let failedBatches = 0;
+    let totalCharactersFound = 0;
+    
+    // Process from oldest to newest
+    for (let i = 0; i < numBatches; i++) {
+        const startIdx = i * batchSize;
+        const endIdx = Math.min(startIdx + batchSize, totalMessages);
+        const batchMessages = context.chat.slice(startIdx, endIdx);
+        
+        try {
+            toastr.info(`Processing batch ${i + 1}/${numBatches} (messages ${startIdx + 1}-${endIdx})...`, 'Name Tracker', { timeOut: 2000 });
+            
+            // Extract message text
+            const messages = batchMessages.map(msg => {
+                if (typeof msg === 'string') return msg;
+                if (msg.mes) return msg.mes;
+                if (msg.message) return msg.message;
+                return JSON.stringify(msg);
+            });
+            
+            // Call LLM for analysis
+            const analysis = await callLLM(messages);
+            
+            // Process the analysis
+            if (analysis.characters && Array.isArray(analysis.characters)) {
+                await processAnalysisResults(analysis.characters);
+                totalCharactersFound += analysis.characters.length;
+                debugLog(`Batch ${i + 1}: Found ${analysis.characters.length} character(s)`);
+            }
+            
+            successfulBatches++;
+            
+            // Small delay between batches to avoid rate limiting
+            if (i < numBatches - 1) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+        } catch (error) {
+            console.error(`Error processing batch ${i + 1}:`, error);
+            failedBatches++;
+            
+            // Ask user if they want to continue on error
+            const continueOnError = confirm(`Batch ${i + 1} failed with error: ${error.message}\n\nContinue with remaining batches?`);
+            if (!continueOnError) {
+                break;
+            }
+        }
+    }
+    
+    // Update last harvest message counter
+    settings.lastHarvestMessage = settings.messageCounter;
+    saveChatData();
+    updateStatusDisplay();
+    
+    // Show summary
+    const summary = `Scan complete!\n\nBatches processed: ${successfulBatches}/${numBatches}\nTotal characters found: ${totalCharactersFound}\nFailed batches: ${failedBatches}`;
+    toastr.success(summary, 'Name Tracker', { timeOut: 8000 });
 }
 
 /**
@@ -1145,18 +1263,7 @@ async function onManualAnalyzeClick() {
 }
 
 async function onScanAllClick() {
-    const context = getContext();
-    if (!context.chat || context.chat.length === 0) {
-        toastr.warning('No chat messages to scan', 'Name Tracker');
-        return;
-    }
-    
-    const totalMessages = context.chat.length;
-    const confirmed = confirm(`This will analyze all ${totalMessages} messages in the current chat. This may take a while. Continue?`);
-    
-    if (confirmed) {
-        await harvestMessages(totalMessages, true);
-    }
+    await scanEntireChat();
 }
 
 function onClearCacheClick() {
