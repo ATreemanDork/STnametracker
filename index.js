@@ -353,6 +353,64 @@ async function loadOllamaModels() {
 }
 
 /**
+ * Get Ollama model context size
+ * @param {string} modelName - Name of the Ollama model
+ * @returns {Promise<number>} Context size in tokens, or default 4096
+ */
+async function getOllamaModelContext(modelName) {
+    const settings = getSettings();
+    
+    if (!modelName) {
+        debugLog('No Ollama model specified, using default context size');
+        return 4096;
+    }
+    
+    try {
+        const response = await fetch(`${settings.ollamaEndpoint}/api/show`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: modelName
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch model info: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Look for num_ctx in parameters array
+        if (data.parameters && Array.isArray(data.parameters)) {
+            for (const param of data.parameters) {
+                const match = param.match(/num_ctx\s+(\d+)/);
+                if (match) {
+                    const contextSize = parseInt(match[1]);
+                    debugLog(`Ollama model ${modelName} context size: ${contextSize} tokens`);
+                    return contextSize;
+                }
+            }
+        }
+        
+        // Fallback: check if it's in model details
+        if (data.model_info && data.model_info.num_ctx) {
+            const contextSize = parseInt(data.model_info.num_ctx);
+            debugLog(`Ollama model ${modelName} context size: ${contextSize} tokens`);
+            return contextSize;
+        }
+        
+        debugLog(`Could not find context size for ${modelName}, using default 4096`);
+        return 4096;
+    } catch (error) {
+        console.error('Error fetching Ollama model context:', error);
+        debugLog(`Failed to get Ollama context size, using default 4096`);
+        return 4096;
+    }
+}
+
+/**
  * Build a roster of known characters for context
  * @returns {string} Formatted roster text
  */
@@ -380,15 +438,87 @@ function buildCharacterRoster() {
 }
 
 /**
+ * Get the maximum safe prompt length based on API context window
+ * Uses actual token counts from messages when available
+ * @returns {Promise<number>} Maximum prompt length in tokens
+ */
+async function getMaxPromptLength() {
+    const settings = getSettings();
+    let maxContext = 4096; // Default
+    
+    if (settings.llmSource === 'ollama' && settings.ollamaModel) {
+        // Get Ollama model's context size
+        maxContext = await getOllamaModelContext(settings.ollamaModel);
+    } else {
+        // Use SillyTavern's context
+        const context = SillyTavern.getContext();
+        maxContext = context.maxContext || 4096;
+    }
+    
+    // Reserve 50% of context for system prompt, response, and safety margin
+    const tokensForPrompt = Math.floor(maxContext * 0.5);
+    
+    debugLog(`API max context: ${maxContext} tokens, calculated max prompt: ${tokensForPrompt} tokens`);
+    
+    // Return at least 1000 tokens, max 25000 tokens
+    return Math.max(1000, Math.min(tokensForPrompt, 25000));
+}
+
+/**
+ * Calculate total token count for a batch of messages
+ * Uses pre-calculated token counts from SillyTavern when available
+ * @param {Array} messages - Array of chat message objects
+ * @returns {number} Total token count
+ */
+async function calculateMessageTokens(messages) {
+    const context = SillyTavern.getContext();
+    let totalTokens = 0;
+    
+    // Try to use pre-calculated token counts from message objects
+    for (const msg of messages) {
+        if (msg && typeof msg === 'object' && msg.extra && typeof msg.extra.token_count === 'number') {
+            // SillyTavern stores token count in extra.token_count
+            totalTokens += msg.extra.token_count;
+        } else {
+            // Fallback: use getTokenCountAsync for the message text
+            const text = msg?.mes || msg?.message || String(msg);
+            if (text && context.getTokenCountAsync) {
+                try {
+                    const count = await context.getTokenCountAsync(text);
+                    totalTokens += count;
+                } catch (e) {
+                    // Final fallback: rough estimate (4 chars per token)
+                    totalTokens += Math.ceil(text.length / 4);
+                }
+            } else {
+                // Character-based estimate
+                totalTokens += Math.ceil(text.length / 4);
+            }
+        }
+    }
+    
+    return totalTokens;
+}
+
+/**
  * Call LLM for character analysis with automatic batch splitting if prompt is too long
- * @param {string[]} messages - Array of message texts to analyze
+ * @param {Array} messageObjs - Array of message objects (with .mes property) or strings
  * @param {string} knownCharacters - Roster of previously identified characters
  * @param {number} depth - Recursion depth (for logging)
  * @returns {Promise<Object>} Analysis result with merged characters
  */
-async function callLLM(messages, knownCharacters = '', depth = 0) {
+async function callLLM(messageObjs, knownCharacters = '', depth = 0) {
     const settings = getSettings();
-    const MAX_PROMPT_LENGTH = 15000; // Conservative limit to avoid API issues
+    const context = SillyTavern.getContext();
+    const maxPromptTokens = await getMaxPromptLength(); // Dynamic based on API context window
+    
+    // Extract message text
+    const messages = messageObjs.map(msg => {
+        if (typeof msg === 'string') return msg;
+        if (msg.mes) return msg.mes;
+        if (msg.message) return msg.message;
+        return JSON.stringify(msg);
+    });
     
     // Create cache key
     const cacheKey = simpleHash(messages.join('\n') + settings.llmSource + settings.ollamaModel);
@@ -404,10 +534,19 @@ async function callLLM(messages, knownCharacters = '', depth = 0) {
     const systemInstructions = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\n${getSystemPrompt()}${knownCharacters}\n\n[DATA TO ANALYZE]`;
     const fullPrompt = `${systemInstructions}\n${messagesText}\n\n[RESPOND WITH JSON ONLY - NO STORY CONTINUATION]`;
     
+    // Calculate actual token count for the prompt
+    let promptTokens;
+    try {
+        promptTokens = await context.getTokenCountAsync(fullPrompt);
+    } catch (e) {
+        // Fallback to character-based estimate
+        promptTokens = Math.ceil(fullPrompt.length / 4);
+    }
+    
     // If prompt is too long, split into sub-batches
-    if (fullPrompt.length > MAX_PROMPT_LENGTH && messages.length > 1) {
+    if (promptTokens > maxPromptTokens && messageObjs.length > 1) {
         const indent = '  '.repeat(depth);
-        debugLog(`${indent}Prompt too long (${fullPrompt.length} chars), splitting ${messages.length} messages into 2 sub-batches`);
+        debugLog(`${indent}Prompt too long (${promptTokens} tokens > ${maxPromptTokens} limit), splitting ${messageObjs.length} messages into 2 sub-batches`);
         
         // Split messages in half
         const midPoint = Math.floor(messages.length / 2);
@@ -659,16 +798,11 @@ async function harvestMessages(messageCount, showProgress = true) {
     }
     
     try {
-        // Extract message texts
-        const messageTexts = messagesToAnalyze.map(msg => msg.mes || '').filter(text => text.trim());
+        // Build roster of characters found so far
+        const characterRoster = buildCharacterRoster();
         
-        if (messageTexts.length === 0) {
-            debugLog('No valid message texts found');
-            return;
-        }
-        
-        // Call LLM for analysis
-        const analysis = await callLLM(messageTexts);
+        // Call LLM for analysis with character context (pass message objects)
+        const analysis = await callLLM(messagesToAnalyze, characterRoster);
         
         debugLog('Analysis result:', analysis);
         
@@ -740,19 +874,11 @@ async function scanEntireChat() {
         try {
             toastr.info(`Processing batch ${i + 1}/${numBatches} (messages ${startIdx + 1}-${endIdx})...`, 'Name Tracker', { timeOut: 2000 });
             
-            // Extract message text
-            const messages = batchMessages.map(msg => {
-                if (typeof msg === 'string') return msg;
-                if (msg.mes) return msg.mes;
-                if (msg.message) return msg.message;
-                return JSON.stringify(msg);
-            });
-            
             // Build roster of characters found so far
             const characterRoster = buildCharacterRoster();
             
-            // Call LLM for analysis with character context
-            const analysis = await callLLM(messages, characterRoster);
+            // Call LLM for analysis with character context (pass message objects)
+            const analysis = await callLLM(batchMessages, characterRoster);
             
             // Process the analysis
             if (analysis.characters && Array.isArray(analysis.characters)) {
@@ -1280,7 +1406,7 @@ async function onChatChanged() {
 function onEnabledChange(event) {
     const value = Boolean($(event.target).prop("checked"));
     extension_settings[extensionName].enabled = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
     updateStatusDisplay();
     
     toastr.info(value ? 'Name tracking enabled' : 'Name tracking disabled', 'Name Tracker');
@@ -1289,7 +1415,7 @@ function onEnabledChange(event) {
 function onAutoAnalyzeChange(event) {
     const value = Boolean($(event.target).prop("checked"));
     extension_settings[extensionName].autoAnalyze = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
     updateStatusDisplay();
 }
 
@@ -1297,7 +1423,7 @@ function onMessageFrequencyChange(event) {
     const value = parseInt($(event.target).val());
     if (value > 0) {
         extension_settings[extensionName].messageFrequency = value;
-        saveSettingsDebounced();
+        SillyTavern.getContext().saveSettingsDebounced();
         updateStatusDisplay();
     }
 }
@@ -1305,7 +1431,7 @@ function onMessageFrequencyChange(event) {
 function onLLMSourceChange(event) {
     const value = $(event.target).val();
     extension_settings[extensionName].llmSource = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
     
     if (value === 'ollama') {
         $(".ollama-settings").show();
@@ -1318,13 +1444,13 @@ function onLLMSourceChange(event) {
 function onOllamaEndpointChange(event) {
     const value = $(event.target).val();
     extension_settings[extensionName].ollamaEndpoint = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 function onOllamaModelChange(event) {
     const value = $(event.target).val();
     extension_settings[extensionName].ollamaModel = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 async function onLoadModelsClick() {
@@ -1336,43 +1462,43 @@ function onConfidenceThresholdChange(event) {
     const value = parseInt($(event.target).val());
     extension_settings[extensionName].confidenceThreshold = value;
     $("#name_tracker_confidence_value").text(value);
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 function onLorebookPositionChange(event) {
     const value = parseInt($(event.target).val());
     extension_settings[extensionName].lorebookPosition = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 function onLorebookDepthChange(event) {
     const value = parseInt($(event.target).val());
     extension_settings[extensionName].lorebookDepth = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 function onLorebookCooldownChange(event) {
     const value = parseInt($(event.target).val());
     extension_settings[extensionName].lorebookCooldown = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 function onLorebookProbabilityChange(event) {
     const value = parseInt($(event.target).val());
     extension_settings[extensionName].lorebookProbability = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 function onLorebookEnabledChange(event) {
     const value = Boolean($(event.target).prop("checked"));
     extension_settings[extensionName].lorebookEnabled = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 function onDebugModeChange(event) {
     const value = Boolean($(event.target).prop("checked"));
     extension_settings[extensionName].debugMode = value;
-    saveSettingsDebounced();
+    SillyTavern.getContext().saveSettingsDebounced();
 }
 
 async function onManualAnalyzeClick() {
@@ -1477,7 +1603,7 @@ async function onEditSystemPromptClick() {
             settings.systemPrompt = newPrompt;
         }
         
-        saveSettingsDebounced();
+        SillyTavern.getContext().saveSettingsDebounced();
         toastr.success('System prompt updated', 'Name Tracker');
         
         popup.remove();
