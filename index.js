@@ -1,8 +1,8 @@
 // Name Tracker Extension for SillyTavern
 // Tracks character details and manages chat-level lorebook entries
 
-import { extension_settings, getContext } from "../../../extensions.js";
-import { saveSettingsDebounced, generateRaw, createRawPrompt } from "../../../../script.js";
+// Note: Most imports are accessed via SillyTavern.getContext() as recommended in docs
+import { extension_settings } from "../../../extensions.js";
 import { eventSource, event_types, chat, chat_metadata } from "../../../../script.js";
 
 // Extension constants
@@ -302,7 +302,7 @@ function escapeHtml(text) {
  * Initialize or get the lorebook for this chat
  */
 async function initializeLorebook() {
-    const context = getContext();
+    const context = SillyTavern.getContext();
     if (!context.chatId) {
         debugLog('No active chat, skipping lorebook initialization');
         return;
@@ -397,47 +397,32 @@ async function callSillyTavern(prompt) {
     try {
         debugLog('Calling SillyTavern LLM...');
         
+        // Use SillyTavern.getContext() as recommended in official docs
+        const context = SillyTavern.getContext();
+        
         // Check if we have an active API connection
-        const context = getContext();
         if (!context.onlineStatus) {
             throw new Error('No API connection available. Please connect to an API first.');
         }
         
-        // Build messages array with user message to trigger generation
-        // System-only messages don't trigger LLM responses
-        const messages = [
-            {
-                role: 'user',
-                content: prompt
-            }
-        ];
+        debugLog('Generating with prompt length:', prompt.length);
         
-        debugLog('Formatted messages:', JSON.stringify(messages, null, 2));
-        
-        // Use generateRaw with object syntax matching MessageSummarize
-        // See: qvink/SillyTavern-MessageSummarize index.js line 3713
-        const result = await generateRaw({
-            prompt: messages,
-            trimNames: false,
-            prefill: ''  // Empty prefill for clean JSON response
+        // Use generateRaw as documented in:
+        // https://docs.sillytavern.app/for-contributors/writing-extensions/#raw-generation
+        const result = await context.generateRaw({
+            prompt: prompt,  // Can be string (Text Completion) or array (Chat Completion)
+            systemPrompt: '',  // Empty, we include instructions in prompt
+            prefill: ''  // No prefill needed for analysis
         });
         
-        debugLog('SillyTavern LLM raw response:', result);
+        debugLog('SillyTavern LLM raw response:', result?.substring(0, 200));
         
         // The result should be a string
         if (!result) {
             throw new Error('Empty response from SillyTavern LLM');
         }
         
-        if (typeof result === 'string') {
-            debugLog('Response is string, parsing...');
-            return parseJSONResponse(result);
-        }
-        
-        // Fallback if result is an object
-        const text = result?.text || result?.response || String(result);
-        debugLog('Extracted text from result:', text?.substring(0, 200));
-        return parseJSONResponse(text);
+        return parseJSONResponse(result);
     } catch (error) {
         console.error('Error calling SillyTavern LLM:', error);
         
@@ -567,14 +552,14 @@ async function harvestMessages(messageCount, showProgress = true) {
     
     // Check API connection for SillyTavern mode
     if (settings.llmSource === 'sillytavern') {
-        const context = getContext();
+        const context = SillyTavern.getContext();
         if (!context.onlineStatus) {
             toastr.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages', 'Name Tracker');
             return;
         }
     }
     
-    const context = getContext();
+    const context = SillyTavern.getContext();
     if (!context.chat || context.chat.length === 0) {
         debugLog('No chat messages to harvest');
         toastr.info('No messages in chat to analyze', 'Name Tracker');
@@ -637,7 +622,7 @@ async function harvestMessages(messageCount, showProgress = true) {
  */
 async function scanEntireChat() {
     const settings = getSettings();
-    const context = getContext();
+    const context = SillyTavern.getContext();
     
     if (!context.chat || context.chat.length === 0) {
         toastr.warning('No chat messages to scan', 'Name Tracker');
