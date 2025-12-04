@@ -614,11 +614,14 @@ async function callSillyTavern(prompt) {
             throw new Error('No API connection available. Please connect to an API first.');
         }
         
-        debugLog('Generating with prompt length:', prompt.length);
-        
-        // Check if prompt is too long (>15000 chars might cause issues)
-        if (prompt.length > 15000) {
-            debugLog('WARNING: Prompt is very long, may exceed context limits');
+        // Get token count for the prompt
+        let promptTokens;
+        try {
+            promptTokens = await context.getTokenCountAsync(prompt);
+            debugLog(`Generating with prompt: ${promptTokens} tokens (~${prompt.length} chars)`);
+        } catch (e) {
+            promptTokens = Math.ceil(prompt.length / 4);
+            debugLog(`Generating with prompt length: ${prompt.length} chars (est. ${promptTokens} tokens)`);
         }
         
         // Use generateRaw as documented in:
@@ -829,6 +832,73 @@ async function harvestMessages(messageCount, showProgress = true) {
 }
 
 /**
+ * Show progress bar for batch scanning
+ * @param {number} current - Current batch number (1-indexed)
+ * @param {number} total - Total number of batches
+ * @param {string} status - Status message
+ */
+function showProgressBar(current, total, status = '') {
+    let progressBar = $('#name_tracker_progress');
+    
+    if (progressBar.length === 0) {
+        // Create progress bar if it doesn't exist
+        progressBar = $(`
+            <div id="name_tracker_progress" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 9999;
+                background: var(--SmartThemeBodyColor);
+                border-bottom: 2px solid var(--SmartThemeBorderColor);
+                padding: 10px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            ">
+                <div style="max-width: 800px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span id="name_tracker_progress_label" style="font-weight: bold;">Name Tracker</span>
+                        <span id="name_tracker_progress_text"></span>
+                    </div>
+                    <div style="
+                        width: 100%;
+                        height: 20px;
+                        background: var(--SmartThemeBlurTintColor);
+                        border-radius: 10px;
+                        overflow: hidden;
+                        position: relative;
+                    ">
+                        <div id="name_tracker_progress_fill" style="
+                            height: 100%;
+                            background: linear-gradient(90deg, #4CAF50, #45a049);
+                            transition: width 0.3s ease;
+                            width: 0%;
+                        "></div>
+                    </div>
+                </div>
+            </div>
+        `);
+        $('body').append(progressBar);
+    }
+    
+    const percentage = (current / total * 100).toFixed(1);
+    progressBar.find('#name_tracker_progress_fill').css('width', percentage + '%');
+    progressBar.find('#name_tracker_progress_text').text(`${current}/${total} batches (${percentage}%)`);
+    
+    if (status) {
+        progressBar.find('#name_tracker_progress_label').text(status);
+    }
+}
+
+/**
+ * Hide and remove progress bar
+ */
+function hideProgressBar() {
+    $('#name_tracker_progress').fadeOut(300, function() {
+        $(this).remove();
+    });
+}
+
+/**
  * Scan entire chat in batches from oldest to newest
  * Processes in chunks equal to messageFrequency for progressive context building
  */
@@ -853,13 +923,14 @@ async function scanEntireChat() {
     const batchSize = settings.messageFrequency || 10;
     const numBatches = Math.ceil(totalMessages / batchSize);
     
-    const confirmed = confirm(`This will analyze all ${totalMessages} messages in ${numBatches} batches of ${batchSize}. This may take a while. Continue?`);
+    const confirmed = confirm(`This will analyze all ${totalMessages} messages in ${numBatches} batches of up to ${batchSize} messages each. This may take a while. Continue?`);
     
     if (!confirmed) {
         return;
     }
     
-    toastr.info(`Starting batch scan: ${numBatches} batches to process...`, 'Name Tracker', { timeOut: 3000 });
+    // Show progress bar
+    showProgressBar(0, numBatches, 'Starting batch scan...');
     
     let successfulBatches = 0;
     let failedBatches = 0;
@@ -872,7 +943,7 @@ async function scanEntireChat() {
         const batchMessages = context.chat.slice(startIdx, endIdx);
         
         try {
-            toastr.info(`Processing batch ${i + 1}/${numBatches} (messages ${startIdx + 1}-${endIdx})...`, 'Name Tracker', { timeOut: 2000 });
+            showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + 1}-${endIdx}...`);
             
             // Build roster of characters found so far
             const characterRoster = buildCharacterRoster();
@@ -906,6 +977,9 @@ async function scanEntireChat() {
         }
     }
     
+    // Hide progress bar
+    hideProgressBar();
+    
     // Update last harvest message counter
     settings.lastHarvestMessage = settings.messageCounter;
     saveChatData();
@@ -913,7 +987,11 @@ async function scanEntireChat() {
     
     // Show summary
     const summary = `Scan complete!\n\nBatches processed: ${successfulBatches}/${numBatches}\nTotal characters found: ${totalCharactersFound}\nFailed batches: ${failedBatches}`;
-    toastr.success(summary, 'Name Tracker', { timeOut: 8000 });
+    if (failedBatches > 0) {
+        toastr.warning(summary, 'Name Tracker', { timeOut: 8000 });
+    } else {
+        toastr.success(summary, 'Name Tracker', { timeOut: 8000 });
+    }
 }
 
 /**
@@ -1298,9 +1376,26 @@ async function viewInLorebook(characterName) {
         return;
     }
     
-    // Show character data in a popup since we can't direct link to lorebook yet
-    const content = createLorebookContent(character);
-    toastr.info(`Character: ${characterName}<br><pre>${content}</pre>`, 'Name Tracker', { timeOut: 10000 });
+    // Ensure lorebook exists
+    await ensureLorebookExists();
+    
+    if (!lorebookName) {
+        toastr.error('Failed to create or find lorebook', 'Name Tracker');
+        return;
+    }
+    
+    // Import the openWorldInfoEditor function from SillyTavern
+    const context = SillyTavern.getContext();
+    
+    // Open the lorebook editor
+    if (typeof context.openWorldInfoEditor === 'function') {
+        await context.openWorldInfoEditor(lorebookName);
+        toastr.success(`Opened lorebook editor for ${characterName}`, 'Name Tracker');
+    } else {
+        // Fallback: show the world info panel if openWorldInfoEditor doesn't exist
+        $('#WorldInfo').click();
+        toastr.info(`Please select "${lorebookName}" from the World Info panel`, 'Name Tracker');
+    }
 }
 
 /**
@@ -1659,6 +1754,88 @@ $(document).on('click', '.char-action-ignore', function() {
     toggleIgnoreCharacter(name);
 });
 
+/**
+ * Add chat extension shortcut buttons
+ */
+function addChatShortcuts() {
+    // Create the shortcut container if it doesn't exist
+    let shortcutContainer = $('#name_tracker_shortcuts');
+    if (shortcutContainer.length === 0) {
+        // Try to find a good place to insert - after the chat input area
+        const insertionPoint = $('#send_form') || $('#chat');
+        if (insertionPoint.length) {
+            shortcutContainer = $('<div id="name_tracker_shortcuts" class="name-tracker-shortcuts"></div>');
+            insertionPoint.after(shortcutContainer);
+        }
+    }
+    
+    if (shortcutContainer.length === 0) {
+        console.warn('Name Tracker: Could not find insertion point for chat shortcuts');
+        return;
+    }
+    
+    // Clear existing shortcuts
+    shortcutContainer.empty();
+    
+    // Add "Open Chat Lorebook" button
+    const openLorebookBtn = $(`
+        <button id="name_tracker_open_lorebook" class="menu_button" title="Open Name Tracker Chat Lorebook">
+            <i class="fa-solid fa-book"></i>
+            <span>Chat Lorebook</span>
+        </button>
+    `);
+    
+    openLorebookBtn.on('click', async () => {
+        await ensureLorebookExists();
+        if (!lorebookName) {
+            toastr.error('Failed to create or find lorebook', 'Name Tracker');
+            return;
+        }
+        
+        const context = SillyTavern.getContext();
+        if (typeof context.openWorldInfoEditor === 'function') {
+            await context.openWorldInfoEditor(lorebookName);
+        } else {
+            $('#WorldInfo').click();
+            toastr.info(`Please select "${lorebookName}" from the World Info panel`, 'Name Tracker');
+        }
+    });
+    
+    // Add "Toggle Auto-Harvest" button
+    const settings = getSettings();
+    const toggleHarvestBtn = $(`
+        <button id="name_tracker_toggle_harvest" class="menu_button ${settings.autoAnalyze ? 'active' : ''}" 
+                title="Toggle automatic character harvesting">
+            <i class="fa-solid fa-seedling"></i>
+            <span>Auto-Harvest: ${settings.autoAnalyze ? 'ON' : 'OFF'}</span>
+        </button>
+    `);
+    
+    toggleHarvestBtn.on('click', () => {
+        const currentSettings = getSettings();
+        currentSettings.autoAnalyze = !currentSettings.autoAnalyze;
+        
+        // Update the button
+        toggleHarvestBtn.toggleClass('active', currentSettings.autoAnalyze);
+        toggleHarvestBtn.find('span').text(`Auto-Harvest: ${currentSettings.autoAnalyze ? 'ON' : 'OFF'}`);
+        
+        // Update the settings UI
+        $('#name_tracker_auto_analyze').prop('checked', currentSettings.autoAnalyze);
+        
+        // Save settings
+        SillyTavern.getContext().saveSettingsDebounced();
+        
+        toastr.success(
+            `Auto-harvest ${currentSettings.autoAnalyze ? 'enabled' : 'disabled'}`,
+            'Name Tracker'
+        );
+    });
+    
+    // Add buttons to container
+    shortcutContainer.append(openLorebookBtn);
+    shortcutContainer.append(toggleHarvestBtn);
+}
+
 // Initialize extension when jQuery is ready
 jQuery(async () => {
     // Load the settings HTML
@@ -1695,6 +1872,9 @@ jQuery(async () => {
     
     // Load settings
     await loadSettings();
+    
+    // Add chat extension shortcuts
+    addChatShortcuts();
     
     console.log("Name Tracker extension loaded");
 });
