@@ -161,7 +161,10 @@ function saveChatData() {
         messageCounter: settings.messageCounter,
         lastHarvestMessage: settings.lastHarvestMessage
     };
-    saveSettingsDebounced();
+    
+    // Use saveSettingsDebounced from context
+    const context = SillyTavern.getContext();
+    context.saveSettingsDebounced();
 }
 
 /**
