@@ -3,8 +3,8 @@
 
 // Note: Most imports are accessed via SillyTavern.getContext() as recommended in docs
 import { extension_settings } from "../../../extensions.js";
-import { eventSource, event_types, chat, chat_metadata, saveMetadata } from "../../../../script.js";
-import { world_info, world_names, saveWorldInfo, deleteWorldInfoEntry, createWorldInfoEntry, createWorldWithName } from "../../../../world-info.js";
+import { eventSource, event_types, chat, chat_metadata } from "../../../../script.js";
+import { world_info, world_names, saveWorldInfo, deleteWorldInfoEntry, createWorldInfoEntry } from "../../../../world-info.js";
 
 // Extension constants
 const extensionName = "STnametracker";
@@ -417,15 +417,25 @@ async function initializeLorebook() {
         return;
     }
     
-    // Create a new chat-bound lorebook using the proper API
+    // Create a new chat-bound lorebook
     const bookName = `NameTracker_${context.chatId}`.replace(/[^a-z0-9 -]/gi, '_').replace(/_{2,}/g, '_').substring(0, 64);
     
     debugLog(`Creating new chat lorebook: ${bookName}`);
-    lorebookName = await createWorldWithName(bookName, bookName);
+    
+    // Ensure the lorebook exists in world_info
+    if (!world_names.includes(bookName)) {
+        world_names.push(bookName);
+        world_info[bookName] = { entries: {} };
+        await saveWorldInfo(bookName, true);
+    }
+    
+    lorebookName = bookName;
     
     // Bind it to the chat metadata
     chat_metadata[METADATA_KEY] = lorebookName;
-    await saveMetadata();
+    
+    // Save chat metadata using context API
+    await context.saveMetadata();
     
     debugLog(`Created and bound lorebook: ${lorebookName}`);
 }
