@@ -155,6 +155,17 @@
     color: var(--SmartThemeQuoteColor);
 }
 
+.character-details {
+    font-size: 0.85em;
+    color: var(--SmartThemeBodyColor);
+    margin: 8px 0;
+    padding: 8px;
+    background: var(--SmartThemeBlurTintColor);
+    border-left: 2px solid var(--SmartThemeBorderColor);
+    border-radius: 3px;
+    line-height: 1.4;
+}
+
 .character-actions {
     display: flex;
     gap: 5px;

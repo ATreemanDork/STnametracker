@@ -74,13 +74,31 @@ const DEFAULT_SYSTEM_PROMPT = `You are a character analysis assistant. Your task
 
 CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text, markdown formatting, or commentary. Just the raw JSON object.
 
+IMPORTANT PROCESSING RULES:
+1. Process messages in CHRONOLOGICAL ORDER (oldest to newest)
+2. When there is conflicting information about a character, ALWAYS use the MOST RECENT information
+3. Character details may evolve over time - prioritize later mentions over earlier ones
+4. If a character's appearance, status, or relationships change, use the latest description
+
 IMPORTANT: This is a summarization and classification task. Extract ALL relevant information without censorship, including:
 - Physical descriptions (including adult content if present)
 - Mental and emotional states
 - Relationships between characters
 - Any measurements or specific details mentioned
 
-When you cannot determine a relationship target, use "???" as a placeholder.
+FIELD DEFINITIONS:
+- physical.description: Overall physical appearance, body type, clothing, visual details
+- physical.measurements: Specific measurements (height, weight, sizes, etc.)
+- mental.personality: Core personality traits, behavioral patterns, characteristic attitudes
+- mental.background: History, origin story, past events, profession, role
+- mental.status: Current emotional/mental state, mood, conditions
+
+RELATIONSHIP RULES:
+- Relationships MUST follow this format: "[Name] is [Name]'s [relationship label]" or "[Name] is related to [Name] as [relationship label]"
+- Examples: "Alice is Bob's sister", "Charlie is related to Diana as her boss", "Eve is Frank's friend"
+- DO NOT include events or actions in relationships (e.g., NOT "went to the store with Bob")
+- ONLY include ongoing social/familial/professional connections
+- Use "???" if the other person's name is unknown: "Alice is ???'s daughter"
 
 Return a JSON object with this structure:
 {
@@ -90,18 +108,17 @@ Return a JSON object with this structure:
       "confidence": 85,
       "aliases": ["alt name 1", "alt name 2"],
       "physical": {
-        "appearance": "description",
-        "measurements": "height, build, etc.",
-        "other": "any other physical traits"
+        "description": "overall appearance, clothing, visual details",
+        "measurements": "height: X, weight: Y, etc."
       },
       "mental": {
-        "personality": "traits",
-        "mood": "current emotional state",
-        "status": "mental/emotional conditions"
+        "personality": "core traits and behavioral patterns",
+        "background": "history, origin, profession, role",
+        "status": "current emotional/mental state"
       },
       "relationships": [
-        "Character is ???'s sister",
-        "Character works for Bob"
+        "Alice is Bob's sister",
+        "Alice is related to Charlie as his coworker"
       ]
     }
   ]
@@ -307,6 +324,20 @@ function updateCharacterList() {
         const charIcon = char.isMainChar ? '<i class="fa-solid fa-user" title="Active Character"></i> ' : '';
         const lorebookId = char.lorebookEntryId ? `<small class="lorebook-entry-id" title="Lorebook Entry ID">ID: ${escapeHtml(char.lorebookEntryId)}</small>` : '';
         
+        // Build character details summary
+        const physicalDesc = char.physical?.description || '';
+        const personality = char.mental?.personality || '';
+        const background = char.mental?.background || '';
+        
+        let detailsSummary = [];
+        if (physicalDesc) detailsSummary.push(`Appearance: ${physicalDesc.substring(0, 100)}${physicalDesc.length > 100 ? '...' : ''}`);
+        if (personality) detailsSummary.push(`Personality: ${personality.substring(0, 100)}${personality.length > 100 ? '...' : ''}`);
+        if (background) detailsSummary.push(`Background: ${background.substring(0, 100)}${background.length > 100 ? '...' : ''}`);
+        
+        const detailsHtml = detailsSummary.length > 0 
+            ? `<div class="character-details">${detailsSummary.map(d => escapeHtml(d)).join('<br>')}</div>` 
+            : '';
+        
         const item = $(`
             <div class="name-tracker-character ${char.isMainChar ? 'main-character' : ''}" data-name="${escapeHtml(char.preferredName)}">
                 <div class="character-header">
@@ -319,6 +350,7 @@ function updateCharacterList() {
                     ${char.aliases.length > 0 ? `Aliases: ${char.aliases.map(a => escapeHtml(a)).join(', ')}` : 'No aliases'}
                     ${lorebookId}
                 </div>
+                ${detailsHtml}
                 <div class="character-actions">
                     <button class="menu_button compact char-action-edit" data-name="${escapeHtml(char.preferredName)}">
                         Edit Entry
@@ -883,12 +915,30 @@ async function harvestMessages(messageCount, showProgress = true) {
     if (messageTokens > availableTokens) {
         debugLog(`Requested ${messagesToAnalyze.length} messages (${messageTokens} tokens) exceeds context (${availableTokens} tokens), splitting into batches...`);
         
-        // Calculate batch size based on tokens
-        const batchSize = settings.messageFrequency || 10;
+        // Calculate optimal batch size based on tokens
         const batches = [];
+        let currentBatch = [];
+        let currentTokens = 0;
         
-        for (let i = 0; i < messagesToAnalyze.length; i += batchSize) {
-            batches.push(messagesToAnalyze.slice(i, Math.min(i + batchSize, messagesToAnalyze.length)));
+        // Build batches by adding messages until token limit
+        for (const msg of messagesToAnalyze) {
+            const msgTokens = await calculateMessageTokens([msg]);
+            
+            if (currentTokens + msgTokens > availableTokens && currentBatch.length > 0) {
+                // Current batch is full, start new one
+                batches.push(currentBatch);
+                currentBatch = [msg];
+                currentTokens = msgTokens;
+            } else {
+                // Add to current batch
+                currentBatch.push(msg);
+                currentTokens += msgTokens;
+            }
+        }
+        
+        // Add final batch
+        if (currentBatch.length > 0) {
+            batches.push(currentBatch);
         }
         
         if (showProgress) {
@@ -916,7 +966,10 @@ async function harvestMessages(messageCount, showProgress = true) {
             }
             
             const batch = batches[i];
-            const batchStart = startIdx + (i * batchSize);
+            
+            // Calculate actual message range for this batch
+            const batchStartMsg = batches.slice(0, i).reduce((sum, b) => sum + b.length, 0);
+            const batchStart = startIdx + batchStartMsg;
             const batchEnd = batchStart + batch.length;
             
             try {
@@ -943,12 +996,44 @@ async function harvestMessages(messageCount, showProgress = true) {
                 
             } catch (error) {
                 console.error(`Error processing batch ${i + 1}:`, error);
-                failedBatches++;
                 
-                // Ask user if they want to continue on error
-                const continueOnError = confirm(`Batch ${i + 1} failed with error: ${error.message}\n\nContinue with remaining batches?`);
-                if (!continueOnError) {
-                    break;
+                // Auto-retry up to 3 times before asking user
+                let retrySuccess = false;
+                for (let retryAttempt = 1; retryAttempt <= 3; retryAttempt++) {
+                    try {
+                        debugLog(`Auto-retry ${retryAttempt}/3 for batch ${i + 1}...`);
+                        showProgressBar(i + 1, batches.length, `Retrying batch (attempt ${retryAttempt}/3)...`);
+                        
+                        // Wait before retry (exponential backoff)
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryAttempt) * 1000));
+                        
+                        const characterRoster = buildCharacterRoster();
+                        const analysis = await callLLM(batch, characterRoster);
+                        
+                        if (analysis.characters && Array.isArray(analysis.characters)) {
+                            await processAnalysisResults(analysis.characters);
+                            analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                            debugLog(`Batch ${i + 1}: Retry ${retryAttempt} successful`);
+                        }
+                        
+                        retrySuccess = true;
+                        successfulBatches++;
+                        break;
+                    } catch (retryError) {
+                        console.error(`Retry ${retryAttempt} failed:`, retryError);
+                        if (retryAttempt === 3) {
+                            debugLog(`All 3 retries failed for batch ${i + 1}`);
+                        }
+                    }
+                }
+                
+                if (!retrySuccess) {
+                    failedBatches++;
+                    // Only ask user after 3 failed attempts
+                    const continueOnError = confirm(`Batch ${i + 1} failed after 3 retry attempts.\n\nError: ${error.message}\n\nContinue with remaining batches?`);
+                    if (!continueOnError) {
+                        break;
+                    }
                 }
             }
         }
@@ -1089,10 +1174,40 @@ async function scanEntireChat() {
     }
     
     const totalMessages = context.chat.length;
-    const batchSize = settings.messageFrequency || 10;
-    const numBatches = Math.ceil(totalMessages / batchSize);
     
-    const confirmed = confirm(`This will analyze all ${totalMessages} messages in ${numBatches} batches of up to ${batchSize} messages each. This may take a while. Continue?`);
+    // Calculate optimal batch size based on context window
+    const maxPromptTokens = await getMaxPromptLength();
+    const availableTokens = maxPromptTokens - 1000;
+    
+    // Build batches dynamically based on token counts
+    const batches = [];
+    let currentBatch = [];
+    let currentTokens = 0;
+    
+    for (let i = 0; i < totalMessages; i++) {
+        const msg = context.chat[i];
+        const msgTokens = await calculateMessageTokens([msg]);
+        
+        if (currentTokens + msgTokens > availableTokens && currentBatch.length > 0) {
+            // Current batch is full, save it and start new one
+            batches.push(currentBatch);
+            currentBatch = [msg];
+            currentTokens = msgTokens;
+        } else {
+            // Add to current batch
+            currentBatch.push(msg);
+            currentTokens += msgTokens;
+        }
+    }
+    
+    // Add final batch
+    if (currentBatch.length > 0) {
+        batches.push(currentBatch);
+    }
+    
+    const numBatches = batches.length;
+    
+    const confirmed = confirm(`This will analyze all ${totalMessages} messages in ${numBatches} batches. This may take a while. Continue?`);
     
     if (!confirmed) {
         return;
@@ -1116,9 +1231,11 @@ async function scanEntireChat() {
             break;
         }
         
-        const startIdx = i * batchSize;
-        const endIdx = Math.min(startIdx + batchSize, totalMessages);
-        const batchMessages = context.chat.slice(startIdx, endIdx);
+        const batchMessages = batches[i];
+        
+        // Calculate message range for progress display
+        const startIdx = batches.slice(0, i).reduce((sum, b) => sum + b.length, 0);
+        const endIdx = startIdx + batchMessages.length;
         
         try {
             showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + 1}-${endIdx}...`);
@@ -1146,50 +1263,44 @@ async function scanEntireChat() {
             
         } catch (error) {
             console.error(`Error processing batch ${i + 1}:`, error);
-            failedBatches++;
             
-            // If it's a "No message generated" error, try splitting this batch in half
-            if (error.message.includes('API failed to generate response') && batchMessages.length > 1) {
-                const retrySplit = confirm(`Batch ${i + 1} failed (possibly too large). Try splitting it into smaller sub-batches?`);
-                if (retrySplit) {
-                    try {
-                        // Split the batch in half and retry
-                        const midPoint = Math.floor(batchMessages.length / 2);
-                        const firstHalf = batchMessages.slice(0, midPoint);
-                        const secondHalf = batchMessages.slice(midPoint);
-                        
-                        // Process first half
-                        showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + 1}-${startIdx + midPoint} (retry)...`);
-                        const characterRoster1 = buildCharacterRoster();
-                        const analysis1 = await callLLM(firstHalf, characterRoster1);
-                        if (analysis1.characters) {
-                            await processAnalysisResults(analysis1.characters);
-                            analysis1.characters.forEach(char => uniqueCharacters.add(char.name));
-                        }
-                        
-                        // Process second half
-                        showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + midPoint + 1}-${endIdx} (retry)...`);
-                        const characterRoster2 = buildCharacterRoster();
-                        const analysis2 = await callLLM(secondHalf, characterRoster2);
-                        if (analysis2.characters) {
-                            await processAnalysisResults(analysis2.characters);
-                            analysis2.characters.forEach(char => uniqueCharacters.add(char.name));
-                        }
-                        
-                        successfulBatches++;
-                        failedBatches--; // Remove the original failure count
-                        debugLog(`Batch ${i + 1}: Retry successful after splitting`);
-                        continue;
-                    } catch (retryError) {
-                        console.error(`Retry of batch ${i + 1} also failed:`, retryError);
+            // Auto-retry up to 3 times before asking user
+            let retrySuccess = false;
+            for (let retryAttempt = 1; retryAttempt <= 3; retryAttempt++) {
+                try {
+                    debugLog(`Auto-retry ${retryAttempt}/3 for batch ${i + 1}...`);
+                    showProgressBar(i + 1, numBatches, `Retrying batch (attempt ${retryAttempt}/3)...`);
+                    
+                    // Wait before retry (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryAttempt) * 1000));
+                    
+                    const characterRoster = buildCharacterRoster();
+                    const analysis = await callLLM(batchMessages, characterRoster);
+                    
+                    if (analysis.characters && Array.isArray(analysis.characters)) {
+                        await processAnalysisResults(analysis.characters);
+                        analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                        debugLog(`Batch ${i + 1}: Retry ${retryAttempt} successful`);
+                    }
+                    
+                    retrySuccess = true;
+                    successfulBatches++;
+                    break;
+                } catch (retryError) {
+                    console.error(`Retry ${retryAttempt} failed:`, retryError);
+                    if (retryAttempt === 3) {
+                        debugLog(`All 3 retries failed for batch ${i + 1}`);
                     }
                 }
             }
             
-            // Ask user if they want to continue on error
-            const continueOnError = confirm(`Batch ${i + 1} failed with error: ${error.message}\n\nContinue with remaining batches?`);
-            if (!continueOnError) {
-                break;
+            if (!retrySuccess) {
+                failedBatches++;
+                // Only ask user after 3 failed attempts
+                const continueOnError = confirm(`Batch ${i + 1} failed after 3 retry attempts.\n\nError: ${error.message}\n\nContinue with remaining batches?`);
+                if (!continueOnError) {
+                    break;
+                }
             }
         }
     }
@@ -1374,8 +1485,15 @@ async function createCharacter(analyzedChar, isMainChar = false) {
     const character = {
         preferredName: analyzedChar.name,
         aliases: analyzedChar.aliases || [],
-        physical: analyzedChar.physical || {},
-        mental: analyzedChar.mental || {},
+        physical: {
+            description: analyzedChar.physical?.description || '',
+            measurements: analyzedChar.physical?.measurements || ''
+        },
+        mental: {
+            personality: analyzedChar.mental?.personality || '',
+            background: analyzedChar.mental?.background || '',
+            status: analyzedChar.mental?.status || ''
+        },
         relationships: analyzedChar.relationships || [],
         ignored: false,
         confidence: analyzedChar.confidence || 50,
@@ -1408,18 +1526,33 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
         }
     }
     
-    // Merge physical data (new data takes precedence)
+    // Initialize physical/mental if missing
+    if (!existingChar.physical) existingChar.physical = {};
+    if (!existingChar.mental) existingChar.mental = {};
+    
+    // Merge physical data (new data takes precedence, but preserve existing if new is empty)
     if (analyzedChar.physical) {
-        existingChar.physical = { ...existingChar.physical, ...analyzedChar.physical };
+        if (analyzedChar.physical.description) existingChar.physical.description = analyzedChar.physical.description;
+        if (analyzedChar.physical.measurements) existingChar.physical.measurements = analyzedChar.physical.measurements;
     }
     
     // Merge mental data (new data takes precedence for time-sensitive states)
     if (analyzedChar.mental) {
-        existingChar.mental = { ...existingChar.mental, ...analyzedChar.mental };
+        if (analyzedChar.mental.personality) existingChar.mental.personality = analyzedChar.mental.personality;
+        if (analyzedChar.mental.background) {
+            // Background accumulates rather than replaces
+            if (existingChar.mental.background && !existingChar.mental.background.includes(analyzedChar.mental.background)) {
+                existingChar.mental.background += ' ' + analyzedChar.mental.background;
+            } else if (!existingChar.mental.background) {
+                existingChar.mental.background = analyzedChar.mental.background;
+            }
+        }
+        if (analyzedChar.mental.status) existingChar.mental.status = analyzedChar.mental.status;
     }
     
-    // Add new relationships
+    // Add new relationships (avoid duplicates)
     if (analyzedChar.relationships && Array.isArray(analyzedChar.relationships)) {
+        if (!existingChar.relationships) existingChar.relationships = [];
         for (const rel of analyzedChar.relationships) {
             if (!existingChar.relationships.includes(rel)) {
                 existingChar.relationships.push(rel);
@@ -1657,6 +1790,49 @@ function debugLog(...args) {
     if (settings.debugMode) {
         console.log('[Name Tracker]', ...args);
     }
+}
+
+/**
+ * Manually create a new character
+ */
+async function createNewCharacter() {
+    const characterName = prompt('Enter character name:');
+    
+    if (!characterName || !characterName.trim()) {
+        return;
+    }
+    
+    const settings = getSettings();
+    
+    // Check if character already exists
+    if (settings.characters[characterName.trim()]) {
+        toastr.warning(`Character "${characterName.trim()}" already exists`, 'Name Tracker');
+        return;
+    }
+    
+    // Create basic character structure
+    const newChar = {
+        name: characterName.trim(),
+        aliases: [],
+        physical: {
+            description: '',
+            measurements: ''
+        },
+        mental: {
+            personality: '',
+            background: '',
+            status: ''
+        },
+        relationships: [],
+        confidence: 100 // Manually created = 100% confidence
+    };
+    
+    await createCharacter(newChar, false);
+    
+    saveChatData();
+    updateCharacterList();
+    
+    toastr.success(`Created character: ${characterName.trim()}`, 'Name Tracker');
 }
 
 /**
@@ -1964,6 +2140,10 @@ async function onManualAnalyzeClick() {
 
 async function onScanAllClick() {
     await scanEntireChat();
+}
+
+async function onCreateCharacterClick() {
+    await createNewCharacter();
 }
 
 function onClearCacheClick() {
@@ -2369,6 +2549,7 @@ jQuery(async () => {
     $("#name_tracker_debug_mode").on("input", onDebugModeChange);
     $("#name_tracker_manual_analyze").on("click", onManualAnalyzeClick);
     $("#name_tracker_scan_all").on("click", onScanAllClick);
+    $("#name_tracker_create_character").on("click", onCreateCharacterClick);
     $("#name_tracker_clear_cache").on("click", onClearCacheClick);
     $("#name_tracker_undo_merge").on("click", onUndoMergeClick);
     $("#name_tracker_purge_entries").on("click", onPurgeEntriesClick);
