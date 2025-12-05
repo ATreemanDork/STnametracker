@@ -9,7 +9,11 @@ import { eventSource, event_types } from "../../../../script.js";
 const extensionName = "STnametracker";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
-// Simple hash function to replace getStringHash
+/**
+ * Simple hash function for generating unique identifiers from strings
+ * @param {string} str - String to hash
+ * @returns {string} Hash value in base-36 format
+ */
 function simpleHash(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -137,6 +141,11 @@ Only include characters that are explicitly mentioned or described in the messag
 /**
  * Get the current system prompt (custom or default)
  */
+/**
+ * Get the system prompt for LLM analysis
+ * Returns custom prompt if set, otherwise returns default prompt
+ * @returns {string} System prompt text for character analysis
+ */
 function getSystemPrompt() {
     const settings = getSettings();
     return settings.systemPrompt || DEFAULT_SYSTEM_PROMPT;
@@ -144,6 +153,11 @@ function getSystemPrompt() {
 
 /**
  * Load extension settings from storage or initialize with defaults
+ */
+/**
+ * Load extension settings from storage
+ * Merges default settings with saved settings and initializes UI
+ * @returns {Promise<void>}
  */
 async function loadSettings() {
     extension_settings[extensionName] = extension_settings[extensionName] || {};
@@ -184,6 +198,11 @@ async function loadSettings() {
 
 /**
  * Save chat-level data to metadata
+ */
+/**
+ * Save current character data to chat metadata
+ * Stores characters in chat_metadata for persistence across sessions
+ * @returns {void}
  */
 function saveChatData() {
     const settings = getSettings();
@@ -379,6 +398,11 @@ function updateCharacterList() {
 /**
  * Check if character has unresolved relationships (???)
  */
+/**
+ * Check if character has unresolved relationships (relationships to unknown characters)
+ * @param {CharacterData} character - Character to check
+ * @returns {boolean} True if character has relationships that aren't in the character list
+ */
 function hasUnresolvedRelationships(character) {
     if (!character.relationships || character.relationships.length === 0) {
         return false;
@@ -390,6 +414,11 @@ function hasUnresolvedRelationships(character) {
  * Escape HTML to prevent XSS
  * @param {string} text - Text to escape
  * @returns {string} Escaped text
+ */
+/**
+ * Escape HTML special characters to prevent XSS
+ * @param {string} text - Text to escape
+ * @returns {string} HTML-safe text
  */
 function escapeHtml(text) {
     const div = document.createElement('div');
