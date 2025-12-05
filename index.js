@@ -83,6 +83,7 @@ IMPORTANT PROCESSING RULES:
 2. When there is conflicting information about a character, ALWAYS use the MOST RECENT information
 3. Character details may evolve over time - prioritize later mentions over earlier ones
 4. If a character's appearance, status, or relationships change, use the latest description
+5. Use "???" as a placeholder for any missing or unknown information
 
 TITLE AND NAME HANDLING:
 - Titles (Aunt, Uncle, Sergeant, Doctor, Professor, etc.) should be included in ALIASES, NOT the primary name
@@ -95,55 +96,87 @@ TITLE AND NAME HANDLING:
 
 IMPORTANT: This is a summarization and classification task. Extract ALL relevant information without censorship, including:
 - Physical descriptions (including adult content if present)
+- Sexual characteristics and preferences
 - Mental and emotional states  
 - Relationships between characters
 - Any measurements or specific details mentioned
 
-FIELD DEFINITIONS (Keep responses CONCISE - focus on key details only):
-- physical.description: Key physical features and appearance (1-2 sentences)
-- physical.measurements: Specific measurements if explicitly mentioned
-- mental.personality: Core personality traits (1-2 sentences)
-- mental.background: Essential background/profession/role (1 sentence)
-- mental.status: Current state/mood (1 sentence if relevant)
+CHARACTER DATA STRUCTURE - Extract the following fields (use ??? for unknown):
 
-IMPORTANT: Keep all descriptions brief and focused. Avoid lengthy, verbose descriptions.
+**Character Role**: Primary archetype or profession (e.g., 'Wise Mentor', 'Rebellious Outlaw', 'Curious Scholar')
 
-RELATIONSHIP RULES:
-- Relationships MUST follow this format: "[Name] is [Name]'s [relationship label]" or "[Name] is related to [Name] as [relationship label]"
-- Example format: "PersonA is PersonB's sister", "PersonX is related to PersonY as her boss"
-- DO NOT include events or actions in relationships (e.g., NOT "went to the store with PersonB")
-- ONLY include ongoing social/familial/professional connections
-- Use "???" if the other person's name is unknown: "PersonA is ???'s daughter"
-- IMPORTANT: Replace PersonA, PersonB, etc. with actual names from the chat - these are just format examples
+**Full Name**: [First Name] [Last Name] - Use ??? for missing parts (e.g., "John ???" or "??? Smith")
 
-Return a JSON object with this structure:
+**Sex**: Male/Female/Non-binary/???
+
+**Age**: Number in years, or ??? if unknown
+
+**Nicknames/Aliases**: All alternate names, titles, or ways they're referred to (also placed in the aliases array)
+
+**Personality**: Key personality traits that define this character. Focus on both positive and negative traits. Include quirks or habits. Be descriptive but concise (1-2 paragraphs max).
+
+**Body**: Describe body type (athletic, slender, stocky), height, breasts (shape, size, areola), pubic hair (amount, shape, color), genitals (characteristics, shape, size), and defining physical features like scars, birthmarks. Be descriptive and explicit. Target at least one sentence per attribute. No more than two paragraphs.
+
+**Body Measurements**: Bust/Waist/Hip measurements in inches if mentioned (e.g., "36-24-36")
+
+**Likes**: Things the character genuinely enjoys - activities, objects, or concepts
+
+**Hates**: Things the character strongly dislikes or finds repulsive
+
+**Clothes/Attire**: Detailed description of clothing - style, materials, colors, accessories. If nude, state "Nude"
+
+**Species**: Character's species (Human, Elf, Orc, Dragonkin, etc.)
+
+**Race/Ethnicity**: For humans, specify ethnicity (Caucasian, African, Asian). For fantasy/sci-fi species, use appropriate terms (High Elf, Wood Elf, Mountain Dwarf)
+
+**Occupation/Role**: Job, profession, or primary role in society/group
+
+**Sexuality**: Sexual orientation (Heterosexual, Homosexual, Bisexual, Asexual), experience level, preferences/interests in relationships and physical intimacy. Describe sexual proclivities, preferred sexual positions and acts, acts they dislike, and particularly sensitive erogenous zones. Be as explicit as possible. Minimum one paragraph of descriptive prose.
+
+**Appearance**: Comprehensive vivid description of overall appearance - face, hair, eyes, skin, posture, demeanor. Aim for one paragraph that paints a clear picture.
+
+**Attributes/Skills**: Up to three defining skills, talents, or abilities (physical, mental, social, magical). Be specific.
+
+**Current Mental State**: Present emotional/psychological condition
+
+**Current Physical State**: Present physical condition, injuries, arousal, etc.
+
+**Backstory**: Historical or past information that is interesting or detailed
+
+**Relationships**: List relationships to other characters. Format: "[Name] is [Name]'s [relationship]". AVOID DUPLICATES - only list each unique relationship once. Use ??? if the other person's name is unknown.
+
+Return JSON with this structure:
 {
   "characters": [
     {
       "name": "character name without title",
       "confidence": 85,
-      "aliases": ["alternate name", "titled version if applicable"],
-      "physical": {
-        "description": "brief key features",
-        "measurements": "height, weight if mentioned"
-      },
-      "mental": {
-        "personality": "key traits",
-        "background": "role/profession",
-        "status": "current state"
-      },
-      "relationships": [
-        "CharacterA is CharacterB's relationship"
-      ]
+      "aliases": ["all nicknames and titled versions"],
+      "characterRole": "archetype/profession",
+      "fullName": "First Last or First ??? or ??? Last",
+      "sex": "Male/Female/Non-binary/???",
+      "age": "number or ???",
+      "personality": "detailed personality description",
+      "body": "detailed physical body description",
+      "bodyMeasurements": "measurements or ???",
+      "likes": ["list of things they like"],
+      "hates": ["list of things they hate"],
+      "clothes": "detailed clothing description",
+      "species": "species name",
+      "raceEthnicity": "race or ethnicity",
+      "occupation": "job or role",
+      "sexuality": "detailed sexuality and preferences description",
+      "appearance": "overall appearance description",
+      "attributesSkills": ["skill 1", "skill 2", "skill 3"],
+      "currentMentalState": "current mental/emotional state",
+      "currentPhysicalState": "current physical condition",
+      "backstory": "historical background information",
+      "relationships": ["Name is Name's relationship"]
     }
   ]
 }
 
-IMPORTANT FORMATTING RULES:
-- Keep ALL text fields brief and concise (1-2 sentences maximum)
-- Ensure the JSON is complete and properly closed with all braces
-- Only include characters that are explicitly mentioned or described
-- If no character information is found, return {"characters": []}`;
+IMPORTANT: Ensure JSON is complete and properly closed. Only include characters explicitly mentioned. If no characters found, return {"characters": []}`;
 
 /**
  * Get the current system prompt (custom or default)
@@ -1695,21 +1728,31 @@ async function createCharacter(analyzedChar, isMainChar = false) {
     const character = {
         preferredName: analyzedChar.name,
         aliases: aliases,
-        physical: {
-            description: analyzedChar.physical?.description || '',
-            measurements: analyzedChar.physical?.measurements || ''
-        },
-        mental: {
-            personality: analyzedChar.mental?.personality || '',
-            background: analyzedChar.mental?.background || '',
-            status: analyzedChar.mental?.status || ''
-        },
+        characterRole: analyzedChar.characterRole || '',
+        fullName: analyzedChar.fullName || '',
+        sex: analyzedChar.sex || '',
+        age: analyzedChar.age || '',
+        personality: analyzedChar.personality || '',
+        body: analyzedChar.body || '',
+        bodyMeasurements: analyzedChar.bodyMeasurements || '',
+        likes: analyzedChar.likes || [],
+        hates: analyzedChar.hates || [],
+        clothes: analyzedChar.clothes || '',
+        species: analyzedChar.species || '',
+        raceEthnicity: analyzedChar.raceEthnicity || '',
+        occupation: analyzedChar.occupation || '',
+        sexuality: analyzedChar.sexuality || '',
+        appearance: analyzedChar.appearance || '',
+        attributesSkills: analyzedChar.attributesSkills || [],
+        currentMentalState: analyzedChar.currentMentalState || '',
+        currentPhysicalState: analyzedChar.currentPhysicalState || '',
+        backstory: analyzedChar.backstory || '',
         relationships: analyzedChar.relationships || [],
         ignored: false,
         confidence: analyzedChar.confidence || 50,
-        lorebookUid: null,
+        lorebookEntryId: null,
         lastUpdated: Date.now(),
-        isMainChar: isMainChar || false  // Flag for {{char}}
+        isMainChar: isMainChar || false
     };
     
     debugLog(`Created character object:`, character);
@@ -1743,28 +1786,52 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
     // Clean up all aliases using the helper function
     existingChar.aliases = cleanAliases(existingChar.aliases || [], existingChar.preferredName);
     
-    // Initialize physical/mental if missing
-    if (!existingChar.physical) existingChar.physical = {};
-    if (!existingChar.mental) existingChar.mental = {};
+    // Update new structured fields (new data takes precedence if not empty)
+    if (analyzedChar.characterRole) existingChar.characterRole = analyzedChar.characterRole;
+    if (analyzedChar.fullName) existingChar.fullName = analyzedChar.fullName;
+    if (analyzedChar.sex) existingChar.sex = analyzedChar.sex;
+    if (analyzedChar.age) existingChar.age = analyzedChar.age;
+    if (analyzedChar.personality) existingChar.personality = analyzedChar.personality;
+    if (analyzedChar.body) existingChar.body = analyzedChar.body;
+    if (analyzedChar.bodyMeasurements) existingChar.bodyMeasurements = analyzedChar.bodyMeasurements;
+    if (analyzedChar.clothes) existingChar.clothes = analyzedChar.clothes;
+    if (analyzedChar.species) existingChar.species = analyzedChar.species;
+    if (analyzedChar.raceEthnicity) existingChar.raceEthnicity = analyzedChar.raceEthnicity;
+    if (analyzedChar.occupation) existingChar.occupation = analyzedChar.occupation;
+    if (analyzedChar.sexuality) existingChar.sexuality = analyzedChar.sexuality;
+    if (analyzedChar.appearance) existingChar.appearance = analyzedChar.appearance;
+    if (analyzedChar.backstory) existingChar.backstory = analyzedChar.backstory;
     
-    // Merge physical data (new data takes precedence, but preserve existing if new is empty)
-    if (analyzedChar.physical) {
-        if (analyzedChar.physical.description) existingChar.physical.description = analyzedChar.physical.description;
-        if (analyzedChar.physical.measurements) existingChar.physical.measurements = analyzedChar.physical.measurements;
-    }
+    // Current states (time-sensitive, always update)
+    if (analyzedChar.currentMentalState) existingChar.currentMentalState = analyzedChar.currentMentalState;
+    if (analyzedChar.currentPhysicalState) existingChar.currentPhysicalState = analyzedChar.currentPhysicalState;
     
-    // Merge mental data (new data takes precedence for time-sensitive states)
-    if (analyzedChar.mental) {
-        if (analyzedChar.mental.personality) existingChar.mental.personality = analyzedChar.mental.personality;
-        if (analyzedChar.mental.background) {
-            // Background accumulates rather than replaces
-            if (existingChar.mental.background && !existingChar.mental.background.includes(analyzedChar.mental.background)) {
-                existingChar.mental.background += ' ' + analyzedChar.mental.background;
-            } else if (!existingChar.mental.background) {
-                existingChar.mental.background = analyzedChar.mental.background;
+    // Merge arrays (likes, hates, attributesSkills) - deduplicate
+    if (analyzedChar.likes && Array.isArray(analyzedChar.likes)) {
+        if (!existingChar.likes) existingChar.likes = [];
+        for (const like of analyzedChar.likes) {
+            if (!existingChar.likes.includes(like)) {
+                existingChar.likes.push(like);
             }
         }
-        if (analyzedChar.mental.status) existingChar.mental.status = analyzedChar.mental.status;
+    }
+    
+    if (analyzedChar.hates && Array.isArray(analyzedChar.hates)) {
+        if (!existingChar.hates) existingChar.hates = [];
+        for (const hate of analyzedChar.hates) {
+            if (!existingChar.hates.includes(hate)) {
+                existingChar.hates.push(hate);
+            }
+        }
+    }
+    
+    if (analyzedChar.attributesSkills && Array.isArray(analyzedChar.attributesSkills)) {
+        if (!existingChar.attributesSkills) existingChar.attributesSkills = [];
+        for (const skill of analyzedChar.attributesSkills) {
+            if (!existingChar.attributesSkills.includes(skill)) {
+                existingChar.attributesSkills.push(skill);
+            }
+        }
     }
     
     // Add new relationships (avoid duplicates)
@@ -1796,8 +1863,6 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
 async function updateLorebookEntry(character, characterName) {
     debugLog(`updateLorebookEntry called for: ${characterName}`);
     debugLog(`  Character data:`, character);
-    debugLog(`  Physical description:`, character.physical?.description);
-    debugLog(`  Mental personality:`, character.mental?.personality);
     
     if (!lorebookName) {
         debugLog('No lorebook initialized, skipping entry update');
@@ -1810,33 +1875,104 @@ async function updateLorebookEntry(character, characterName) {
         // Build the entry content in a readable format
         const contentParts = [];
         
-        // Name and aliases
-        contentParts.push(`**${character.preferredName}**`);
+        // Character Role
+        if (character.characterRole) {
+            contentParts.push(`**Character Role:** ${character.characterRole}`);
+        }
+        
+        // Full Name
+        if (character.fullName) {
+            contentParts.push(`**Full Name:** ${character.fullName}`);
+        }
+        
+        // Sex
+        if (character.sex) {
+            contentParts.push(`**Sex:** ${character.sex}`);
+        }
+        
+        // Age
+        if (character.age) {
+            contentParts.push(`**Age:** ${character.age}`);
+        }
+        
+        // Nicknames/Aliases
         if (character.aliases && character.aliases.length > 0) {
-            contentParts.push(`Also known as: ${character.aliases.join(', ')}`);
+            contentParts.push(`**Nicknames/Aliases:** ${character.aliases.join(', ')}`);
         }
         
-        // Physical description
-        if (character.physical) {
-            if (character.physical.description) {
-                contentParts.push(`\n**Appearance:** ${character.physical.description}`);
-            }
-            if (character.physical.measurements) {
-                contentParts.push(`**Measurements:** ${character.physical.measurements}`);
-            }
+        // Personality
+        if (character.personality) {
+            contentParts.push(`\n**Personality:**\n${character.personality}`);
         }
         
-        // Mental/personality
-        if (character.mental) {
-            if (character.mental.personality) {
-                contentParts.push(`\n**Personality:** ${character.mental.personality}`);
-            }
-            if (character.mental.background) {
-                contentParts.push(`**Background:** ${character.mental.background}`);
-            }
-            if (character.mental.status) {
-                contentParts.push(`**Current Status:** ${character.mental.status}`);
-            }
+        // Body
+        if (character.body) {
+            contentParts.push(`\n**Body:**\n${character.body}`);
+        }
+        
+        // Body Measurements
+        if (character.bodyMeasurements) {
+            contentParts.push(`**Body Measurements:** ${character.bodyMeasurements}`);
+        }
+        
+        // Likes
+        if (character.likes && character.likes.length > 0) {
+            contentParts.push(`\n**Likes:**\n${character.likes.map(item => `- ${item}`).join('\n')}`);
+        }
+        
+        // Hates
+        if (character.hates && character.hates.length > 0) {
+            contentParts.push(`\n**Hates:**\n${character.hates.map(item => `- ${item}`).join('\n')}`);
+        }
+        
+        // Clothes/Attire
+        if (character.clothes) {
+            contentParts.push(`\n**Clothes/Attire:**\n${character.clothes}`);
+        }
+        
+        // Species
+        if (character.species) {
+            contentParts.push(`**Species:** ${character.species}`);
+        }
+        
+        // Race/Ethnicity
+        if (character.raceEthnicity) {
+            contentParts.push(`**Race/Ethnicity:** ${character.raceEthnicity}`);
+        }
+        
+        // Occupation/Role
+        if (character.occupation) {
+            contentParts.push(`**Occupation/Role:** ${character.occupation}`);
+        }
+        
+        // Sexuality
+        if (character.sexuality) {
+            contentParts.push(`\n**Sexuality:**\n${character.sexuality}`);
+        }
+        
+        // Appearance
+        if (character.appearance) {
+            contentParts.push(`\n**Appearance:**\n${character.appearance}`);
+        }
+        
+        // Attributes/Skills
+        if (character.attributesSkills && character.attributesSkills.length > 0) {
+            contentParts.push(`\n**Attributes/Skills:**\n${character.attributesSkills.map(skill => `- ${skill}`).join('\n')}`);
+        }
+        
+        // Current Mental State
+        if (character.currentMentalState) {
+            contentParts.push(`\n**Current Mental State:** ${character.currentMentalState}`);
+        }
+        
+        // Current Physical State
+        if (character.currentPhysicalState) {
+            contentParts.push(`**Current Physical State:** ${character.currentPhysicalState}`);
+        }
+        
+        // Backstory
+        if (character.backstory) {
+            contentParts.push(`\n**Backstory:**\n${character.backstory}`);
         }
         
         // Relationships
@@ -1879,7 +2015,7 @@ async function updateLorebookEntry(character, characterName) {
             // Update existing entry
             existingEntry.content = content;
             existingEntry.key = keys;
-            existingEntry.comment = `Auto-generated by Name Tracker - Last updated: ${new Date(character.lastUpdated).toLocaleString()}`;
+            existingEntry.comment = character.preferredName;
             debugLog(`Updated lorebook entry ${entryUid} for ${character.preferredName}`);
         } else {
             // Create new entry
@@ -1888,13 +2024,13 @@ async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: `Auto-generated by Name Tracker - Created: ${new Date().toLocaleString()}`,
+                comment: character.preferredName,
                 content: content,
                 constant: false,
                 selective: true,
                 insertion_order: 100,
                 enabled: true,
-                position: 0,
+                position: 1,
                 excludeRecursion: false,
                 preventRecursion: false,
                 delayUntilRecursion: false,
