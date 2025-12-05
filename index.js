@@ -48,6 +48,7 @@ let processingQueue = [];
 let isProcessing = false;
 let undoHistory = []; // Stores last 3 merge operations
 let ollamaModels = []; // Available Ollama models
+let abortScan = false; // Flag to abort batch scanning
 
 // Lorebook name for this chat
 let lorebookName = null;
@@ -186,10 +187,10 @@ function getSettings() {
 function ensureUserCharacterIgnored() {
     const settings = getSettings();
     const context = SillyTavern.getContext();
-    const userName = context.name2;
+    const userName = context.name1; // name1 is the user's persona name
     
     if (!userName) {
-        debugLog('No user character name available (context.name2 is empty)');
+        debugLog('No user character name available (context.name1 is empty)');
         return;
     }
     
@@ -304,6 +305,7 @@ function updateCharacterList() {
     
     for (const char of characters) {
         const charIcon = char.isMainChar ? '<i class="fa-solid fa-user" title="Active Character"></i> ' : '';
+        const lorebookId = char.lorebookEntryId ? `<small class="lorebook-entry-id" title="Lorebook Entry ID">ID: ${escapeHtml(char.lorebookEntryId)}</small>` : '';
         
         const item = $(`
             <div class="name-tracker-character ${char.isMainChar ? 'main-character' : ''}" data-name="${escapeHtml(char.preferredName)}">
@@ -315,10 +317,11 @@ function updateCharacterList() {
                 </div>
                 <div class="character-aliases">
                     ${char.aliases.length > 0 ? `Aliases: ${char.aliases.map(a => escapeHtml(a)).join(', ')}` : 'No aliases'}
+                    ${lorebookId}
                 </div>
                 <div class="character-actions">
-                    <button class="menu_button compact char-action-view" data-name="${escapeHtml(char.preferredName)}">
-                        View in Lorebook
+                    <button class="menu_button compact char-action-edit" data-name="${escapeHtml(char.preferredName)}">
+                        Edit Entry
                     </button>
                     <button class="menu_button compact char-action-merge" data-name="${escapeHtml(char.preferredName)}">
                         Merge
@@ -558,12 +561,14 @@ async function calculateMessageTokens(messages) {
  * @param {Array} messageObjs - Array of message objects (with .mes property) or strings
  * @param {string} knownCharacters - Roster of previously identified characters
  * @param {number} depth - Recursion depth (for logging)
+ * @param {number} retryCount - Number of retries attempted
  * @returns {Promise<Object>} Analysis result with merged characters
  */
-async function callLLM(messageObjs, knownCharacters = '', depth = 0) {
+async function callLLM(messageObjs, knownCharacters = '', depth = 0, retryCount = 0) {
     const settings = getSettings();
     const context = SillyTavern.getContext();
     const maxPromptTokens = await getMaxPromptLength(); // Dynamic based on API context window
+    const MAX_RETRIES = 3;
     
     // Extract message text
     const messages = messageObjs.map(msg => {
@@ -635,10 +640,33 @@ async function callLLM(messageObjs, knownCharacters = '', depth = 0) {
     // Prompt is acceptable length, proceed with analysis
     let result;
     
-    if (settings.llmSource === 'ollama') {
-        result = await callOllama(fullPrompt);
-    } else {
-        result = await callSillyTavern(fullPrompt);
+    try {
+        if (settings.llmSource === 'ollama') {
+            result = await callOllama(fullPrompt);
+        } else {
+            result = await callSillyTavern(fullPrompt);
+        }
+    } catch (error) {
+        // Retry on JSON parsing errors or empty responses
+        if (retryCount < MAX_RETRIES && 
+            (error.message.includes('JSON') || 
+             error.message.includes('empty') || 
+             error.message.includes('parse') ||
+             error.message.includes('Invalid'))) {
+            
+            const indent = '  '.repeat(depth);
+            debugLog(`${indent}Retry ${retryCount + 1}/${MAX_RETRIES} after error: ${error.message}`);
+            
+            // Exponential backoff: 1s, 2s, 4s
+            const delay = Math.pow(2, retryCount) * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Retry the same call
+            return await callLLM(messageObjs, knownCharacters, depth, retryCount + 1);
+        }
+        
+        // Max retries exceeded or non-retryable error
+        throw error;
     }
     
     // Cache the result
@@ -839,16 +867,112 @@ async function harvestMessages(messageCount, showProgress = true) {
         return;
     }
     
-    // Get the messages to analyze
+    // Get the messages to analyze - count forward and check token limits
     const endIdx = context.chat.length;
     const startIdx = Math.max(0, endIdx - messageCount);
-    const messagesToAnalyze = context.chat.slice(startIdx, endIdx);
+    let messagesToAnalyze = context.chat.slice(startIdx, endIdx);
     
-    if (messagesToAnalyze.length === 0) {
-        debugLog('No messages to analyze');
+    // Check if messages fit in context window
+    const maxPromptTokens = await getMaxPromptLength();
+    const availableTokens = maxPromptTokens - 1000; // Reserve for system prompt and response
+    
+    // Calculate actual token count for the requested messages
+    const messageTokens = await calculateMessageTokens(messagesToAnalyze);
+    
+    // If too large, split into batches
+    if (messageTokens > availableTokens) {
+        debugLog(`Requested ${messagesToAnalyze.length} messages (${messageTokens} tokens) exceeds context (${availableTokens} tokens), splitting into batches...`);
+        
+        // Calculate batch size based on tokens
+        const batchSize = settings.messageFrequency || 10;
+        const batches = [];
+        
+        for (let i = 0; i < messagesToAnalyze.length; i += batchSize) {
+            batches.push(messagesToAnalyze.slice(i, Math.min(i + batchSize, messagesToAnalyze.length)));
+        }
+        
+        if (showProgress) {
+            toastr.info(`Splitting into ${batches.length} batches to fit context window`, 'Name Tracker');
+        }
+        
+        // Reset abort flag
+        abortScan = false;
+        
+        // Show progress bar
+        showProgressBar(0, batches.length, 'Starting analysis...');
+        
+        let successfulBatches = 0;
+        let failedBatches = 0;
+        const uniqueCharacters = new Set();
+        
+        // Process each batch
+        for (let i = 0; i < batches.length; i++) {
+            // Check if user aborted
+            if (abortScan) {
+                debugLog('Analysis aborted by user');
+                hideProgressBar();
+                toastr.warning('Analysis aborted', 'Name Tracker');
+                return;
+            }
+            
+            const batch = batches[i];
+            const batchStart = startIdx + (i * batchSize);
+            const batchEnd = batchStart + batch.length;
+            
+            try {
+                showProgressBar(i + 1, batches.length, `Analyzing messages ${batchStart + 1}-${batchEnd}...`);
+                
+                // Build roster of characters found so far
+                const characterRoster = buildCharacterRoster();
+                
+                // Call LLM for analysis
+                const analysis = await callLLM(batch, characterRoster);
+                
+                // Process the analysis
+                if (analysis.characters && Array.isArray(analysis.characters)) {
+                    await processAnalysisResults(analysis.characters);
+                    analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                }
+                
+                successfulBatches++;
+                
+                // Small delay between batches to avoid rate limiting
+                if (i < batches.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+            } catch (error) {
+                console.error(`Error processing batch ${i + 1}:`, error);
+                failedBatches++;
+                
+                // Ask user if they want to continue on error
+                const continueOnError = confirm(`Batch ${i + 1} failed with error: ${error.message}\n\nContinue with remaining batches?`);
+                if (!continueOnError) {
+                    break;
+                }
+            }
+        }
+        
+        // Hide progress bar
+        hideProgressBar();
+        
+        // Update last harvest message counter
+        settings.lastHarvestMessage = settings.messageCounter;
+        saveChatData();
+        updateStatusDisplay();
+        
+        // Show summary
+        const summary = `Analysis complete!\n\nBatches processed: ${successfulBatches}/${batches.length}\nUnique characters found: ${uniqueCharacters.size}\nFailed batches: ${failedBatches}`;
+        if (failedBatches > 0) {
+            toastr.warning(summary, 'Name Tracker', { timeOut: 8000 });
+        } else {
+            toastr.success(summary, 'Name Tracker', { timeOut: 8000 });
+        }
+        
         return;
     }
     
+    // Messages fit in one batch - process normally
     if (showProgress) {
         toastr.info(`Analyzing ${messagesToAnalyze.length} messages for character information...`, 'Name Tracker');
     }
@@ -891,64 +1015,56 @@ async function harvestMessages(messageCount, showProgress = true) {
  * @param {string} status - Status message
  */
 function showProgressBar(current, total, status = '') {
-    let progressBar = $('#name_tracker_progress');
+    const progressBarId = 'name_tracker_progress';
+    let $existing = $(`.${progressBarId}`);
     
-    if (progressBar.length === 0) {
-        // Create progress bar if it doesn't exist
-        progressBar = $(`
-            <div id="name_tracker_progress" style="
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                z-index: 9999;
-                background: var(--SmartThemeBodyColor);
-                border-bottom: 2px solid var(--SmartThemeBorderColor);
-                padding: 10px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            ">
-                <div style="max-width: 800px; margin: 0 auto;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span id="name_tracker_progress_label" style="font-weight: bold;">Name Tracker</span>
-                        <span id="name_tracker_progress_text"></span>
-                    </div>
-                    <div style="
-                        width: 100%;
-                        height: 20px;
-                        background: var(--SmartThemeBlurTintColor);
-                        border-radius: 10px;
-                        overflow: hidden;
-                        position: relative;
-                    ">
-                        <div id="name_tracker_progress_fill" style="
-                            height: 100%;
-                            background: linear-gradient(90deg, #4CAF50, #45a049);
-                            transition: width 0.3s ease;
-                            width: 0%;
-                        "></div>
-                    </div>
-                </div>
-            </div>
-        `);
-        $('body').append(progressBar);
+    if ($existing.length > 0) {
+        // Update existing progress bar
+        if (status) $existing.find('.title').text(status);
+        $existing.find('.progress').text(current);
+        $existing.find('.total').text(total);
+        $existing.find('progress').val(current).attr('max', total);
+        return;
     }
     
-    const percentage = (current / total * 100).toFixed(1);
-    progressBar.find('#name_tracker_progress_fill').css('width', percentage + '%');
-    progressBar.find('#name_tracker_progress_text').text(`${current}/${total} batches (${percentage}%)`);
+    // Create new progress bar
+    const bar = $(`
+        <div class="${progressBarId} name_tracker_progress_bar flex-container justifyspacebetween alignitemscenter" style="
+            padding: 10px;
+            margin: 5px 0;
+            background: var(--SmartThemeBlurTintColor);
+            border: 1px solid var(--SmartThemeBorderColor);
+            border-radius: 5px;
+        ">
+            <div class="title" style="flex: 1; font-weight: bold;">${status || 'Name Tracker Scan'}</div>
+            <div style="margin: 0 10px;">(<span class="progress">${current}</span> / <span class="total">${total}</span>)</div>
+            <progress value="${current}" max="${total}" style="flex: 2; margin: 0 10px;"></progress>
+            <button class="menu_button fa-solid fa-stop" title="Abort scan" style="padding: 5px 10px;"></button>
+        </div>
+    `);
     
-    if (status) {
-        progressBar.find('#name_tracker_progress_label').text(status);
-    }
+    // Add click event to abort the scan
+    bar.find('button').on('click', function() {
+        abortScan = true;
+        hideProgressBar();
+        toastr.warning('Scan aborted by user', 'Name Tracker');
+    });
+    
+    // Append to the main chat area (#sheld)
+    $('#sheld').append(bar);
 }
 
 /**
  * Hide and remove progress bar
  */
 function hideProgressBar() {
-    $('#name_tracker_progress').fadeOut(300, function() {
-        $(this).remove();
-    });
+    const progressBarId = 'name_tracker_progress';
+    let $existing = $(`.${progressBarId}`);
+    if ($existing.length > 0) {
+        $existing.fadeOut(300, function() {
+            $(this).remove();
+        });
+    }
 }
 
 /**
@@ -982,6 +1098,9 @@ async function scanEntireChat() {
         return;
     }
     
+    // Reset abort flag
+    abortScan = false;
+    
     // Show progress bar
     showProgressBar(0, numBatches, 'Starting batch scan...');
     
@@ -991,6 +1110,12 @@ async function scanEntireChat() {
     
     // Process from oldest to newest
     for (let i = 0; i < numBatches; i++) {
+        // Check if user aborted
+        if (abortScan) {
+            debugLog('Scan aborted by user');
+            break;
+        }
+        
         const startIdx = i * batchSize;
         const endIdx = Math.min(startIdx + batchSize, totalMessages);
         const batchMessages = context.chat.slice(startIdx, endIdx);
@@ -1535,6 +1660,76 @@ function debugLog(...args) {
 }
 
 /**
+ * Purge all character entries and lorebook data
+ */
+async function purgeAllEntries() {
+    const settings = getSettings();
+    const characterCount = Object.keys(settings.characters).length;
+    
+    if (characterCount === 0) {
+        toastr.info('No characters to purge', 'Name Tracker');
+        return;
+    }
+    
+    const confirmed = confirm(`This will delete all ${characterCount} tracked characters and their lorebook entries.\n\nThis action cannot be undone!\n\nContinue?`);
+    
+    if (!confirmed) {
+        return;
+    }
+    
+    try {
+        // Delete all lorebook entries
+        const context = SillyTavern.getContext();
+        const worldInfoData = context.worldInfoData;
+        
+        if (worldInfoData && lorebookName) {
+            const lorebook = worldInfoData[lorebookName];
+            
+            if (lorebook && lorebook.entries) {
+                // Get all entry IDs from our tracked characters
+                const entryIds = Object.values(settings.characters)
+                    .map(char => char.lorebookEntryId)
+                    .filter(id => id !== undefined && id !== null);
+                
+                // Delete each entry
+                for (const entryId of entryIds) {
+                    const entryIndex = lorebook.entries.findIndex(e => e.id === entryId);
+                    if (entryIndex !== -1) {
+                        lorebook.entries.splice(entryIndex, 1);
+                        debugLog(`Deleted lorebook entry ${entryId}`);
+                    }
+                }
+                
+                // Save the lorebook
+                await saveWorldInfo(lorebookName, lorebook);
+            }
+        }
+        
+        // Clear all character data
+        settings.characters = {};
+        settings.messageCounter = 0;
+        settings.lastHarvestMessage = 0;
+        
+        // Clear undo history
+        undoHistory = [];
+        
+        // Save changes
+        saveChatData();
+        updateCharacterList();
+        updateStatusDisplay();
+        
+        // Update undo button state
+        $('#name_tracker_undo_merge').prop('disabled', true);
+        
+        toastr.success(`Purged ${characterCount} characters and their lorebook entries`, 'Name Tracker');
+        
+    } catch (error) {
+        console.error('Error purging entries:', error);
+        toastr.error(`Failed to purge entries: ${error.message}`, 'Name Tracker');
+    }
+}
+
+/**
  * Clear analysis cache
  */
 function clearCache() {
@@ -1728,9 +1923,40 @@ function onDebugModeChange(event) {
 }
 
 async function onManualAnalyzeClick() {
-    const messageCount = parseInt($("#name_tracker_manual_count").val());
-    if (messageCount > 0) {
-        await harvestMessages(messageCount, true);
+    const context = SillyTavern.getContext();
+    const settings = getSettings();
+    
+    // Calculate how many messages we can fit based on actual token counts
+    const maxPromptTokens = await getMaxPromptLength();
+    
+    // Reserve tokens for system prompt (~500) and response (~500)
+    const availableTokens = maxPromptTokens - 1000;
+    
+    // Count forward from oldest messages (chronological order for history building)
+    let messageCount = 0;
+    let totalTokens = 0;
+    
+    if (context.chat && context.chat.length > 0) {
+        // Start from oldest (index 0) and work forward
+        for (let i = 0; i < context.chat.length && totalTokens < availableTokens; i++) {
+            const msg = context.chat[i];
+            const msgTokens = await calculateMessageTokens([msg]);
+            
+            if (totalTokens + msgTokens <= availableTokens) {
+                totalTokens += msgTokens;
+                messageCount++;
+            } else {
+                break; // Would exceed limit
+            }
+        }
+    }
+    
+    // Use user input if provided, otherwise use calculated amount
+    const userInput = parseInt($("#name_tracker_manual_count").val());
+    const finalCount = userInput || messageCount || settings.messageFrequency || 10;
+    
+    if (finalCount > 0) {
+        await harvestMessages(finalCount, true);
     } else {
         toastr.warning('Please enter a valid number of messages', 'Name Tracker');
     }
@@ -1746,6 +1972,10 @@ function onClearCacheClick() {
 
 async function onUndoMergeClick() {
     await undoLastMerge();
+}
+
+async function onPurgeEntriesClick() {
+    await purgeAllEntries();
 }
 
 async function onEditSystemPromptClick() {
@@ -1843,9 +2073,9 @@ async function onEditSystemPromptClick() {
 }
 
 // Character action handlers
-$(document).on('click', '.char-action-view', function() {
+$(document).on('click', '.char-action-edit', function() {
     const name = $(this).data('name');
-    viewInLorebook(name);
+    editLorebookEntry(name);
 });
 
 $(document).on('click', '.char-action-merge', async function() {
@@ -1884,6 +2114,170 @@ $(document).on('click', '.char-action-ignore', function() {
     const name = $(this).data('name');
     toggleIgnoreCharacter(name);
 });
+
+/**
+ * Edit a character's lorebook entry directly
+ */
+async function editLorebookEntry(characterName) {
+    const settings = getSettings();
+    const character = settings.characters[characterName];
+    
+    if (!character) {
+        toastr.error('Character not found', 'Name Tracker');
+        return;
+    }
+    
+    // Build edit dialog
+    const currentNotes = character.notes || '';
+    const currentKeys = [characterName, ...(character.aliases || [])].join(', ');
+    
+    const dialogHtml = `
+        <div class="lorebook-entry-editor">
+            <h3>Edit Lorebook Entry: ${escapeHtml(characterName)}</h3>
+            
+            <div class="editor-section">
+                <label for="entry-keys">Keys (comma-separated):</label>
+                <input type="text" id="entry-keys" class="text_pole" value="${escapeHtml(currentKeys)}" 
+                       placeholder="${escapeHtml(characterName)}, aliases, nicknames">
+                <small>These words trigger this entry in the chat context</small>
+            </div>
+            
+            <div class="editor-section">
+                <label for="entry-content">Entry Content:</label>
+                <textarea id="entry-content" rows="10" class="text_pole" 
+                          placeholder="Description, personality, background, relationships...">${escapeHtml(currentNotes)}</textarea>
+                <small>This will be injected into context when keys are mentioned</small>
+            </div>
+            
+            <div class="editor-section">
+                <label for="entry-relationships">Relationships:</label>
+                <textarea id="entry-relationships" rows="3" class="text_pole" 
+                          placeholder="Friend of Alice; Enemy of Bob; Works for XYZ Corp">${escapeHtml((character.relationships || []).join('; '))}</textarea>
+                <small>One relationship per line or semicolon-separated</small>
+            </div>
+        </div>
+    `;
+    
+    // Show dialog using SillyTavern's popup system
+    const popup = $('<div></div>').html(dialogHtml);
+    
+    const result = await new Promise((resolve) => {
+        const buttons = [
+            {
+                label: 'Save',
+                action: () => {
+                    const keys = $('#entry-keys').val();
+                    const content = $('#entry-content').val();
+                    const relationships = $('#entry-relationships').val();
+                    resolve({ keys, content, relationships });
+                    return true; // Close dialog
+                }
+            },
+            {
+                label: 'Cancel',
+                action: () => {
+                    resolve(null);
+                    return true;
+                }
+            }
+        ];
+        
+        // Create simple modal dialog
+        const modal = $(`
+            <div class="nametracker-modal" style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: var(--SmartThemeBlurTintColor);
+                border: 1px solid var(--SmartThemeBorderColor);
+                border-radius: 10px;
+                padding: 20px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                z-index: 9999;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            ">
+                ${dialogHtml}
+                <div style="margin-top: 20px; text-align: right;">
+                    <button class="menu_button" id="entry-save">Save</button>
+                    <button class="menu_button" id="entry-cancel">Cancel</button>
+                </div>
+            </div>
+        `);
+        
+        const overlay = $(`
+            <div class="nametracker-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                z-index: 9998;
+            "></div>
+        `);
+        
+        $('body').append(overlay).append(modal);
+        
+        $('#entry-save').on('click', () => {
+            const keys = $('#entry-keys').val();
+            const content = $('#entry-content').val();
+            const relationships = $('#entry-relationships').val();
+            modal.remove();
+            overlay.remove();
+            resolve({ keys, content, relationships });
+        });
+        
+        $('#entry-cancel').on('click', () => {
+            modal.remove();
+            overlay.remove();
+            resolve(null);
+        });
+        
+        overlay.on('click', () => {
+            modal.remove();
+            overlay.remove();
+            resolve(null);
+        });
+    });
+    
+    if (!result) {
+        return; // User cancelled
+    }
+    
+    // Parse and save the changes
+    const keys = result.keys.split(',').map(k => k.trim()).filter(k => k);
+    const preferredName = keys[0] || characterName;
+    const aliases = keys.slice(1);
+    
+    const relationships = result.relationships
+        .split(/[;\n]/)
+        .map(r => r.trim())
+        .filter(r => r);
+    
+    // Update character data
+    character.preferredName = preferredName;
+    character.aliases = aliases;
+    character.notes = result.content;
+    character.relationships = relationships;
+    
+    // If preferred name changed, need to update the key in settings.characters
+    if (preferredName !== characterName) {
+        delete settings.characters[characterName];
+        settings.characters[preferredName] = character;
+    }
+    
+    saveChatData();
+    updateCharacterList();
+    
+    // Update lorebook entry
+    await updateLorebookEntry(character, preferredName);
+    
+    toastr.success(`Updated lorebook entry for ${preferredName}`, 'Name Tracker');
+}
 
 /**
  * Open the chat lorebook in the World Info editor
@@ -1977,6 +2371,7 @@ jQuery(async () => {
     $("#name_tracker_scan_all").on("click", onScanAllClick);
     $("#name_tracker_clear_cache").on("click", onClearCacheClick);
     $("#name_tracker_undo_merge").on("click", onUndoMergeClick);
+    $("#name_tracker_purge_entries").on("click", onPurgeEntriesClick);
     $("#name_tracker_edit_prompt").on("click", onEditSystemPromptClick);
     
     // Subscribe to SillyTavern events
