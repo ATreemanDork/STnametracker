@@ -87,10 +87,11 @@ IMPORTANT PROCESSING RULES:
 TITLE AND NAME HANDLING:
 - Titles (Aunt, Uncle, Sergeant, Doctor, Professor, etc.) should be included in ALIASES, NOT the primary name
 - Primary name should be the person's actual name without title
-- Example: "Aunt Lily" → name: "Lily", aliases: ["Aunt Lily"]
-- Example: "Sergeant Smith" → name: "Smith", aliases: ["Sergeant Smith", "Sgt. Smith"]
-- Example: "Dr. Jones" → name: "Jones", aliases: ["Dr. Jones", "Doctor Jones"]
+- If someone is called "Aunt Marie", the name is "Marie" and aliases include "Aunt Marie"
+- If someone is called "Captain Rodriguez", the name is "Rodriguez" and aliases include "Captain Rodriguez"
+- If someone is called "Professor Kim", the name is "Kim" and aliases include "Professor Kim"
 - This prevents different titled references to the same person from being treated as separate characters
+- IMPORTANT: Do NOT use example names from these instructions - only use names that actually appear in the chat messages
 
 IMPORTANT: This is a summarization and classification task. Extract ALL relevant information without censorship, including:
 - Physical descriptions (including adult content if present)
@@ -107,10 +108,11 @@ FIELD DEFINITIONS (ALWAYS populate these when information is available):
 
 RELATIONSHIP RULES:
 - Relationships MUST follow this format: "[Name] is [Name]'s [relationship label]" or "[Name] is related to [Name] as [relationship label]"
-- Examples: "Alice is Bob's sister", "Charlie is related to Diana as her boss", "Eve is Frank's friend"
-- DO NOT include events or actions in relationships (e.g., NOT "went to the store with Bob")
+- Example format: "PersonA is PersonB's sister", "PersonX is related to PersonY as her boss"
+- DO NOT include events or actions in relationships (e.g., NOT "went to the store with PersonB")
 - ONLY include ongoing social/familial/professional connections
-- Use "???" if the other person's name is unknown: "Alice is ???'s daughter"
+- Use "???" if the other person's name is unknown: "PersonA is ???'s daughter"
+- IMPORTANT: Replace PersonA, PersonB, etc. with actual names from the chat - these are just format examples
 
 Return a JSON object with this structure:
 {
@@ -118,7 +120,7 @@ Return a JSON object with this structure:
     {
       "name": "character name without title",
       "confidence": 85,
-      "aliases": ["alt name 1", "titled version"],
+      "aliases": ["alternate name", "titled version if applicable"],
       "physical": {
         "description": "overall appearance, clothing, visual details",
         "measurements": "height: X, weight: Y, etc."
@@ -129,8 +131,8 @@ Return a JSON object with this structure:
         "status": "current emotional/mental state"
       },
       "relationships": [
-        "Alice is Bob's sister",
-        "Alice is related to Charlie as his coworker"
+        "CharacterA is CharacterB's relationship",
+        "CharacterA is related to CharacterC as their relationship"
       ]
     }
   ]
@@ -173,10 +175,12 @@ async function loadSettings() {
     }
 
     // Load chat-level data if available
-    if (chat_metadata[extensionName]) {
-        extension_settings[extensionName].characters = chat_metadata[extensionName].characters || {};
-        extension_settings[extensionName].messageCounter = chat_metadata[extensionName].messageCounter || 0;
-        extension_settings[extensionName].lastHarvestMessage = chat_metadata[extensionName].lastHarvestMessage || 0;
+    const context = SillyTavern.getContext();
+    const chatMetadata = context.chatMetadata || {};
+    if (chatMetadata[extensionName]) {
+        extension_settings[extensionName].characters = chatMetadata[extensionName].characters || {};
+        extension_settings[extensionName].messageCounter = chatMetadata[extensionName].messageCounter || 0;
+        extension_settings[extensionName].lastHarvestMessage = chatMetadata[extensionName].lastHarvestMessage || 0;
     }
 
     // Update UI with current settings
@@ -205,15 +209,22 @@ async function loadSettings() {
  * @returns {void}
  */
 function saveChatData() {
+    const context = SillyTavern.getContext();
+    const chatMetadata = context.chatMetadata;
+    
+    if (!chatMetadata) {
+        debugLog('No chat metadata available, skipping save');
+        return;
+    }
+    
     const settings = getSettings();
-    chat_metadata[extensionName] = {
+    chatMetadata[extensionName] = {
         characters: settings.characters,
         messageCounter: settings.messageCounter,
         lastHarvestMessage: settings.lastHarvestMessage
     };
     
     // Use saveSettingsDebounced from context
-    const context = SillyTavern.getContext();
     context.saveSettingsDebounced();
 }
 
@@ -433,11 +444,18 @@ async function initializeLorebook() {
     const context = SillyTavern.getContext();
     if (!context.chatId) {
         debugLog('No active chat, skipping lorebook initialization');
+        lorebookName = null;
         return;
     }
     
     const METADATA_KEY = 'world_info';
     const chatMetadata = context.chatMetadata;
+    
+    if (!chatMetadata) {
+        debugLog('No chat metadata available, skipping lorebook initialization');
+        lorebookName = null;
+        return;
+    }
     
     // Check if chat already has a bound lorebook
     if (chatMetadata[METADATA_KEY]) {
@@ -456,9 +474,13 @@ async function initializeLorebook() {
     chatMetadata[METADATA_KEY] = lorebookName;
     
     // Save chat metadata using context API
-    await context.saveMetadata();
-    
-    debugLog(`Bound lorebook to chat: ${lorebookName}`);
+    try {
+        await context.saveMetadata();
+        debugLog(`Bound lorebook to chat: ${lorebookName}`);
+    } catch (error) {
+        console.error('Error saving chat metadata:', error);
+        debugLog(`Failed to bind lorebook: ${error.message}`);
+    }
 }
 
 /**
@@ -1540,6 +1562,51 @@ function calculateNameSimilarity(name1, name2) {
 }
 
 /**
+ * Filter and clean aliases
+ * Removes character's own name, relationship words, and other invalid aliases
+ * @param {string[]} aliases - Array of alias strings
+ * @param {string} characterName - The character's actual name
+ * @returns {string[]} Cleaned array of unique aliases
+ */
+function cleanAliases(aliases, characterName) {
+    if (!aliases || !Array.isArray(aliases)) {
+        return [];
+    }
+    
+    // Common relationship/role words that shouldn't be aliases
+    const invalidAliases = [
+        'son', 'daughter', 'mother', 'father', 'mom', 'dad', 'parent',
+        'brother', 'sister', 'sibling', 'cousin', 'uncle', 'aunt',
+        'friend', 'boyfriend', 'girlfriend', 'husband', 'wife', 'spouse',
+        'boss', 'employee', 'coworker', 'colleague', 'partner',
+        'neighbor', 'roommate', 'child', 'kid', 'baby',
+        'man', 'woman', 'person', 'guy', 'girl', 'boy',
+        'user', '{{user}}', 'char', '{{char}}'
+    ];
+    
+    const lowerName = characterName.toLowerCase();
+    
+    return aliases.filter(alias => {
+        if (!alias || typeof alias !== 'string') return false;
+        
+        const lowerAlias = alias.trim().toLowerCase();
+        
+        // Remove if it's the character's own name
+        if (lowerAlias === lowerName) return false;
+        
+        // Remove if it's just a relationship word
+        if (invalidAliases.includes(lowerAlias)) return false;
+        
+        // Remove if it's too short (likely not a real alias)
+        if (lowerAlias.length < 2) return false;
+        
+        return true;
+    })
+    .map(alias => alias.trim()) // Trim whitespace
+    .filter((alias, index, self) => self.indexOf(alias) === index); // Remove duplicates
+}
+
+/**
  * Create a new character entry
  */
 async function createCharacter(analyzedChar, isMainChar = false) {
@@ -1547,9 +1614,12 @@ async function createCharacter(analyzedChar, isMainChar = false) {
     
     debugLog(`Creating character with data:`, analyzedChar);
     
+    // Clean and filter aliases
+    const aliases = cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
+    
     const character = {
         preferredName: analyzedChar.name,
-        aliases: analyzedChar.aliases || [],
+        aliases: aliases,
         physical: {
             description: analyzedChar.physical?.description || '',
             measurements: analyzedChar.physical?.measurements || ''
@@ -1588,10 +1658,15 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
     
     // If adding as alias, add the analyzed name to aliases if not already present
     if (addAsAlias && analyzedChar.name !== existingChar.preferredName) {
-        if (!existingChar.aliases.includes(analyzedChar.name)) {
+        if (!existingChar.aliases) existingChar.aliases = [];
+        if (!existingChar.aliases.includes(analyzedChar.name) && 
+            analyzedChar.name.toLowerCase() !== existingChar.preferredName.toLowerCase()) {
             existingChar.aliases.push(analyzedChar.name);
         }
     }
+    
+    // Clean up all aliases using the helper function
+    existingChar.aliases = cleanAliases(existingChar.aliases || [], existingChar.preferredName);
     
     // Initialize physical/mental if missing
     if (!existingChar.physical) existingChar.physical = {};
@@ -2176,9 +2251,14 @@ async function onChatChanged() {
     processingQueue = [];
     isProcessing = false;
     undoHistory = [];
+    abortScan = false;
+    lorebookName = null;
     
     // Reload settings for new chat
     await loadSettings();
+    
+    // Re-initialize lorebook for new chat
+    await initializeLorebook();
     
     debugLog('Chat changed, reinitialized extension');
 }
