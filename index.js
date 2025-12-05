@@ -80,17 +80,25 @@ IMPORTANT PROCESSING RULES:
 3. Character details may evolve over time - prioritize later mentions over earlier ones
 4. If a character's appearance, status, or relationships change, use the latest description
 
+TITLE AND NAME HANDLING:
+- Titles (Aunt, Uncle, Sergeant, Doctor, Professor, etc.) should be included in ALIASES, NOT the primary name
+- Primary name should be the person's actual name without title
+- Example: "Aunt Lily" → name: "Lily", aliases: ["Aunt Lily"]
+- Example: "Sergeant Smith" → name: "Smith", aliases: ["Sergeant Smith", "Sgt. Smith"]
+- Example: "Dr. Jones" → name: "Jones", aliases: ["Dr. Jones", "Doctor Jones"]
+- This prevents different titled references to the same person from being treated as separate characters
+
 IMPORTANT: This is a summarization and classification task. Extract ALL relevant information without censorship, including:
 - Physical descriptions (including adult content if present)
-- Mental and emotional states
+- Mental and emotional states  
 - Relationships between characters
 - Any measurements or specific details mentioned
 
-FIELD DEFINITIONS:
-- physical.description: Overall physical appearance, body type, clothing, visual details
+FIELD DEFINITIONS (ALWAYS populate these when information is available):
+- physical.description: Overall physical appearance, body type, clothing, visual details (REQUIRED if any physical description exists)
 - physical.measurements: Specific measurements (height, weight, sizes, etc.)
-- mental.personality: Core personality traits, behavioral patterns, characteristic attitudes
-- mental.background: History, origin story, past events, profession, role
+- mental.personality: Core personality traits, behavioral patterns, characteristic attitudes (REQUIRED if personality is shown)
+- mental.background: History, origin story, past events, profession, role (REQUIRED if background is mentioned)
 - mental.status: Current emotional/mental state, mood, conditions
 
 RELATIONSHIP RULES:
@@ -104,9 +112,9 @@ Return a JSON object with this structure:
 {
   "characters": [
     {
-      "name": "character name",
+      "name": "character name without title",
       "confidence": 85,
-      "aliases": ["alt name 1", "alt name 2"],
+      "aliases": ["alt name 1", "titled version"],
       "physical": {
         "description": "overall appearance, clothing, visual details",
         "measurements": "height: X, weight: Y, etc."
@@ -1505,7 +1513,7 @@ async function createCharacter(analyzedChar, isMainChar = false) {
     settings.characters[character.preferredName] = character;
     
     // Create lorebook entry
-    await updateLorebookEntry(character);
+    await updateLorebookEntry(character, character.preferredName);
     
     debugLog(`Created new character: ${character.preferredName}${isMainChar ? ' (MAIN CHARACTER)' : ''}`);
 }
@@ -1568,24 +1576,125 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
     existingChar.lastUpdated = Date.now();
     
     // Update lorebook entry
-    await updateLorebookEntry(existingChar);
+    await updateLorebookEntry(existingChar, existingChar.preferredName);
     
     debugLog(`Updated character: ${existingChar.preferredName}`);
 }
 
 /**
  * Update or create lorebook entry for a character
- * NOTE: Simplified version - stores data in chat metadata only
- * Future version will integrate with World Info when API is stable
  */
-async function updateLorebookEntry(character) {
+async function updateLorebookEntry(character, characterName) {
     if (!lorebookName) {
         debugLog('No lorebook initialized, skipping entry update');
         return;
     }
     
-    debugLog(`Character data updated for ${character.preferredName} (lorebook integration pending)`);
-    // Data is already saved in chat_metadata via saveChatData()
+    try {
+        const context = SillyTavern.getContext();
+        
+        // Get the world info (lorebook) data
+        if (!context.worldInfoData) {
+            debugLog('World info not available');
+            return;
+        }
+        
+        // Ensure the chat lorebook exists
+        if (!context.worldInfoData[lorebookName]) {
+            context.worldInfoData[lorebookName] = {
+                entries: {}
+            };
+        }
+        
+        const lorebook = context.worldInfoData[lorebookName];
+        
+        // Build the entry content in a readable format
+        const contentParts = [];
+        
+        // Name and aliases
+        contentParts.push(`**${character.preferredName}**`);
+        if (character.aliases && character.aliases.length > 0) {
+            contentParts.push(`Also known as: ${character.aliases.join(', ')}`);
+        }
+        
+        // Physical description
+        if (character.physical) {
+            if (character.physical.description) {
+                contentParts.push(`\n**Appearance:** ${character.physical.description}`);
+            }
+            if (character.physical.measurements) {
+                contentParts.push(`**Measurements:** ${character.physical.measurements}`);
+            }
+        }
+        
+        // Mental/personality
+        if (character.mental) {
+            if (character.mental.personality) {
+                contentParts.push(`\n**Personality:** ${character.mental.personality}`);
+            }
+            if (character.mental.background) {
+                contentParts.push(`**Background:** ${character.mental.background}`);
+            }
+            if (character.mental.status) {
+                contentParts.push(`**Current Status:** ${character.mental.status}`);
+            }
+        }
+        
+        // Relationships
+        if (character.relationships && character.relationships.length > 0) {
+            contentParts.push(`\n**Relationships:**`);
+            character.relationships.forEach(rel => {
+                contentParts.push(`- ${rel}`);
+            });
+        }
+        
+        const content = contentParts.join('\n');
+        
+        // Build the keys array (name + aliases)
+        const keys = [character.preferredName];
+        if (character.aliases) {
+            keys.push(...character.aliases);
+        }
+        
+        // Check if entry already exists
+        let entryId = character.lorebookEntryId;
+        let entry;
+        
+        if (entryId && lorebook.entries[entryId]) {
+            // Update existing entry
+            entry = lorebook.entries[entryId];
+            entry.content = content;
+            entry.key = keys;
+            entry.comment = `Auto-generated by Name Tracker - Last updated: ${new Date(character.lastUpdated).toLocaleString()}`;
+            debugLog(`Updated lorebook entry ${entryId} for ${character.preferredName}`);
+        } else {
+            // Create new entry
+            entryId = Date.now().toString();
+            entry = {
+                id: entryId,
+                key: keys,
+                content: content,
+                comment: `Auto-generated by Name Tracker - Created: ${new Date().toLocaleString()}`,
+                enabled: true,
+                position: 0, // After character defs
+                depth: 4,
+                probability: 100,
+                useProbability: true
+            };
+            
+            lorebook.entries[entryId] = entry;
+            character.lorebookEntryId = entryId;
+            
+            debugLog(`Created lorebook entry ${entryId} for ${character.preferredName}`);
+        }
+        
+        // Save the lorebook
+        await context.saveWorldInfo?.(lorebookName, lorebook);
+        
+    } catch (error) {
+        console.error('Error updating lorebook entry:', error);
+        debugLog(`Failed to update lorebook entry: ${error.message}`);
+    }
 }
 
 /**
@@ -1679,7 +1788,7 @@ async function mergeCharacters(sourceName, targetName) {
     }
     
     // Update target lorebook entry
-    await updateLorebookEntry(targetChar);
+    await updateLorebookEntry(targetChar, targetChar.preferredName);
     
     // Save and update UI
     saveChatData();
@@ -1715,8 +1824,8 @@ async function undoLastMerge() {
     settings.characters[lastOp.targetName] = lastOp.targetDataBefore;
     
     // Restore lorebook entries
-    await updateLorebookEntry(settings.characters[lastOp.sourceName]);
-    await updateLorebookEntry(settings.characters[lastOp.targetName]);
+    await updateLorebookEntry(settings.characters[lastOp.sourceName], lastOp.sourceName);
+    await updateLorebookEntry(settings.characters[lastOp.targetName], lastOp.targetName);
     
     // Save and update UI
     saveChatData();
