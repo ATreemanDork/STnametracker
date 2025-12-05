@@ -99,12 +99,14 @@ IMPORTANT: This is a summarization and classification task. Extract ALL relevant
 - Relationships between characters
 - Any measurements or specific details mentioned
 
-FIELD DEFINITIONS (ALWAYS populate these when information is available):
-- physical.description: Overall physical appearance, body type, clothing, visual details (REQUIRED if any physical description exists)
-- physical.measurements: Specific measurements (height, weight, sizes, etc.)
-- mental.personality: Core personality traits, behavioral patterns, characteristic attitudes (REQUIRED if personality is shown)
-- mental.background: History, origin story, past events, profession, role (REQUIRED if background is mentioned)
-- mental.status: Current emotional/mental state, mood, conditions
+FIELD DEFINITIONS (Keep responses CONCISE - focus on key details only):
+- physical.description: Key physical features and appearance (1-2 sentences)
+- physical.measurements: Specific measurements if explicitly mentioned
+- mental.personality: Core personality traits (1-2 sentences)
+- mental.background: Essential background/profession/role (1 sentence)
+- mental.status: Current state/mood (1 sentence if relevant)
+
+IMPORTANT: Keep all descriptions brief and focused. Avoid lengthy, verbose descriptions.
 
 RELATIONSHIP RULES:
 - Relationships MUST follow this format: "[Name] is [Name]'s [relationship label]" or "[Name] is related to [Name] as [relationship label]"
@@ -122,23 +124,26 @@ Return a JSON object with this structure:
       "confidence": 85,
       "aliases": ["alternate name", "titled version if applicable"],
       "physical": {
-        "description": "overall appearance, clothing, visual details",
-        "measurements": "height: X, weight: Y, etc."
+        "description": "brief key features",
+        "measurements": "height, weight if mentioned"
       },
       "mental": {
-        "personality": "core traits and behavioral patterns",
-        "background": "history, origin, profession, role",
-        "status": "current emotional/mental state"
+        "personality": "key traits",
+        "background": "role/profession",
+        "status": "current state"
       },
       "relationships": [
-        "CharacterA is CharacterB's relationship",
-        "CharacterA is related to CharacterC as their relationship"
+        "CharacterA is CharacterB's relationship"
       ]
     }
   ]
 }
 
-Only include characters that are explicitly mentioned or described in the messages. If no character information is found, return {"characters": []}.`;
+IMPORTANT FORMATTING RULES:
+- Keep ALL text fields brief and concise (1-2 sentences maximum)
+- Ensure the JSON is complete and properly closed with all braces
+- Only include characters that are explicitly mentioned or described
+- If no character information is found, return {"characters": []}`;
 
 /**
  * Get the current system prompt (custom or default)
@@ -791,7 +796,9 @@ async function callLLM(messageObjs, knownCharacters = '', depth = 0, retryCount 
 }
 
 /**
- * Call SillyTavern's LLM
+ * Call SillyTavern's LLM with optimized parameters for JSON extraction
+ * Uses low temperature and focused sampling for deterministic, structured output
+ * These settings override the user's chat settings to ensure reliable parsing
  */
 async function callSillyTavern(prompt) {
     try {
@@ -815,12 +822,28 @@ async function callSillyTavern(prompt) {
             debugLog(`Generating with prompt length: ${prompt.length} chars (est. ${promptTokens} tokens)`);
         }
         
+        // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
+        // This scales with the model's context window for better headroom
+        const maxContext = context.maxContext || 4096;
+        const calculatedMaxTokens = Math.floor(maxContext * 0.25);
+        const maxTokens = Math.max(4000, calculatedMaxTokens);
+        debugLog(`Max tokens for response: ${maxTokens} (context: ${maxContext}, 25% = ${calculatedMaxTokens})`);
+        
         // Use generateRaw as documented in:
         // https://docs.sillytavern.app/for-contributors/writing-extensions/#raw-generation
         const result = await context.generateRaw({
             prompt: prompt,  // Can be string (Text Completion) or array (Chat Completion)
             systemPrompt: '',  // Empty, we include instructions in prompt
-            prefill: ''  // No prefill needed for analysis
+            prefill: '',  // No prefill needed for analysis
+            // Override generation settings for structured output
+            // These ensure consistent, deterministic JSON regardless of user's chat settings
+            temperature: 0.3,  // Low temp for focused, deterministic output (user's setting is ignored)
+            top_p: 0.9,        // Slightly reduced for more predictable results
+            top_k: 40,         // Standard focused sampling
+            min_p: 0.05,       // Prevent very low probability tokens
+            rep_pen: 1.1,      // Slight repetition penalty
+            max_tokens: maxTokens,  // Dynamic: 25% of context, min 4000 (prevents truncation)
+            stop: []           // No custom stop sequences needed
         });
         
         debugLog('SillyTavern LLM raw response:', result?.substring(0, 200));
@@ -848,7 +871,8 @@ async function callSillyTavern(prompt) {
 }
 
 /**
- * Call Ollama API
+ * Call Ollama API with optimized parameters for JSON extraction
+ * Uses low temperature and focused sampling for deterministic, structured output
  */
 async function callOllama(prompt) {
     const settings = getSettings();
@@ -860,6 +884,12 @@ async function callOllama(prompt) {
     try {
         debugLog(`Calling Ollama with model ${settings.ollamaModel}...`);
         
+        // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
+        const maxContext = await getOllamaModelContext(settings.ollamaModel);
+        const calculatedMaxTokens = Math.floor(maxContext * 0.25);
+        const maxTokens = Math.max(4000, calculatedMaxTokens);
+        debugLog(`Max tokens for response: ${maxTokens} (context: ${maxContext}, 25% = ${calculatedMaxTokens})`);
+        
         const response = await fetch(`${settings.ollamaEndpoint}/api/generate`, {
             method: 'POST',
             headers: {
@@ -869,7 +899,15 @@ async function callOllama(prompt) {
                 model: settings.ollamaModel,
                 prompt: prompt,
                 stream: false,
-                format: 'json'
+                format: 'json',
+                // Ollama-specific generation parameters for structured output
+                options: {
+                    temperature: 0.3,      // Low temp for deterministic output
+                    top_p: 0.9,           // Focused sampling
+                    top_k: 40,            // Standard focused sampling
+                    repeat_penalty: 1.1,  // Slight repetition penalty
+                    num_predict: maxTokens  // Dynamic: 25% of context, min 4000 (prevents truncation)
+                }
             }),
         });
         
@@ -934,6 +972,43 @@ function parseJSONResponse(text) {
         console.error('Failed to parse JSON response. Original text:', text);
         console.error('Parse error:', error.message);
         
+        // Check if response was truncated (common issue with long responses)
+        if (text.includes('"characters"') && !text.trim().endsWith('}')) {
+            debugLog('Response appears truncated - missing closing braces');
+            debugLog(`Response length: ${text.length} chars, ends with: "${text.slice(-50)}"`);
+            
+            // Try to salvage partial data by attempting to close the JSON
+            let salvaged = text;
+            
+            // Count open vs closed braces to determine how many we need
+            const openBraces = (text.match(/\{/g) || []).length;
+            const closeBraces = (text.match(/\}/g) || []).length;
+            const openBrackets = (text.match(/\[/g) || []).length;
+            const closeBrackets = (text.match(/\]/g) || []).length;
+            
+            // Try to close incomplete strings and objects
+            if (salvaged.match(/"[^"]*$/)) {
+                // Has unclosed quote
+                salvaged += '"';
+            }
+            
+            // Close missing brackets/braces
+            for (let i = 0; i < (openBrackets - closeBrackets); i++) {
+                salvaged += ']';
+            }
+            for (let i = 0; i < (openBraces - closeBraces); i++) {
+                salvaged += '}';
+            }
+            
+            try {
+                const recovered = JSON.parse(salvaged);
+                debugLog(`Successfully recovered ${recovered.characters?.length || 0} characters from truncated response`);
+                return recovered;
+            } catch (e) {
+                debugLog('Failed to recover truncated JSON:', e.message);
+            }
+        }
+        
         // Try one more time with more aggressive extraction
         const fallbackMatch = text.match(/\{[\s\S]*"characters"[\s\S]*\}/);
         if (fallbackMatch) {
@@ -944,7 +1019,7 @@ function parseJSONResponse(text) {
             }
         }
         
-        throw new Error('Failed to parse LLM response as JSON. The LLM may not be following instructions. Try enabling debug mode to see the raw response.');
+        throw new Error('Failed to parse LLM response as JSON. The response may be too long or truncated. Try analyzing fewer messages at once.');
     }
 }
 
