@@ -3,7 +3,8 @@
 
 // Note: Most imports are accessed via SillyTavern.getContext() as recommended in docs
 import { extension_settings } from "../../../extensions.js";
-import { eventSource, event_types, chat, chat_metadata } from "../../../../script.js";
+import { eventSource, event_types, chat, chat_metadata, saveMetadata } from "../../../../script.js";
+import { world_info, world_names, saveWorldInfo, deleteWorldInfoEntry, createWorldInfoEntry, createWorldWithName } from "../../../../world-info.js";
 
 // Extension constants
 const extensionName = "STnametracker";
@@ -407,10 +408,26 @@ async function initializeLorebook() {
         return;
     }
     
-    // Create a chat-specific lorebook name
-    lorebookName = `NameTracker_${context.chatId}`;
+    const METADATA_KEY = 'world_info';
     
-    debugLog(`Initialized lorebook name: ${lorebookName}`);
+    // Check if chat already has a bound lorebook
+    if (chat_metadata[METADATA_KEY] && world_names.includes(chat_metadata[METADATA_KEY])) {
+        lorebookName = chat_metadata[METADATA_KEY];
+        debugLog(`Using existing chat lorebook: ${lorebookName}`);
+        return;
+    }
+    
+    // Create a new chat-bound lorebook using the proper API
+    const bookName = `NameTracker_${context.chatId}`.replace(/[^a-z0-9 -]/gi, '_').replace(/_{2,}/g, '_').substring(0, 64);
+    
+    debugLog(`Creating new chat lorebook: ${bookName}`);
+    lorebookName = await createWorldWithName(bookName, bookName);
+    
+    // Bind it to the chat metadata
+    chat_metadata[METADATA_KEY] = lorebookName;
+    await saveMetadata();
+    
+    debugLog(`Created and bound lorebook: ${lorebookName}`);
 }
 
 /**
@@ -1372,6 +1389,13 @@ async function processAnalysisResults(analyzedChars) {
         
         const isMainChar = isLoadedChar;
         
+        // Debug: log the analyzed character data
+        debugLog(`Processing character: ${analyzedChar.name}`);
+        debugLog(`  Physical:`, analyzedChar.physical);
+        debugLog(`  Mental:`, analyzedChar.mental);
+        debugLog(`  Aliases:`, analyzedChar.aliases);
+        debugLog(`  Relationships:`, analyzedChar.relationships);
+        
         // Check if this character should be ignored
         if (isIgnoredCharacter(analyzedChar.name)) {
             debugLog(`Skipping ignored character: ${analyzedChar.name}`);
@@ -1490,6 +1514,8 @@ function calculateNameSimilarity(name1, name2) {
 async function createCharacter(analyzedChar, isMainChar = false) {
     const settings = getSettings();
     
+    debugLog(`Creating character with data:`, analyzedChar);
+    
     const character = {
         preferredName: analyzedChar.name,
         aliases: analyzedChar.aliases || [],
@@ -1509,6 +1535,8 @@ async function createCharacter(analyzedChar, isMainChar = false) {
         lastUpdated: Date.now(),
         isMainChar: isMainChar || false  // Flag for {{char}}
     };
+    
+    debugLog(`Created character object:`, character);
     
     settings.characters[character.preferredName] = character;
     
@@ -1585,28 +1613,28 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
  * Update or create lorebook entry for a character
  */
 async function updateLorebookEntry(character, characterName) {
+    debugLog(`updateLorebookEntry called for: ${characterName}`);
+    debugLog(`  Character data:`, character);
+    debugLog(`  Physical description:`, character.physical?.description);
+    debugLog(`  Mental personality:`, character.mental?.personality);
+    
     if (!lorebookName) {
         debugLog('No lorebook initialized, skipping entry update');
         return;
     }
     
     try {
-        const context = SillyTavern.getContext();
-        
-        // Get the world info (lorebook) data
-        if (!context.worldInfoData) {
-            debugLog('World info not available');
+        // Verify the lorebook exists (should have been created in initializeLorebook)
+        if (!world_names.includes(lorebookName)) {
+            debugLog(`ERROR: Lorebook ${lorebookName} not found in world_names. This should not happen.`);
             return;
         }
         
-        // Ensure the chat lorebook exists
-        if (!context.worldInfoData[lorebookName]) {
-            context.worldInfoData[lorebookName] = {
-                entries: {}
-            };
+        const lorebook = world_info[lorebookName];
+        if (!lorebook || !lorebook.entries) {
+            debugLog(`ERROR: Lorebook ${lorebookName} not properly initialized`);
+            return;
         }
-        
-        const lorebook = context.worldInfoData[lorebookName];
         
         // Build the entry content in a readable format
         const contentParts = [];
@@ -1657,39 +1685,35 @@ async function updateLorebookEntry(character, characterName) {
         }
         
         // Check if entry already exists
-        let entryId = character.lorebookEntryId;
+        let entryUid = character.lorebookEntryId;
         let entry;
         
-        if (entryId && lorebook.entries[entryId]) {
+        if (entryUid && lorebook.entries[entryUid]) {
             // Update existing entry
-            entry = lorebook.entries[entryId];
+            entry = lorebook.entries[entryUid];
             entry.content = content;
             entry.key = keys;
             entry.comment = `Auto-generated by Name Tracker - Last updated: ${new Date(character.lastUpdated).toLocaleString()}`;
-            debugLog(`Updated lorebook entry ${entryId} for ${character.preferredName}`);
+            debugLog(`Updated lorebook entry ${entryUid} for ${character.preferredName}`);
         } else {
-            // Create new entry
-            entryId = Date.now().toString();
-            entry = {
-                id: entryId,
-                key: keys,
-                content: content,
-                comment: `Auto-generated by Name Tracker - Created: ${new Date().toLocaleString()}`,
-                enabled: true,
-                position: 0, // After character defs
-                depth: 4,
-                probability: 100,
-                useProbability: true
-            };
+            // Create new entry using SillyTavern's API
+            const newEntry = createWorldInfoEntry(lorebookName, false);
+            newEntry.key = keys;
+            newEntry.content = content;
+            newEntry.comment = `Auto-generated by Name Tracker - Created: ${new Date().toLocaleString()}`;
+            newEntry.enabled = true;
+            newEntry.position = 0; // After character defs
+            newEntry.depth = 4;
+            newEntry.probability = 100;
+            newEntry.useProbability = true;
             
-            lorebook.entries[entryId] = entry;
-            character.lorebookEntryId = entryId;
+            character.lorebookEntryId = newEntry.uid;
             
-            debugLog(`Created lorebook entry ${entryId} for ${character.preferredName}`);
+            debugLog(`Created lorebook entry ${newEntry.uid} for ${character.preferredName}`);
         }
         
         // Save the lorebook
-        await context.saveWorldInfo?.(lorebookName, lorebook);
+        await saveWorldInfo(lorebookName, true);
         
     } catch (error) {
         console.error('Error updating lorebook entry:', error);
