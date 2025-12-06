@@ -1,45 +1,47 @@
 # SillyTavern Name Tracker Extension
 
-## Version 2.0.0 - Beta
+## Version 2.1.0
 
-**IMPORTANT NOTE**: This version currently stores character data in chat metadata only. Direct lorebook integration is temporarily disabled while we ensure compatibility with all SillyTavern versions. Character data is fully preserved and will be automatically migrated to lorebook entries in a future update.
+A powerful character tracking extension for SillyTavern that automatically analyzes chat messages using LLM to extract and maintain comprehensive character information in chat-level lorebook entries.
 
 ## Overview
 
-The Name Tracker extension is an advanced character tracking system for SillyTavern that automatically analyzes chat messages to extract and maintain detailed information about characters, including their physical descriptions, mental/emotional states, and relationships.
+Name Tracker automatically analyzes your chat messages to build detailed character profiles stored in dedicated lorebook entries. Using LLM analysis, it extracts physical descriptions, personality traits, relationships, and more - keeping everything organized and accessible through SillyTavern's lorebook system.
 
 ## Features
 
-### Core Functionality
-- **Automatic Character Detection**: Uses LLM analysis to identify characters mentioned in messages
-- **Intelligent Alias Detection**: Automatically detects when different names refer to the same person
-- **Comprehensive Character Profiles**: Tracks physical descriptions, mental/emotional states, and relationships
-- **Chat-Level Lorebook Integration**: All character data stored in dedicated lorebook entries
-- **Incremental Analysis**: Only analyzes characters mentioned in recent messages for efficiency
+### Automatic Character Tracking
+- **LLM-Powered Analysis**: Uses AI to intelligently extract character information from conversations
+- **Consolidated Character Data**: Tracks 7 key fields per character (Age, Physical, Personality, Sexuality, Race/Ethnicity, Role & Skills, Last Interaction)
+- **Smart Alias Detection**: Automatically recognizes when different names refer to the same character
+- **Message ID Tracking**: Reliably handles message edits, deletions, and regenerations
+- **Relationship Mapping**: Tracks connections between characters
 
-### LLM Integration
+### Lorebook Integration
+- **Chat-Level Lorebooks**: Each chat gets its own dedicated lorebook automatically
+- **Fully Customizable Injection**: Control position, depth, cooldown, scan depth, and probability from GUI
+- **Dynamic Cooldown**: Automatically calculated as 3/4 of your message frequency setting
+- **Auto-Enable Control**: Choose whether new entries are enabled by default
+
+### LLM Flexibility
 - **Dual LLM Support**: 
-  - Use SillyTavern's currently selected model
-  - Use local Ollama endpoint with model selection
-- **Automatic Model Discovery**: Ollama models are automatically detected and listed
+  - Use SillyTavern's currently connected model (OpenAI, Claude, etc.)
+  - Use local Ollama instance with automatic model discovery
+- **Smart Context Management**: Automatically splits large analyses to fit context windows
 - **Intelligent Caching**: Session-based caching prevents redundant API calls
 
 ### Character Management
-- **Merge Characters**: Combine duplicate character entries with intelligent conflict resolution
-- **Undo Merges**: Reverse the last 3 merge operations
-- **Ignore Characters**: Mark characters to exclude from tracking
-- **Unresolved Relationships**: Flags relationships with unknown targets (???) for user review
+- **Quick Access Menu**: View characters, toggle auto-harvest, and open lorebook from Extensions menu
+- **Merge Duplicates**: Combine character entries with intelligent conflict resolution
+- **Undo Merges**: Reverse up to last 3 merge operations
+- **Ignore List**: Exclude specific characters (user character auto-ignored)
+- **Deletion Detection**: Prompts for rescan when messages are deleted
 
 ### User Control
-- **Configurable Harvest Frequency**: Set how many messages between automatic analyses
-- **Manual Analysis**: Analyze specific number of messages or scan entire chat history
-- **Confidence Threshold**: Adjust auto-merge sensitivity (0-100%)
-- **Debug Mode**: Detailed console logging for troubleshooting
-
-### Lorebook Settings
-- **Customizable Injection**: Configure position, depth, cooldown, and probability
-- **Auto-Enable Entries**: Choose whether new entries are enabled by default
-- **Chat-Level Storage**: Each chat has its own dedicated lorebook
+- **Configurable Frequency**: Set how many messages between automatic analyses
+- **Manual Analysis**: Analyze last X messages or scan entire chat on demand
+- **Batch Scanning**: Progress bars and abort controls for long scans
+- **Debug Mode**: Comprehensive console logging for troubleshooting
 
 ## Installation
 
@@ -71,89 +73,95 @@ If using Ollama:
 
 ### Lorebook Settings
 
-Configure how character entries are injected:
-- **Position**: After/before character defs, top/bottom of prompt
+Configure how character entries are injected into context:
+- **Position**: After/before character defs, top/bottom of prompt (default: After character defs)
+- **Depth**: How deep in chat history to inject entries (default: 1)
 - **Scan Depth**: How many messages back to scan for keywords (default: 1)
-- **Cooldown**: Messages between activations (default: 5)
+- **Cooldown**: Messages between activations (default: calculated as 3/4 of message frequency)
 - **Probability**: Chance of activation when keywords match (default: 100%)
+- **Enabled**: Whether new entries are enabled by default (default: true)
+
+All settings are fully configurable in the GUI and respected by the extension.
 
 ### Confidence Threshold
 
-Set the similarity threshold (0-100%) for automatic merging:
-- **High (80-100%)**: Only merge very similar names
-- **Medium (60-79%)**: Balance between safety and automation
-- **Low (40-59%)**: More aggressive merging (may create errors)
+**Note**: Confidence threshold is currently not used in v2.1.0. Merging is manual only.
+- Future versions may reintroduce automatic similarity detection
+- For now, use the manual merge feature to combine duplicates
 
 ## Usage
+
+### Extensions Menu Shortcuts
+
+Access Name Tracker quickly from the Extensions menu (wand icon):
+- **Toggle Auto-Harvest**: Enable/disable automatic analysis (icon shows current state)
+- **View Characters**: Quick modal showing all tracked characters with badges
+- **Open Chat Lorebook**: Opens the current chat's lorebook in World Info editor
 
 ### Automatic Mode
 
 1. Enable "Auto-analyze on message threshold"
 2. Continue chatting normally
-3. Every X messages (per your frequency setting), the extension will:
-   - Analyze the last X messages
-   - Extract character information
-   - Update or create lorebook entries
-   - Merge similar characters above confidence threshold
+3. Every X messages (per your frequency setting), the extension automatically:
+   - Analyzes recent messages using LLM
+   - Extracts character information
+   - Creates or updates lorebook entries
+   - Tracks by message ID to handle edits/deletions correctly
 
 ### Manual Mode
 
-Use the manual controls for on-demand analysis:
-
-- **Analyze Last X Messages**: Enter a number and click to analyze
-- **Scan Entire Chat**: Analyzes all messages in the current chat (use cautiously on long chats)
+Use manual controls for on-demand analysis:
+- **Analyze Last X Messages**: Specify count and analyze recent messages
+- **Scan Entire Chat**: Processes all messages in batches (shows progress bar)
+- **Abort Scan**: Stop button available during batch processing
 
 ### Character Management
 
-In the character list, each character shows:
-- **Preferred Name**: The canonical name
-- **Aliases**: Alternative names that refer to this character
-- **Status Badges**:
-  - `IGNORED`: Character is excluded from tracking
+Each tracked character displays:
+- **Name**: Preferred/canonical name
+- **Badges**: 
+  - `ACTIVE`: Currently loaded character
+  - `IGNORED`: Excluded from tracking
   - `NEEDS REVIEW`: Has unresolved relationships (???)
+- **Aliases**: Alternative names detected
+- **Lorebook Entry ID**: Link to the actual lorebook entry
 
-**Actions**:
-- **View in Lorebook**: Opens the character's lorebook entry
-- **Merge**: Combine this character with another
-- **Ignore/Unignore**: Toggle ignore status
+**Available Actions**:
+- **Merge**: Combine duplicate entries (with undo support)
+- **Ignore/Unignore**: Toggle tracking for specific characters
 
 ### Merging Characters
 
-When you discover duplicates:
+When duplicates are detected:
 
-1. Click "Merge" on the character you want to remove
-2. Select the target character from the dropdown
+1. Click "Merge" on the character to remove
+2. Select target character from dropdown
 3. Confirm the merge
-4. The source character is deleted, all data merged into target
+4. Source character deleted, all data merged into target
 
 **Merge Behavior**:
-- Target character data takes precedence for conflicts
-- Source aliases are added to target
-- Ephemeral states (emotions, moods) from both are preserved
-- Relationships are combined
+- New information overwrites old for most fields
+- Aliases are combined (duplicates removed)
+- `lastInteraction` always uses newest data
+- Relationships are merged and deduplicated
+- Undo available for last 3 merges
 
-### Undo Feature
+## Character Data Structure
 
-Made a mistake? Click "Undo Last Merge" to reverse up to the last 3 merge operations.
-
-## Data Structure
-
-Character data is stored in JSON format within lorebook entries:
+Each character is tracked with 7 consolidated fields stored in lorebook entries:
 
 ```json
 {
   "name": "Character Name",
-  "aliases": ["Alt Name 1", "Alt Name 2"],
-  "physical": {
-    "appearance": "Physical description",
-    "measurements": "Height, build, etc.",
-    "other": "Additional physical traits"
-  },
-  "mental": {
-    "personality": "Personality traits",
-    "mood": "Current emotional state",
-    "status": "Mental/emotional conditions"
-  },
+  "aliases": ["Nickname1", "Alt Name"],
+  "physicalAge": "Apparent age in years",
+  "mentalAge": "Actual age (can differ for immortals/magic)",
+  "physical": "Gender, body type, measurements, hair, eyes, skin, explicit details (2-3 paragraphs)",
+  "personality": "Traits, quirks, habits, likes, dislikes (2-3 paragraphs)",
+  "sexuality": "Orientation, preferences, kinks, experience (1-2 paragraphs)",
+  "raceEthnicity": "Species/ethnicity (e.g., High Elf, Caucasian, etc.)",
+  "roleSkills": "Occupation, abilities, talents (3-5 key attributes)",
+  "lastInteraction": "Most recent interaction with {{user}}",
   "relationships": [
     "Character is John's sister",
     "Character works for ???"
@@ -163,20 +171,22 @@ Character data is stored in JSON format within lorebook entries:
 
 ### Unresolved Relationships
 
-When the LLM cannot determine who a relationship refers to, it uses `???`:
-- "Sarah is ???'s boss" (mentions someone but unclear who)
-- "Character loves ???" (relationship mentioned but target unknown)
-
-These appear with the `NEEDS REVIEW` badge in the UI.
+When relationships mention unknown characters, `???` is used as a placeholder:
+- "Sarah is ???'s boss" - relationship mentioned but target unclear
+- Character flagged with `NEEDS REVIEW` badge for manual review
 
 ## System Prompt
 
-The extension uses a carefully crafted system prompt that:
-- Instructs the LLM to extract character information without censorship
-- Emphasizes this is a classification/summarization task
-- Handles adult content appropriately when present
-- Uses ??? placeholders for unknown relationship targets
-- Returns structured JSON for reliable parsing
+The extension uses a sophisticated system prompt that:
+- Enforces JSON-only output for reliable parsing
+- Processes messages chronologically (oldest to newest)
+- Prioritizes most recent information for conflicts
+- Separates physical age vs mental age (for immortals, magic aging)
+- Handles titles properly (e.g., "Aunt Marie" → name: Marie, aliases: ["Aunt Marie"])
+- Extracts comprehensive information without censorship
+- Uses `???` placeholders for unknown relationship targets
+
+The system prompt can be customized via "Edit System Prompt" button in settings.
 
 ## Best Practices
 
@@ -203,45 +213,59 @@ The extension uses a carefully crafted system prompt that:
 ## Troubleshooting
 
 ### No Characters Detected
-- Ensure LLM is responding correctly (check debug mode)
-- Verify message frequency is set appropriately
-- Check that extension is enabled
+- Verify LLM is responding (check debug mode in console)
+- Ensure extension is enabled and auto-analyze is on
+- Check that API connection is active (for SillyTavern mode)
+- Verify message frequency is appropriate for chat length
 
 ### Ollama Connection Issues
-- Verify Ollama is running: `ollama list`
-- Check endpoint URL is correct
-- Ensure selected model is downloaded
+- Confirm Ollama is running: `ollama list` in terminal
+- Check endpoint URL is correct (default: `http://localhost:11434`)
+- Ensure selected model is downloaded: `ollama pull <model-name>`
+- Click "Refresh" button to reload model list
 
-### Incorrect Merges
-- Increase confidence threshold
-- Use manual merge instead of automatic
-- Utilize undo function to reverse mistakes
+### Messages Not Being Analyzed
+- Check status display for "Next scan in X messages"
+- Verify you've sent enough messages since last scan
+- If messages were deleted, respond to rescan prompt
+- Clear cache and try manual analysis
 
-### Lorebook Not Working
-- Verify the chat-level lorebook is enabled in World Info
-- Check lorebook entry settings (depth, probability, etc.)
-- Ensure keywords (character names/aliases) are set correctly
+### Lorebook Entries Not Activating
+- Verify chat-level lorebook is enabled in World Info
+- Check lorebook entry settings match your GUI configuration
+- Ensure character names/aliases are set as keywords
+- Verify depth and scan depth settings are appropriate
+
+### Performance Issues
+- Reduce message frequency for shorter chats
+- Use "Analyze Last X" instead of "Scan All" when possible
+- Clear cache periodically: "Clear Cache" button
+- Enable debug mode to identify bottlenecks
 
 ## Debug Mode
 
-Enable debug mode to see:
-- LLM analysis requests and responses
-- Cache hits and misses
-- Character creation and updates
-- Merge operations
+Enable debug mode for detailed console logging (F12):
+- LLM requests and responses (truncated for readability)
+- Message ID tracking and deletion detection
+- Character creation, updates, and merges
 - Lorebook entry modifications
+- Cache hits and misses
+- Batch processing progress
+- Error details and stack traces
 
-All debug output appears in the browser console (F12).
+Debug output is prefixed with `[Name Tracker]` for easy filtering.
 
 ## Future Enhancements
 
-Potential features for future versions:
-- Natural language lorebook format (vs JSON)
-- Character relationship graphs
-- Export/import character databases
-- Multi-chat character synchronization
-- Advanced filters and search
-- Character preview cards with expandable details
+Planned features for future versions:
+- **Automatic Similarity Detection**: Reintroduce confidence-based auto-merging
+- **Natural Language Lorebook**: Option for prose format vs JSON
+- **Character Relationship Graphs**: Visual mapping of connections
+- **Cross-Chat Synchronization**: Share character data between chats
+- **Export/Import**: Save and load character databases
+- **Advanced Search/Filters**: Find characters by attributes
+- **Character Preview Cards**: Expandable detail views
+- **Custom Field Templates**: User-defined character attributes
 
 ## Credits
 
@@ -264,7 +288,25 @@ For issues, suggestions, or contributions:
 
 ## Version History
 
-### v2.0.0 (Current)
+### v2.1.0 (Current - December 2024)
+**Major Improvements:**
+- Consolidated character data structure (7 comprehensive fields vs 20+ individual fields)
+- Message ID-based tracking (handles edits, deletions, regenerations correctly)
+- Extension menu shortcuts (toggle auto-harvest, view characters, open lorebook)
+- All GUI lorebook settings now properly respected (was hardcoded)
+- Dynamic cooldown calculation (3/4 of message frequency)
+- Deletion detection with user prompts for rescan decisions
+- Improved system prompt with chronological processing and title handling
+- User character auto-ignored on first load
+
+**Technical Changes:**
+- Removed backward compatibility code for cleaner data structure
+- Fixed syntax errors in status display
+- Removed unused "Edit Entry" button from UI
+- Enhanced error handling and retry logic
+- Better token counting and context management
+
+### v2.0.0
 - Complete rewrite with LLM integration
 - Chat-level lorebook management
 - Character merging and alias detection

@@ -43,7 +43,8 @@ const defaultSettings = {
     systemPrompt: null, // null means use default
     characters: {}, // character data indexed by preferred name
     messageCounter: 0,
-    lastHarvestMessage: 0
+    lastHarvestMessage: 0,
+    lastScannedMessageId: -1 // Track last scanned message by ID to handle edits/deletions
 };
 
 // Session-level caches (cleared on chat change)
@@ -95,86 +96,36 @@ TITLE AND NAME HANDLING:
 - IMPORTANT: Do NOT use example names from these instructions - only use names that actually appear in the chat messages
 
 IMPORTANT: This is a summarization and classification task. Extract ALL relevant information without censorship, including:
-- Physical descriptions (including adult content if present)
+- Physical descriptions (including adult content if present) including any measurements or specific details mentioned
 - Sexual characteristics and preferences
-- Mental and emotional states  
 - Relationships between characters
-- Any measurements or specific details mentioned
 
 CHARACTER DATA STRUCTURE - Extract the following fields (use ??? for unknown):
 
-**Character Role**: Primary archetype or profession (e.g., 'Wise Mentor', 'Rebellious Outlaw', 'Curious Scholar')
-
-**Full Name**: [First Name] [Last Name] - Use ??? for missing parts (e.g., "John ???" or "??? Smith")
-
-**Sex**: Male/Female/Non-binary/???
-
-**Age**: Number in years, or ??? if unknown
-
-**Nicknames/Aliases**: All alternate names, titles, or ways they're referred to (also placed in the aliases array)
-
-**Personality**: Key personality traits that define this character. Focus on both positive and negative traits. Include quirks or habits. Be descriptive but concise (1-2 paragraphs max).
-
-**Body**: Describe body type (athletic, slender, stocky), height, breasts (shape, size, areola), pubic hair (amount, shape, color), genitals (characteristics, shape, size), and defining physical features like scars, birthmarks. Be descriptive and explicit. Target at least one sentence per attribute. No more than two paragraphs.
-
-**Body Measurements**: Bust/Waist/Hip measurements in inches if mentioned (e.g., "36-24-36")
-
-**Likes**: Things the character genuinely enjoys - activities, objects, or concepts
-
-**Hates**: Things the character strongly dislikes or finds repulsive
-
-**Clothes/Attire**: Detailed description of clothing - style, materials, colors, accessories. If nude, state "Nude"
-
-**Species**: Character's species (Human, Elf, Orc, Dragonkin, etc.)
-
-**Race/Ethnicity**: For humans, specify ethnicity (Caucasian, African, Asian). For fantasy/sci-fi species, use appropriate terms (High Elf, Wood Elf, Mountain Dwarf)
-
-**Occupation/Role**: Job, profession, or primary role in society/group
-
-**Sexuality**: Sexual orientation (Heterosexual, Homosexual, Bisexual, Asexual), experience level, preferences/interests in relationships and physical intimacy. Describe sexual proclivities, preferred sexual positions and acts, acts they dislike, and particularly sensitive erogenous zones. Be as explicit as possible. Minimum one paragraph of descriptive prose.
-
-**Appearance**: Comprehensive vivid description of overall appearance - face, hair, eyes, skin, posture, demeanor. Aim for one paragraph that paints a clear picture.
-
-**Attributes/Skills**: Up to three defining skills, talents, or abilities (physical, mental, social, magical). Be specific.
-
-**Current Mental State**: Present emotional/psychological condition
-
-**Current Physical State**: Present physical condition, injuries, arousal, etc.
-
-**Backstory**: Historical or past information that is interesting or detailed
-
-**Relationships**: List relationships to other characters. Format: "[Name] is [Name]'s [relationship]". AVOID DUPLICATES - only list each unique relationship once. Use ??? if the other person's name is unknown.
-
-Return JSON with this structure:
 {
   "characters": [
     {
-      "name": "character name without title",
-      "confidence": 85,
-      "aliases": ["all nicknames and titled versions"],
-      "characterRole": "archetype/profession",
-      "fullName": "First Last or First ??? or ??? Last",
-      "sex": "Male/Female/Non-binary/???",
-      "age": "number or ???",
-      "personality": "detailed personality description",
-      "body": "detailed physical body description",
-      "bodyMeasurements": "measurements or ???",
-      "likes": ["list of things they like"],
-      "hates": ["list of things they hate"],
-      "clothes": "detailed clothing description",
-      "species": "species name",
-      "raceEthnicity": "race or ethnicity",
-      "occupation": "job or role",
-      "sexuality": "detailed sexuality and preferences description",
-      "appearance": "overall appearance description",
-      "attributesSkills": ["skill 1", "skill 2", "skill 3"],
-      "currentMentalState": "current mental/emotional state",
-      "currentPhysicalState": "current physical condition",
-      "backstory": "historical background information",
-      "relationships": ["Name is Name's relationship"]
+      "name": "Character's preferred first name and last name if provided",
+      "aliases": ["Alternative names", "Nicknames", "Titles with name"],
+      "physicalAge": "Apparent age in years or ??? if unknown",
+      "mentalAge": "Actual age (can differ for immortals/magic) or ??? if unknown",
+      "physical": "Gender (Male/Female/Non-binary), body type, height, build, measurements (bust-waist-hip if mentioned), hair (color, style, length), eyes (color, shape), skin tone, distinguishing features (scars, tattoos, birthmarks). Include explicit details about breasts (size, shape, nipples), genitals (size, characteristics), pubic hair (amount, style, color) if mentioned. Be comprehensive and vivid - aim for 2-3 paragraphs.",
+      "personality": "Core personality traits (positive and negative), quirks, habits, temperament, values, motivations. Include likes (activities, foods, interests) and dislikes/hates. Be descriptive - aim for 2-3 paragraphs.",
+      "sexuality": "Sexual orientation (Heterosexual, Homosexual, Bisexual, Pansexual, Asexual), experience level, preferences and kinks, fetishes, favorite positions/acts, things they dislike sexually, sensitive erogenous zones, turn-ons and turn-offs. Be explicit and detailed - aim for 1-2 paragraphs. Use ??? if no sexual information mentioned.",
+      "raceEthnicity": "For humans: ethnicity (Caucasian, African, Asian, Hispanic, etc.). For fantasy/sci-fi: species and subtype (High Elf, Mountain Dwarf, Tiefling, etc.)",
+      "roleSkills": "Primary role/occupation/job, defining skills or abilities (combat, magic, social, technical), talents, expertise. List 3-5 key attributes.",
+      "lastInteraction": "Summary of the most recent interaction with {{user}} - what happened, emotional tone, current status of their relationship dynamic. Update this with each new interaction.",
+      "relationships": ["Name is Name's relationship", "Name is Name's relationship"]
     }
   ]
 }
+
+RELATIONSHIP FORMATTING RULES:
+- Format: "CharacterA is CharacterB's [relationship type]"
+- AVOID DUPLICATES - only list each unique relationship once
+- Use preferred names only (not aliases or titles)
+- Examples: "Beth is John's aunt", "Sarah is Mike's girlfriend"
+- If the other person's name is unknown, use: "Name is ???'s [relationship]"
 
 IMPORTANT: Ensure JSON is complete and properly closed. Only include characters explicitly mentioned. If no characters found, return {"characters": []}`;
 
@@ -353,15 +304,18 @@ function updateUI() {
  */
 function updateStatusDisplay() {
     const settings = getSettings();
-    const messagesSinceHarvest = settings.messageCounter - settings.lastHarvestMessage;
-    const messagesUntilHarvest = settings.messageFrequency - messagesSinceHarvest;
+    const context = SillyTavern.getContext();
+    const chat = context.chat || [];
+    const currentMessageIndex = chat.length > 0 ? chat.length - 1 : -1;
+    const messagesSinceLastScan = currentMessageIndex - settings.lastScannedMessageId;
+    const messagesUntilScan = Math.max(0, settings.messageFrequency - messagesSinceLastScan);
     
     let statusText = '';
     if (settings.enabled && settings.autoAnalyze) {
-        if (messagesUntilHarvest > 0) {
-            statusText = `Next harvest in ${messagesUntilHarvest} message${messagesUntilHarvest !== 1 ? 's' : ''}`;
+        if (messagesUntilScan > 0) {
+            statusText = `Next scan in ${messagesUntilScan} message${messagesUntilScan !== 1 ? 's' : ''}`;
         } else {
-            statusText = 'Ready to harvest';
+            statusText = 'Ready to scan';
         }
     } else if (settings.enabled) {
         statusText = 'Manual mode - use buttons to analyze';
@@ -428,9 +382,6 @@ function updateCharacterList() {
                 </div>
                 ${detailsHtml}
                 <div class="character-actions">
-                    <button class="menu_button compact char-action-edit" data-name="${escapeHtml(char.preferredName)}">
-                        Edit Entry
-                    </button>
                     <button class="menu_button compact char-action-merge" data-name="${escapeHtml(char.preferredName)}">
                         Merge
                     </button>
@@ -1728,25 +1679,14 @@ async function createCharacter(analyzedChar, isMainChar = false) {
     const character = {
         preferredName: analyzedChar.name,
         aliases: aliases,
-        characterRole: analyzedChar.characterRole || '',
-        fullName: analyzedChar.fullName || '',
-        sex: analyzedChar.sex || '',
-        age: analyzedChar.age || '',
+        physicalAge: analyzedChar.physicalAge || '',
+        mentalAge: analyzedChar.mentalAge || '',
+        physical: analyzedChar.physical || '',
         personality: analyzedChar.personality || '',
-        body: analyzedChar.body || '',
-        bodyMeasurements: analyzedChar.bodyMeasurements || '',
-        likes: analyzedChar.likes || [],
-        hates: analyzedChar.hates || [],
-        clothes: analyzedChar.clothes || '',
-        species: analyzedChar.species || '',
-        raceEthnicity: analyzedChar.raceEthnicity || '',
-        occupation: analyzedChar.occupation || '',
         sexuality: analyzedChar.sexuality || '',
-        appearance: analyzedChar.appearance || '',
-        attributesSkills: analyzedChar.attributesSkills || [],
-        currentMentalState: analyzedChar.currentMentalState || '',
-        currentPhysicalState: analyzedChar.currentPhysicalState || '',
-        backstory: analyzedChar.backstory || '',
+        raceEthnicity: analyzedChar.raceEthnicity || '',
+        roleSkills: analyzedChar.roleSkills || '',
+        lastInteraction: analyzedChar.lastInteraction || '',
         relationships: analyzedChar.relationships || [],
         ignored: false,
         confidence: analyzedChar.confidence || 50,
@@ -1786,55 +1726,19 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
     // Clean up all aliases using the helper function
     existingChar.aliases = cleanAliases(existingChar.aliases || [], existingChar.preferredName);
     
-    // Update new structured fields (new data takes precedence if not empty)
-    if (analyzedChar.characterRole) existingChar.characterRole = analyzedChar.characterRole;
-    if (analyzedChar.fullName) existingChar.fullName = analyzedChar.fullName;
-    if (analyzedChar.sex) existingChar.sex = analyzedChar.sex;
-    if (analyzedChar.age) existingChar.age = analyzedChar.age;
+    // Update consolidated fields (new data takes precedence if not empty)
+    if (analyzedChar.physicalAge) existingChar.physicalAge = analyzedChar.physicalAge;
+    if (analyzedChar.mentalAge) existingChar.mentalAge = analyzedChar.mentalAge;
+    if (analyzedChar.physical) existingChar.physical = analyzedChar.physical;
     if (analyzedChar.personality) existingChar.personality = analyzedChar.personality;
-    if (analyzedChar.body) existingChar.body = analyzedChar.body;
-    if (analyzedChar.bodyMeasurements) existingChar.bodyMeasurements = analyzedChar.bodyMeasurements;
-    if (analyzedChar.clothes) existingChar.clothes = analyzedChar.clothes;
-    if (analyzedChar.species) existingChar.species = analyzedChar.species;
-    if (analyzedChar.raceEthnicity) existingChar.raceEthnicity = analyzedChar.raceEthnicity;
-    if (analyzedChar.occupation) existingChar.occupation = analyzedChar.occupation;
     if (analyzedChar.sexuality) existingChar.sexuality = analyzedChar.sexuality;
-    if (analyzedChar.appearance) existingChar.appearance = analyzedChar.appearance;
-    if (analyzedChar.backstory) existingChar.backstory = analyzedChar.backstory;
+    if (analyzedChar.raceEthnicity) existingChar.raceEthnicity = analyzedChar.raceEthnicity;
+    if (analyzedChar.roleSkills) existingChar.roleSkills = analyzedChar.roleSkills;
     
-    // Current states (time-sensitive, always update)
-    if (analyzedChar.currentMentalState) existingChar.currentMentalState = analyzedChar.currentMentalState;
-    if (analyzedChar.currentPhysicalState) existingChar.currentPhysicalState = analyzedChar.currentPhysicalState;
+    // lastInteraction is always updated (most recent)
+    if (analyzedChar.lastInteraction) existingChar.lastInteraction = analyzedChar.lastInteraction;
     
-    // Merge arrays (likes, hates, attributesSkills) - deduplicate
-    if (analyzedChar.likes && Array.isArray(analyzedChar.likes)) {
-        if (!existingChar.likes) existingChar.likes = [];
-        for (const like of analyzedChar.likes) {
-            if (!existingChar.likes.includes(like)) {
-                existingChar.likes.push(like);
-            }
-        }
-    }
-    
-    if (analyzedChar.hates && Array.isArray(analyzedChar.hates)) {
-        if (!existingChar.hates) existingChar.hates = [];
-        for (const hate of analyzedChar.hates) {
-            if (!existingChar.hates.includes(hate)) {
-                existingChar.hates.push(hate);
-            }
-        }
-    }
-    
-    if (analyzedChar.attributesSkills && Array.isArray(analyzedChar.attributesSkills)) {
-        if (!existingChar.attributesSkills) existingChar.attributesSkills = [];
-        for (const skill of analyzedChar.attributesSkills) {
-            if (!existingChar.attributesSkills.includes(skill)) {
-                existingChar.attributesSkills.push(skill);
-            }
-        }
-    }
-    
-    // Add new relationships (avoid duplicates)
+    // Merge relationships array - deduplicate
     if (analyzedChar.relationships && Array.isArray(analyzedChar.relationships)) {
         if (!existingChar.relationships) existingChar.relationships = [];
         for (const rel of analyzedChar.relationships) {
@@ -1875,74 +1779,22 @@ async function updateLorebookEntry(character, characterName) {
         // Build the entry content in a readable format
         const contentParts = [];
         
-        // Character Role
-        if (character.characterRole) {
-            contentParts.push(`**Character Role:** ${character.characterRole}`);
+        // Physical Age / Mental Age
+        if (character.physicalAge || character.mentalAge) {
+            const ageInfo = [];
+            if (character.physicalAge) ageInfo.push(`Physical: ${character.physicalAge}`);
+            if (character.mentalAge) ageInfo.push(`Mental: ${character.mentalAge}`);
+            contentParts.push(`**Age:** ${ageInfo.join(', ')}`);
         }
         
-        // Full Name
-        if (character.fullName) {
-            contentParts.push(`**Full Name:** ${character.fullName}`);
+        // Physical (consolidated body description)
+        if (character.physical) {
+            contentParts.push(`\n**Physical Description:**\n${character.physical}`);
         }
         
-        // Sex
-        if (character.sex) {
-            contentParts.push(`**Sex:** ${character.sex}`);
-        }
-        
-        // Age
-        if (character.age) {
-            contentParts.push(`**Age:** ${character.age}`);
-        }
-        
-        // Nicknames/Aliases
-        if (character.aliases && character.aliases.length > 0) {
-            contentParts.push(`**Nicknames/Aliases:** ${character.aliases.join(', ')}`);
-        }
-        
-        // Personality
+        // Personality (consolidated traits, likes, dislikes)
         if (character.personality) {
             contentParts.push(`\n**Personality:**\n${character.personality}`);
-        }
-        
-        // Body
-        if (character.body) {
-            contentParts.push(`\n**Body:**\n${character.body}`);
-        }
-        
-        // Body Measurements
-        if (character.bodyMeasurements) {
-            contentParts.push(`**Body Measurements:** ${character.bodyMeasurements}`);
-        }
-        
-        // Likes
-        if (character.likes && character.likes.length > 0) {
-            contentParts.push(`\n**Likes:**\n${character.likes.map(item => `- ${item}`).join('\n')}`);
-        }
-        
-        // Hates
-        if (character.hates && character.hates.length > 0) {
-            contentParts.push(`\n**Hates:**\n${character.hates.map(item => `- ${item}`).join('\n')}`);
-        }
-        
-        // Clothes/Attire
-        if (character.clothes) {
-            contentParts.push(`\n**Clothes/Attire:**\n${character.clothes}`);
-        }
-        
-        // Species
-        if (character.species) {
-            contentParts.push(`**Species:** ${character.species}`);
-        }
-        
-        // Race/Ethnicity
-        if (character.raceEthnicity) {
-            contentParts.push(`**Race/Ethnicity:** ${character.raceEthnicity}`);
-        }
-        
-        // Occupation/Role
-        if (character.occupation) {
-            contentParts.push(`**Occupation/Role:** ${character.occupation}`);
         }
         
         // Sexuality
@@ -1950,29 +1802,19 @@ async function updateLorebookEntry(character, characterName) {
             contentParts.push(`\n**Sexuality:**\n${character.sexuality}`);
         }
         
-        // Appearance
-        if (character.appearance) {
-            contentParts.push(`\n**Appearance:**\n${character.appearance}`);
+        // Race/Ethnicity
+        if (character.raceEthnicity) {
+            contentParts.push(`**Race/Ethnicity:** ${character.raceEthnicity}`);
         }
         
-        // Attributes/Skills
-        if (character.attributesSkills && character.attributesSkills.length > 0) {
-            contentParts.push(`\n**Attributes/Skills:**\n${character.attributesSkills.map(skill => `- ${skill}`).join('\n')}`);
+        // Role & Skills
+        if (character.roleSkills) {
+            contentParts.push(`\n**Role & Skills:**\n${character.roleSkills}`);
         }
         
-        // Current Mental State
-        if (character.currentMentalState) {
-            contentParts.push(`\n**Current Mental State:** ${character.currentMentalState}`);
-        }
-        
-        // Current Physical State
-        if (character.currentPhysicalState) {
-            contentParts.push(`**Current Physical State:** ${character.currentPhysicalState}`);
-        }
-        
-        // Backstory
-        if (character.backstory) {
-            contentParts.push(`\n**Backstory:**\n${character.backstory}`);
+        // Last Interaction
+        if (character.lastInteraction) {
+            contentParts.push(`\n**Last Interaction with {{user}}:**\n${character.lastInteraction}`);
         }
         
         // Relationships
@@ -2019,7 +1861,10 @@ async function updateLorebookEntry(character, characterName) {
             debugLog(`Updated lorebook entry ${entryUid} for ${character.preferredName}`);
         } else {
             // Create new entry
+            const settings = getSettings();
             const newUid = context.uuidv4();
+            // Calculate cooldown as 3/4 of messageFrequency (rounded to nearest integer)
+            const calculatedCooldown = Math.round((settings.messageFrequency * 3) / 4);
             const newEntry = {
                 uid: newUid,
                 key: keys,
@@ -2029,17 +1874,17 @@ async function updateLorebookEntry(character, characterName) {
                 constant: false,
                 selective: true,
                 insertion_order: 100,
-                enabled: true,
-                position: 1,
+                enabled: settings.lorebookEnabled,
+                position: settings.lorebookPosition,
                 excludeRecursion: false,
                 preventRecursion: false,
                 delayUntilRecursion: false,
-                probability: 100,
+                probability: settings.lorebookProbability,
                 useProbability: true,
-                depth: 4,
+                depth: settings.lorebookDepth,
                 selectiveLogic: 0,
                 group: '',
-                scanDepth: null,
+                scanDepth: settings.lorebookScanDepth,
                 caseSensitive: null,
                 matchWholeWords: null,
                 useGroupScoring: null,
@@ -2047,7 +1892,7 @@ async function updateLorebookEntry(character, characterName) {
                 role: 0,
                 vectorized: false,
                 sticky: 0,
-                cooldown: 0,
+                cooldown: calculatedCooldown,
                 delay: 0,
             };
             
@@ -2400,26 +2245,96 @@ function clearCache() {
 async function onMessageReceived(messageId) {
     const settings = getSettings();
     
-    if (!settings.enabled) {
+    if (!settings.enabled || !settings.autoAnalyze) {
         return;
     }
     
-    // Increment message counter
-    settings.messageCounter++;
-    saveChatData();
-    updateStatusDisplay();
+    const context = SillyTavern.getContext();
+    const chat = context.chat;
     
-    // Check if it's time to harvest
-    if (settings.autoAnalyze) {
-        const messagesSinceHarvest = settings.messageCounter - settings.lastHarvestMessage;
+    if (!chat || chat.length === 0) {
+        return;
+    }
+    
+    // Get the current message index
+    const currentMessageIndex = chat.length - 1;
+    
+    // Check if this message was already scanned
+    if (currentMessageIndex <= settings.lastScannedMessageId) {
+        debugLog(`Message ${currentMessageIndex} already scanned (last scanned: ${settings.lastScannedMessageId})`);
+        return;
+    }
+    
+    // Detect if messages were deleted (current index jumped backwards)
+    if (settings.lastScannedMessageId >= 0 && currentMessageIndex < settings.lastScannedMessageId) {
+        debugLog(`Message deletion detected: current=${currentMessageIndex}, last scanned=${settings.lastScannedMessageId}`);
         
-        if (messagesSinceHarvest >= settings.messageFrequency) {
-            // Add to queue instead of processing immediately
-            addToQueue(async () => {
-                await harvestMessages(settings.messageFrequency, true);
+        // Prompt user for rescan decision
+        const shouldRescan = await new Promise((resolve) => {
+            const modal = $(`
+                <div class="name-tracker-rescan-modal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--SmartThemeBodyColor); border: 2px solid var(--SmartThemeBorderColor); padding: 20px; border-radius: 10px; z-index: 9999; max-width: 500px;">
+                    <h3>Message History Changed</h3>
+                    <p>Messages have been deleted or edited. Would you like to rescan the chat?</p>
+                    <p>Current last scanned message: ${settings.lastScannedMessageId}<br>
+                    Current message index: ${currentMessageIndex}</p>
+                    <div style="margin-top: 15px;">
+                        <label>Rescan from message: <input type="number" id="rescan-from" value="0" min="0" max="${currentMessageIndex}" style="width: 80px; margin-left: 10px;"></label>
+                    </div>
+                    <div style="margin-top: 15px; text-align: right;">
+                        <button id="rescan-yes" class="menu_button">Rescan</button>
+                        <button id="rescan-no" class="menu_button">Skip</button>
+                    </div>
+                </div>
+            `);
+            
+            $('body').append(modal);
+            
+            modal.find('#rescan-yes').on('click', () => {
+                const fromMessage = parseInt(modal.find('#rescan-from').val()) || 0;
+                modal.remove();
+                resolve({ rescan: true, fromMessage });
             });
+            
+            modal.find('#rescan-no').on('click', () => {
+                modal.remove();
+                resolve({ rescan: false });
+            });
+        });
+        
+        if (shouldRescan.rescan) {
+            settings.lastScannedMessageId = shouldRescan.fromMessage - 1;
+            saveChatData();
+            
+            // Queue a full scan from the specified message
+            addToQueue(async () => {
+                await harvestMessages(currentMessageIndex - shouldRescan.fromMessage + 1, true);
+            });
+            
+            return;
+        } else {
+            // Reset to current position without scanning
+            settings.lastScannedMessageId = currentMessageIndex;
+            saveChatData();
+            return;
         }
     }
+    
+    // Check if we've reached the next scan milestone
+    const messagesSinceLastScan = currentMessageIndex - settings.lastScannedMessageId;
+    
+    if (messagesSinceLastScan >= settings.messageFrequency) {
+        debugLog(`Scan milestone reached: ${messagesSinceLastScan} messages since last scan`);
+        
+        // Queue harvest
+        addToQueue(async () => {
+            await harvestMessages(settings.messageFrequency, true);
+            // Update last scanned message ID after successful harvest
+            settings.lastScannedMessageId = currentMessageIndex;
+            saveChatData();
+        });
+    }
+    
+    updateStatusDisplay();
 }
 
 /**
@@ -2459,6 +2374,8 @@ async function processQueue() {
  * Handle chat changed event
  */
 async function onChatChanged() {
+    debugLog('Chat changed event triggered');
+    
     // Clear session data
     analysisCache.clear();
     processingQueue = [];
@@ -2467,13 +2384,109 @@ async function onChatChanged() {
     abortScan = false;
     lorebookName = null;
     
+    // Clear character cache - fresh start for new chat
+    const settings = getSettings();
+    settings.characters = {};
+    settings.messageCounter = 0;
+    
+    debugLog('Cleared character cache and analysis state');
+    
     // Reload settings for new chat
     await loadSettings();
     
     // Re-initialize lorebook for new chat
     await initializeLorebook();
     
-    debugLog('Chat changed, reinitialized extension');
+    // Adopt existing lorebook entries if any
+    await adoptExistingEntries();
+    
+    debugLog('Chat changed, reinitialized extension and adopted existing entries');
+}
+
+/**
+ * Adopt existing lorebook entries into character cache
+ * This allows manual entries or previous data to be imported
+ */
+async function adoptExistingEntries() {
+    if (!lorebookName) {
+        debugLog('No lorebook available, skipping adoption');
+        return;
+    }
+    
+    try {
+        const context = SillyTavern.getContext();
+        const worldInfo = await context.loadWorldInfo(lorebookName);
+        
+        if (!worldInfo || !worldInfo.entries || typeof worldInfo.entries !== 'object') {
+            debugLog('No existing entries to adopt');
+            return;
+        }
+        
+        const settings = getSettings();
+        let adoptedCount = 0;
+        
+        // Iterate through existing entries
+        for (const [uid, entry] of Object.entries(worldInfo.entries)) {
+            if (!entry.comment || !entry.key || entry.key.length === 0) {
+                continue; // Skip malformed entries
+            }
+            
+            const characterName = entry.comment;
+            
+            // Skip if already exists in cache
+            if (settings.characters[characterName]) {
+                debugLog(`Skipping ${characterName} - already in cache`);
+                continue;
+            }
+            
+            // Parse the entry content to extract fields
+            const adoptedChar = {
+                preferredName: characterName,
+                aliases: entry.key.filter(k => k !== characterName),
+                physicalAge: '',
+                mentalAge: '',
+                physical: '',
+                personality: '',
+                sexuality: '',
+                raceEthnicity: '',
+                roleSkills: '',
+                lastInteraction: '',
+                relationships: [],
+                ignored: false,
+                confidence: 70, // Default confidence for adopted entries
+                lorebookEntryId: uid, // Link to existing entry
+                lastUpdated: Date.now(),
+                isMainChar: false
+            };
+            
+            // Try to parse content for field extraction (basic parsing)
+            const content = entry.content || '';
+            const lines = content.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('**Age:**')) {
+                    const ageMatch = line.match(/Physical: ([^,]+)/);
+                    if (ageMatch) adoptedChar.physicalAge = ageMatch[1].trim();
+                    const mentalMatch = line.match(/Mental: (.+)/);
+                    if (mentalMatch) adoptedChar.mentalAge = mentalMatch[1].trim();
+                } else if (line.startsWith('**Race/Ethnicity:**')) {
+                    adoptedChar.raceEthnicity = line.replace('**Race/Ethnicity:**', '').trim();
+                }
+            }
+            
+            settings.characters[characterName] = adoptedChar;
+            adoptedCount++;
+            debugLog(`Adopted character: ${characterName} (UID: ${uid})`);
+        }
+        
+        if (adoptedCount > 0) {
+            toastr.info(`Adopted ${adoptedCount} existing lorebook ${adoptedCount === 1 ? 'entry' : 'entries'}`, 'Name Tracker');
+        }
+        
+    } catch (error) {
+        console.error('Error adopting existing entries:', error);
+        debugLog(`Failed to adopt entries: ${error.message}`);
+    }
 }
 
 /**
@@ -2738,11 +2751,6 @@ async function onEditSystemPromptClick() {
 }
 
 // Character action handlers
-$(document).on('click', '.char-action-edit', function() {
-    const name = $(this).data('name');
-    editLorebookEntry(name);
-});
-
 $(document).on('click', '.char-action-merge', async function() {
     const sourceName = $(this).data('name');
     const settings = getSettings();
@@ -2973,8 +2981,17 @@ function toggleAutoHarvest() {
     // Update the settings UI
     $('#name_tracker_auto_analyze').prop('checked', settings.autoAnalyze);
     
+    // Update menu button icon to reflect state
+    const $menuButton = $('#extensionsMenu .name-tracker-toggle-harvest');
+    if (settings.autoAnalyze) {
+        $menuButton.find('i').removeClass('fa-toggle-off').addClass('fa-toggle-on');
+    } else {
+        $menuButton.find('i').removeClass('fa-toggle-on').addClass('fa-toggle-off');
+    }
+    
     // Save settings
     SillyTavern.getContext().saveSettingsDebounced();
+    updateStatusDisplay();
     
     toastr.success(
         `Auto-harvest ${settings.autoAnalyze ? 'enabled' : 'disabled'}`,
@@ -2983,30 +3000,124 @@ function toggleAutoHarvest() {
 }
 
 /**
+ * Show character list modal
+ */
+function showCharacterListModal() {
+    const settings = getSettings();
+    const characters = Object.values(settings.characters || {});
+    
+    // Build character list HTML
+    let charactersHtml = '';
+    
+    if (characters.length === 0) {
+        charactersHtml = '<p style="text-align: center; color: var(--SmartThemeQuoteColor);">No characters tracked yet</p>';
+    } else {
+        // Sort: Main characters first, then by name
+        characters.sort((a, b) => {
+            if (a.isMainChar && !b.isMainChar) return -1;
+            if (!a.isMainChar && b.isMainChar) return 1;
+            return a.preferredName.localeCompare(b.preferredName);
+        });
+        
+        charactersHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+        for (const char of characters) {
+            const badges = [];
+            if (char.isMainChar) badges.push('<span style="background: var(--SmartThemeBodyColor); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">ACTIVE</span>');
+            if (char.ignored) badges.push('<span style="background: var(--black70a); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">IGNORED</span>');
+            if (hasUnresolvedRelationships(char)) badges.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');
+            
+            const aliasText = char.aliases && char.aliases.length > 0 
+                ? `<div style="font-size: 0.9em; color: var(--SmartThemeQuoteColor); margin-top: 3px;">Aliases: ${escapeHtml(char.aliases.join(', '))}</div>`
+                : '';
+            
+            charactersHtml += `
+                <div style="padding: 10px; margin: 5px 0; background: var(--SmartThemeBlurTintColor); border: 1px solid var(--SmartThemeBorderColor); border-radius: 5px;">
+                    <div style="font-weight: bold;">
+                        ${char.isMainChar ? '<i class="fa-solid fa-user" style="margin-right: 5px;"></i>' : ''}
+                        ${escapeHtml(char.preferredName)}
+                        ${badges.join('')}
+                    </div>
+                    ${aliasText}
+                </div>
+            `;
+        }
+        charactersHtml += '</div>';
+    }
+    
+    // Create and show modal using SillyTavern's popup system
+    const context = SillyTavern.getContext();
+    const modalHtml = `
+        <div class="name-tracker-character-modal">
+            <h3 style="margin-top: 0;">Tracked Characters (${characters.length})</h3>
+            ${charactersHtml}
+            <div style="margin-top: 15px; text-align: center;">
+                <button class="menu_button" onclick="$('#name_tracker_settings').find('.inline-drawer-toggle').click(); $(this).closest('.popup').remove();">
+                    <i class="fa-solid fa-gear"></i> Open Settings
+                </button>
+            </div>
+        </div>
+    `;
+    
+    context.callGenericPopup(modalHtml, context.POPUP_TYPE.TEXT, '', { wider: true, okButton: 'Close' });
+}
+
+/**
+ * Add a menu button to the extensions menu
+ * @param {string} text - Button text
+ * @param {string} faIcon - Font Awesome icon classes
+ * @param {Function} callback - Click handler
+ * @param {string} hover - Tooltip text
+ * @param {string} className - Optional additional CSS class
+ */
+function addMenuButton(text, faIcon, callback, hover = null, className = '') {
+    const $button = $(`
+        <div class="list-group-item flex-container flexGap5 interactable ${className}" title="${hover || text}" tabindex="0">
+            <i class="${faIcon}"></i>
+            <span>${text}</span>
+        </div>
+    `);
+    
+    const $extensionsMenu = $('#extensionsMenu');
+    if (!$extensionsMenu.length) {
+        console.error('[Name Tracker] Could not find the extensions menu');
+        return;
+    }
+    
+    $button.appendTo($extensionsMenu);
+    $button.on('click', () => callback());
+}
+
+/**
  * Initialize extension menu buttons
  */
 function initializeMenuButtons() {
-    const context = SillyTavern.getContext();
+    const settings = getSettings();
     
-    // Add "Open Chat Lorebook" button
-    if (typeof context.addExtensionMenuButton === 'function') {
-        context.addExtensionMenuButton(
-            'Open Chat Lorebook',
-            'fa-solid fa-book',
-            openChatLorebook,
-            'Open the Name Tracker chat lorebook in the World Info editor'
-        );
-    }
+    // Add toggle auto-harvest button with visual state
+    const toggleIcon = settings.autoAnalyze ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
+    addMenuButton(
+        'Toggle Auto-Harvest',
+        toggleIcon,
+        toggleAutoHarvest,
+        'Toggle automatic character harvesting on/off',
+        'name-tracker-toggle-harvest'
+    );
     
-    // Add "Toggle Auto-Harvest" button
-    if (typeof context.addExtensionMenuButton === 'function') {
-        context.addExtensionMenuButton(
-            'Toggle Auto-Harvest',
-            'fa-solid fa-seedling',
-            toggleAutoHarvest,
-            'Toggle automatic character harvesting on/off'
-        );
-    }
+    // Add character list button
+    addMenuButton(
+        'View Characters',
+        'fa-solid fa-users',
+        showCharacterListModal,
+        'View all tracked characters'
+    );
+    
+    // Add open lorebook button
+    addMenuButton(
+        'Open Chat Lorebook',
+        'fa-solid fa-book',
+        openChatLorebook,
+        'Open the Name Tracker chat lorebook in the World Info editor'
+    );
 }
 
 // Initialize extension when jQuery is ready
