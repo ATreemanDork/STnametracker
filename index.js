@@ -466,6 +466,16 @@ async function initializeLorebook() {
     try {
         await context.saveMetadata();
         debugLog(`Bound lorebook to chat: ${lorebookName}`);
+        
+        // Ensure the lorebook file exists (create empty if needed)
+        let worldInfo = await context.loadWorldInfo(lorebookName);
+        if (!worldInfo) {
+            debugLog(`Creating initial empty lorebook file: ${lorebookName}`);
+            await context.saveWorldInfo(lorebookName, { entries: {} }, true);
+        }
+        
+        // Notify user
+        toastr.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, 'Name Tracker', { timeOut: 5000 });
     } catch (error) {
         console.error('Error saving chat metadata:', error);
         debugLog(`Failed to bind lorebook: ${error.message}`);
@@ -1837,14 +1847,24 @@ async function updateLorebookEntry(character, characterName) {
         let worldInfo = await context.loadWorldInfo(lorebookName);
         
         if (!worldInfo) {
-            debugLog(`WARNING: Could not load lorebook ${lorebookName}. Creating new lorebook.`);
-            worldInfo = { entries: {} };
+            debugLog(`WARNING: Could not load lorebook ${lorebookName}. Creating new lorebook structure.`);
+            // Match SillyTavern's world info structure
+            worldInfo = {
+                entries: {}
+            };
         }
         
         // Ensure entries exists as an object (world info uses object with UID keys, not array)
         if (!worldInfo.entries || typeof worldInfo.entries !== 'object') {
             debugLog(`WARNING: worldInfo.entries is invalid. Initializing as empty object.`);
             worldInfo.entries = {};
+        }
+        
+        // Check if saveWorldInfo function exists
+        if (typeof context.saveWorldInfo !== 'function') {
+            console.error('[Name Tracker] CRITICAL ERROR: context.saveWorldInfo is not a function!');
+            console.error('[Name Tracker] Available context methods:', Object.keys(context).filter(k => typeof context[k] === 'function').join(', '));
+            throw new Error('SillyTavern API missing saveWorldInfo function');
         }
         
         debugLog(`loadWorldInfo returned lorebook with ${Object.keys(worldInfo.entries).length} entries`);
@@ -1901,12 +1921,42 @@ async function updateLorebookEntry(character, characterName) {
             character.lorebookEntryId = newUid;
             
             debugLog(`Created lorebook entry ${newUid} for ${character.preferredName}`);
+            debugLog(`Entry keys: ${JSON.stringify(keys)}`);
+            debugLog(`Entry content length: ${content.length} chars`);
+            debugLog(`Entry structure: ${JSON.stringify(newEntry, null, 2).substring(0, 500)}...`);
+            
+            // Show notification for first entry creation
+            if (Object.keys(worldInfo.entries).length === 1) {
+                toastr.success(
+                    `Created first lorebook entry for ${character.preferredName}. Check World Info to see all entries.`,
+                    'Name Tracker',
+                    { timeOut: 6000 }
+                );
+            }
         }
         
         // Save the lorebook using context API
-        await context.saveWorldInfo(lorebookName, worldInfo);
-        debugLog(`Saved lorebook: ${lorebookName}`);
-        
+        // IMPORTANT: Pass true as third parameter to save immediately (not debounced)
+        try {
+            debugLog(`Attempting to save lorebook with ${Object.keys(worldInfo.entries).length} entries`);
+            debugLog(`Sample entry UIDs: ${Object.keys(worldInfo.entries).slice(0, 3).join(', ')}`);
+            
+            await context.saveWorldInfo(lorebookName, worldInfo, true);
+            
+            // Verify it was saved by reloading
+            const verifyLoad = await context.loadWorldInfo(lorebookName);
+            if (verifyLoad && verifyLoad.entries) {
+                debugLog(`Verified lorebook saved successfully with ${Object.keys(verifyLoad.entries).length} entries`);
+            } else {
+                console.error('[Name Tracker] WARNING: Lorebook verification failed - entries may not have been saved!');
+            }
+            
+            debugLog(`Saved lorebook: ${lorebookName}`);
+        } catch (error) {
+            console.error('[Name Tracker] Error saving lorebook:', error);
+            debugLog(`Failed to save lorebook: ${error.message}`);
+            throw error; // Re-throw so caller knows it failed
+        }
     } catch (error) {
         console.error('Error updating lorebook entry:', error);
         debugLog(`Failed to update lorebook entry: ${error.message}`);
@@ -1993,10 +2043,11 @@ async function mergeCharacters(sourceName, targetName) {
     // Delete source lorebook entry if exists
     if (sourceChar.lorebookUid) {
         try {
-            const worldInfo = await loadWorldInfo(lorebookName);
-            if (worldInfo.entries[sourceChar.lorebookUid]) {
+            const context = SillyTavern.getContext();
+            const worldInfo = await context.loadWorldInfo(lorebookName);
+            if (worldInfo && worldInfo.entries && worldInfo.entries[sourceChar.lorebookUid]) {
                 delete worldInfo.entries[sourceChar.lorebookUid];
-                await saveWorldInfo(lorebookName, worldInfo);
+                await context.saveWorldInfo(lorebookName, worldInfo, true);
             }
         } catch (error) {
             console.error('Error deleting source lorebook entry:', error);
@@ -2202,7 +2253,7 @@ async function purgeAllEntries() {
                 }
                 
                 // Save the lorebook
-                await saveWorldInfo(lorebookName, lorebook);
+                await context.saveWorldInfo(lorebookName, lorebook, true);
             }
         }
         
