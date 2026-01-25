@@ -232,23 +232,40 @@ export async function getMaxPromptLength() {
     return withErrorBoundary('getMaxPromptLength', async () => {
         const llmConfig = getLLMConfig();
         let maxContext = 4096; // Default
+        let maxGenTokens = 2048; // Default generation limit
 
         if (llmConfig.source === 'ollama' && llmConfig.ollamaModel) {
             // Get Ollama model's context size
             maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
         } else {
-            // Use SillyTavern's context
+            // Use SillyTavern's context - try multiple possible property names
             const context = stContext.getContext();
-            maxContext = context.maxContext || 4096;
+            
+            // SillyTavern stores context size in different properties depending on API
+            maxContext = context.maxContext 
+                      || context.max_context 
+                      || context.contextSize 
+                      || context.context_size
+                      || 4096;
+            
+            // Get max generation tokens (response length limit)
+            maxGenTokens = context.amount_gen 
+                        || context.max_length 
+                        || context.maxLength
+                        || 2048;
+            
+            debug.log(`Context detection: maxContext=${maxContext}, maxGenTokens=${maxGenTokens}`);
+            debug.log(`Context object keys: ${Object.keys(context).filter(k => k.toLowerCase().includes('context') || k.toLowerCase().includes('max') || k.toLowerCase().includes('length')).join(', ')}`);
         }
 
-        // Reserve 50% of context for system prompt, response, and safety margin
-        const tokensForPrompt = Math.floor(maxContext * 0.5);
+        // Reserve space for: system prompt (500 tokens) + max generation (maxGenTokens) + safety margin (500)
+        const reservedTokens = 500 + maxGenTokens + 500;
+        const tokensForPrompt = Math.max(1000, maxContext - reservedTokens);
 
-        debug.log();
+        debug.log(`Token allocation: maxContext=${maxContext}, reserved=${reservedTokens}, available=${tokensForPrompt}`);
 
-        // Return at least 1000 tokens, max 25000 tokens
-        return Math.max(1000, Math.min(tokensForPrompt, 25000));
+        // Return at least 1000 tokens, max 50000 tokens (raised from 25000)
+        return Math.max(1000, Math.min(tokensForPrompt, 50000));
     });
 }
 

@@ -790,12 +790,23 @@ function showDebugStatus() {
         // Get LLM context info
         let llmConfig = {};
         let maxPromptTokens = 4096;
+        let contextDetails = {};
         try {
             const { getLLMConfig, getMaxPromptLength } = await import('./llm.js');
+            const { stContext } = await import('../core/context.js');
+            
             llmConfig = getLLMConfig();
             maxPromptTokens = await getMaxPromptLength();
+            
+            // Get raw context info
+            const context = stContext.getContext();
+            contextDetails = {
+                totalContext: context.maxContext || context.max_context || context.contextSize || context.context_size || 'unknown',
+                maxGeneration: context.amount_gen || context.max_length || context.maxLength || 'unknown',
+                modelName: context.main_api || 'unknown'
+            };
         } catch (error) {
-            debug.log('Could not load LLM config');
+            debug.log('Could not load LLM config:', error);
         }
 
         // Get batch size constants from processing module
@@ -807,8 +818,11 @@ function showDebugStatus() {
             MIN_CONTEXT_TARGET: 50
         };
 
-        const reservedTokens = 1000;
-        const availableTokens = maxPromptTokens - reservedTokens;
+        const systemPromptTokens = 500;
+        const maxGenTokens = typeof contextDetails.maxGeneration === 'number' ? contextDetails.maxGeneration : 2048;
+        const safetyMargin = 500;
+        const reservedTokens = systemPromptTokens + maxGenTokens + safetyMargin;
+        const availableTokens = maxPromptTokens;
 
         // Compile debug info
         const debugInfo = {
@@ -816,12 +830,18 @@ function showDebugStatus() {
                 'Enabled': settings.enabled !== false,
                 'Debug Mode': settings.debugMode !== false,
                 'LLM Source': settings.llmSource || 'sillytavern',
+                'Model API': contextDetails.modelName,
                 'Tracked Characters': Object.keys(characters).length
             },
-            'LLM Context Window': {
+            'SillyTavern Context': {
+                'Total Context Window': contextDetails.totalContext,
+                'Max Generation Tokens': contextDetails.maxGeneration,
+                'System Prompt Reserve': systemPromptTokens,
+                'Safety Margin': safetyMargin,
+                'Total Reserved': reservedTokens
+            },
+            'Usable Token Budget': {
                 'Max Prompt Tokens': maxPromptTokens,
-                'Reserved Tokens': reservedTokens,
-                'Available Tokens': availableTokens,
                 'Context Target %': batchConstants.CONTEXT_TARGET_PERCENT,
                 'Tokens to Use': Math.floor(availableTokens * (batchConstants.CONTEXT_TARGET_PERCENT / 100))
             },
