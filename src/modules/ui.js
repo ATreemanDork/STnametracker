@@ -783,10 +783,21 @@ export function bindSettingsHandlers() {
  * @returns {void}
  */
 function showDebugStatus() {
-    return withErrorBoundary('showDebugStatus', () => {
+    return withErrorBoundary('showDebugStatus', async () => {
         const settings = get_settings();
         const characters = getCharacters();
         
+        // Get LLM context info
+        let llmConfig = {};
+        let maxPromptTokens = 4096;
+        try {
+            const { getLLMConfig, getMaxPromptLength } = await import('./llm.js');
+            llmConfig = getLLMConfig();
+            maxPromptTokens = await getMaxPromptLength();
+        } catch (error) {
+            debug.log('Could not load LLM config');
+        }
+
         // Get batch size constants from processing module
         const batchConstants = {
             MIN_MESSAGES_PER_BATCH: 5,
@@ -796,6 +807,9 @@ function showDebugStatus() {
             MIN_CONTEXT_TARGET: 50
         };
 
+        const reservedTokens = 1000;
+        const availableTokens = maxPromptTokens - reservedTokens;
+
         // Compile debug info
         const debugInfo = {
             'Extension Status': {
@@ -804,11 +818,17 @@ function showDebugStatus() {
                 'LLM Source': settings.llmSource || 'sillytavern',
                 'Tracked Characters': Object.keys(characters).length
             },
+            'LLM Context Window': {
+                'Max Prompt Tokens': maxPromptTokens,
+                'Reserved Tokens': reservedTokens,
+                'Available Tokens': availableTokens,
+                'Context Target %': batchConstants.CONTEXT_TARGET_PERCENT,
+                'Tokens to Use': Math.floor(availableTokens * (batchConstants.CONTEXT_TARGET_PERCENT / 100))
+            },
             'Batch Configuration': {
                 'Min Messages/Batch': batchConstants.MIN_MESSAGES_PER_BATCH,
                 'Target Messages/Batch': batchConstants.TARGET_MESSAGES_PER_BATCH,
                 'Max Messages/Batch': batchConstants.MAX_MESSAGES_PER_BATCH,
-                'Context Target %': batchConstants.CONTEXT_TARGET_PERCENT,
                 'Min Context Target': batchConstants.MIN_CONTEXT_TARGET
             },
             'Analysis Settings': {
@@ -825,18 +845,18 @@ function showDebugStatus() {
             }
         };
 
-        // Format for display
+        // Format for display with better colors
         let htmlContent = '<div style="font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">';
         
         for (const [section, values] of Object.entries(debugInfo)) {
-            htmlContent += `<div style="margin-bottom: 15px; border-bottom: 1px solid var(--SmartThemeBorderColor); padding-bottom: 10px;">`;
-            htmlContent += `<strong style="color: var(--SmartThemeQuoteColor);">${section}</strong><br>`;
+            htmlContent += `<div style="margin-bottom: 15px; border-bottom: 1px solid #666; padding-bottom: 10px;">`;
+            htmlContent += `<strong style="color: #90EE90; font-size: 13px;">${section}</strong><br>`;
             
             for (const [key, value] of Object.entries(values)) {
                 const displayValue = value === true ? '✓' : (value === false ? '✗' : value);
                 htmlContent += `<div style="margin-left: 10px; padding: 2px 0;">
-                    <span style="color: var(--SmartThemeBorderColor);">${key}:</span> 
-                    <span style="color: var(--SmartThemeMainColor);">${displayValue}</span>
+                    <span style="color: #87CEEB;">${key}:</span> 
+                    <span style="color: #FFFF99;">${displayValue}</span>
                 </div>`;
             }
             htmlContent += '</div>';
@@ -844,30 +864,30 @@ function showDebugStatus() {
         
         htmlContent += '</div>';
 
-        // Show in modal with copy-to-clipboard functionality
+        // Show in modal
         const modal = $(`
             <div class="nametracker-modal" style="
                 position: fixed;
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                background: var(--SmartThemeBlurTintColor);
-                border: 2px solid var(--SmartThemeMainColor);
+                background: #1a1a1a;
+                border: 2px solid #90EE90;
                 border-radius: 10px;
                 padding: 20px;
-                max-width: 500px;
+                max-width: 550px;
                 width: 90%;
-                max-height: 70vh;
+                max-height: 75vh;
                 overflow-y: auto;
                 z-index: 9999;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.8);
             ">
-                <h3 style="margin-top: 0; color: var(--SmartThemeMainColor);">
+                <h3 style="margin-top: 0; color: #90EE90; border-bottom: 2px solid #90EE90; padding-bottom: 10px;">
                     <i class="fa-solid fa-bug"></i> Debug Status
                 </h3>
                 ${htmlContent}
-                <div style="margin-top: 20px; text-align: right; border-top: 1px solid var(--SmartThemeBorderColor); padding-top: 10px;">
-                    <button class="menu_button" id="debug-close">Close</button>
+                <div style="margin-top: 20px; text-align: right; border-top: 1px solid #666; padding-top: 10px;">
+                    <button class="menu_button" id="debug-close" style="background: #2a2a2a; color: #90EE90; border: 1px solid #90EE90;">Close</button>
                 </div>
             </div>
         `);
