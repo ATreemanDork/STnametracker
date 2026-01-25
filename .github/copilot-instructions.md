@@ -24,10 +24,12 @@ This is a **SillyTavern browser extension** that automatically tracks character 
 - **`helpers.js`** - Common functions (HTML escaping, hashing, name normalization)
 - **`notifications.js`** - Centralized toastr notifications with consistent styling
 
-### Feature Modules (`src/modules/`) - **TODO**
+### Feature Modules (`src/modules/`) - **✅ COMPLETE**
 - **`characters.js`** - Character CRUD operations and merging logic
 - **`llm.js`** - LLM API integration (SillyTavern + Ollama)  
 - **`lorebook.js`** - SillyTavern lorebook integration
+- **`processing.js`** - Message analysis and batch processing
+- **`ui.js`** - User interface components and interactions
 - **`processing.js`** - Message analysis and batch processing
 - **`ui.js`** - User interface components and interactions
 
