@@ -6261,6 +6261,8 @@ console.log('[STnametracker] Main index.js: Import validation');
 console.log('[STnametracker] Main index.js: initializeLorebook import =', typeof _modules_lorebook_js__WEBPACK_IMPORTED_MODULE_9__.initializeLorebook, _modules_lorebook_js__WEBPACK_IMPORTED_MODULE_9__.initializeLorebook);
 console.log('[STnametracker] Main index.js: initializeUIHandlers import =', typeof _modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.initializeUIHandlers, _modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.initializeUIHandlers);
 console.log('[STnametracker] Main index.js: initializeMenuButtons import =', typeof _modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.initializeMenuButtons, _modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.initializeMenuButtons);
+console.log('[STnametracker] Main index.js: bindSettingsHandlers import =', typeof _modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.bindSettingsHandlers, _modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.bindSettingsHandlers);
+console.log('[STnametracker] Main index.js: updateUI import =', typeof _modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.updateUI, _modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.updateUI);
 
 if (typeof _modules_lorebook_js__WEBPACK_IMPORTED_MODULE_9__.initializeLorebook !== 'function') {
     console.error('[STnametracker] Main index.js: CRITICAL ERROR - initializeLorebook import failed!');
@@ -6430,6 +6432,16 @@ class NameTrackerExtension {
             console.log('[STnametracker] initializeUI: Initializing menu buttons...');
             (0,_modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.initializeMenuButtons)();
             console.log('[STnametracker] initializeUI: Menu buttons initialized');
+
+            // Bind settings form handlers
+            console.log('[STnametracker] initializeUI: Binding settings handlers...');
+            (0,_modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.bindSettingsHandlers)();
+            console.log('[STnametracker] initializeUI: Settings handlers bound');
+
+            // Update UI to reflect current settings
+            console.log('[STnametracker] initializeUI: Updating UI...');
+            (0,_modules_ui_js__WEBPACK_IMPORTED_MODULE_11__.updateUI)();
+            console.log('[STnametracker] initializeUI: UI updated');
 
             logger.debug('UI initialized');
         } catch (error) {

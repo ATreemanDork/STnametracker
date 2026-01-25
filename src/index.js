@@ -21,13 +21,15 @@ import { /* initializeCharacterManager */ } from './modules/characters.js';
 import { /* initializeLLMManager */ } from './modules/llm.js';
 import { initializeLorebook } from './modules/lorebook.js';
 import { /* initializeProcessingManager */ } from './modules/processing.js';
-import { initializeUIHandlers, initializeMenuButtons } from './modules/ui.js';
+import { initializeUIHandlers, initializeMenuButtons, bindSettingsHandlers, updateUI } from './modules/ui.js';
 
 // Immediate import validation
 console.log('[STnametracker] Main index.js: Import validation');
 console.log('[STnametracker] Main index.js: initializeLorebook import =', typeof initializeLorebook, initializeLorebook);
 console.log('[STnametracker] Main index.js: initializeUIHandlers import =', typeof initializeUIHandlers, initializeUIHandlers);
 console.log('[STnametracker] Main index.js: initializeMenuButtons import =', typeof initializeMenuButtons, initializeMenuButtons);
+console.log('[STnametracker] Main index.js: bindSettingsHandlers import =', typeof bindSettingsHandlers, bindSettingsHandlers);
+console.log('[STnametracker] Main index.js: updateUI import =', typeof updateUI, updateUI);
 
 if (typeof initializeLorebook !== 'function') {
     console.error('[STnametracker] Main index.js: CRITICAL ERROR - initializeLorebook import failed!');
@@ -197,6 +199,16 @@ class NameTrackerExtension {
             console.log('[STnametracker] initializeUI: Initializing menu buttons...');
             initializeMenuButtons();
             console.log('[STnametracker] initializeUI: Menu buttons initialized');
+
+            // Bind settings form handlers
+            console.log('[STnametracker] initializeUI: Binding settings handlers...');
+            bindSettingsHandlers();
+            console.log('[STnametracker] initializeUI: Settings handlers bound');
+
+            // Update UI to reflect current settings
+            console.log('[STnametracker] initializeUI: Updating UI...');
+            updateUI();
+            console.log('[STnametracker] initializeUI: UI updated');
 
             logger.debug('UI initialized');
         } catch (error) {
