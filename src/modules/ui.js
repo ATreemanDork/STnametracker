@@ -784,10 +784,8 @@ export function bindSettingsHandlers() {
  */
 function showDebugStatus() {
     return withErrorBoundary('showDebugStatus', () => {
-        const context = stContext();
         const settings = get_settings();
         const characters = getCharacters();
-        const chatMetadata = context?.chatMetadata || {};
         
         // Get batch size constants from processing module
         const batchConstants = {
@@ -804,8 +802,7 @@ function showDebugStatus() {
                 'Enabled': settings.enabled !== false,
                 'Debug Mode': settings.debugMode !== false,
                 'LLM Source': settings.llmSource || 'sillytavern',
-                'Tracked Characters': Object.keys(characters).length,
-                'Chat Loaded': !!context?.chatId
+                'Tracked Characters': Object.keys(characters).length
             },
             'Batch Configuration': {
                 'Min Messages/Batch': batchConstants.MIN_MESSAGES_PER_BATCH,
@@ -825,11 +822,6 @@ function showDebugStatus() {
                 'Cooldown': settings.lorebookCooldown || 5,
                 'Probability %': settings.lorebookProbability || 100,
                 'Enabled': settings.lorebookEnabled !== false
-            },
-            'Current Chat': {
-                'Chat ID': context?.chatId || 'None',
-                'Character': context?.characters?.[0]?.name || 'None',
-                'Messages Count': context?.chat?.length || 0
             }
         };
 
