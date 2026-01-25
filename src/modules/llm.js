@@ -324,19 +324,26 @@ export async function getMaxPromptLength() {
             // Use SillyTavern's context
             const context = stContext.getContext();
             
-            debug.log(`Raw context properties available: ${Object.keys(context).filter(k => k.toLowerCase().includes('max') || k.toLowerCase().includes('context')).join(', ')}`);
-            
-            // SillyTavern exposes maxContext - this is the total context window
-            maxContext = context.maxContext || 4096;
-            
-            debug.log(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
-            
-            // For our extension's background analysis, we set our own max_tokens in generateRaw()
-            // We don't use amount_gen (that's for user chat messages)
-            // Reserve a reasonable amount for our structured JSON responses
-            maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
-            
-            debug.log(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
+            // Check if context is fully loaded
+            if (!context || !context.maxContext) {
+                debug.log(`WARNING: Context not fully loaded yet (maxContext=${context?.maxContext}), using fallback`);
+                maxContext = 4096;
+                maxGenTokens = 1024;
+            } else {
+                debug.log(`Raw context properties available: ${Object.keys(context).filter(k => k.toLowerCase().includes('max') || k.toLowerCase().includes('context')).join(', ')}`);
+                
+                // SillyTavern exposes maxContext - this is the total context window
+                maxContext = context.maxContext;
+                
+                debug.log(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
+                
+                // For our extension's background analysis, we set our own max_tokens in generateRaw()
+                // We don't use amount_gen (that's for user chat messages)
+                // Reserve a reasonable amount for our structured JSON responses
+                maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
+                
+                debug.log(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
+            }
         }
 
         // Reserve space for: system prompt (500 tokens) + max generation (maxGenTokens) + safety margin (500)

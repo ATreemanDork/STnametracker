@@ -801,18 +801,34 @@ function showDebugStatus() {
             // Get raw context info
             const context = stContext.getContext();
             
-            // Calculate our extension's max_tokens (same logic as in llm.js)
-            const totalContext = context.maxContext || 4096;
-            const extensionMaxTokens = Math.min(4096, Math.floor(totalContext * 0.15));
-            
-            contextDetails = {
-                totalContext: totalContext,
-                maxGeneration: extensionMaxTokens,
-                maxGenerationNote: 'Extension-controlled (15% of context, max 4096)',
-                modelName: context.main_api || 'unknown'
-            };
+            // Check if context is fully loaded
+            if (!context || typeof context.maxContext === 'undefined') {
+                contextDetails = {
+                    totalContext: 'Not loaded yet (no chat active)',
+                    maxGeneration: 'N/A',
+                    maxGenerationNote: 'Context will be available after chat loads',
+                    modelName: context?.main_api || 'unknown'
+                };
+            } else {
+                // Calculate our extension's max_tokens (same logic as in llm.js)
+                const totalContext = context.maxContext;
+                const extensionMaxTokens = Math.min(4096, Math.floor(totalContext * 0.15));
+                
+                contextDetails = {
+                    totalContext: totalContext,
+                    maxGeneration: extensionMaxTokens,
+                    maxGenerationNote: 'Extension-controlled (15% of context, max 4096)',
+                    modelName: context.main_api || 'unknown'
+                };
+            }
         } catch (error) {
             debug.log('Could not load LLM config:', error);
+            contextDetails = {
+                totalContext: 'Error loading',
+                maxGeneration: 'Error',
+                maxGenerationNote: 'Check console for details',
+                modelName: 'unknown'
+            };
         }
 
         // Get batch size constants from processing module

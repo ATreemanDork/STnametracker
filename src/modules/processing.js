@@ -987,10 +987,14 @@ Continue with remaining batches?`);
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
+        
+        // Ensure summary is a string (defense against undefined values)
+        const safeSummary = String(summary || 'Scan completed');
+        
         if (failedBatches > 0) {
-            notifications.warning(summary, { timeOut: 10000 });
+            notifications.warning(safeSummary, { timeOut: 10000 });
         } else {
-            notifications.success(summary, { timeOut: 10000 });
+            notifications.success(safeSummary, { timeOut: 10000 });
         }
     });
 }
