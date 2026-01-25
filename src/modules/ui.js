@@ -786,129 +786,142 @@ function showDebugStatus() {
     return withErrorBoundary('showDebugStatus', async () => {
         const settings = get_settings();
         const characters = getCharacters();
-        
-        // Get LLM context info
-        let llmConfig = {};
-        let maxPromptTokens = 4096;
-        let contextDetails = {};
-        try {
-            const { getLLMConfig, getMaxPromptLength } = await import('./llm.js');
-            const { stContext } = await import('../core/context.js');
-            
-            llmConfig = getLLMConfig();
-            maxPromptTokens = await getMaxPromptLength();
-            
-            // Get raw context info
-            const context = stContext.getContext();
-            
-            // Check if context is fully loaded
-            if (!context || typeof context.maxContext === 'undefined') {
+
+        // Reusable builder: compute debug info + HTML
+        const buildDebugContent = async () => {
+            // Get LLM context info
+            let llmConfig = {};
+            let maxPromptTokens = 4096;
+            let contextDetails = {};
+            let debugInfo;
+
+            try {
+                const { getLLMConfig, getMaxPromptLength } = await import('./llm.js');
+                const { stContext } = await import('../core/context.js');
+
+                // Force a fresh SillyTavern context read (bypass 1s cache)
+                stContext.clearCache();
+
+                llmConfig = getLLMConfig();
+                maxPromptTokens = await getMaxPromptLength();
+
+                // Get raw context info (retry briefly if not yet ready)
+                let context = stContext.getContext();
+                if (!context || typeof context.maxContext === 'undefined') {
+                    for (let i = 0; i < 3; i++) {
+                        await new Promise(r => setTimeout(r, 200));
+                        stContext.clearCache();
+                        context = stContext.getContext();
+                        if (context && typeof context.maxContext !== 'undefined') break;
+                    }
+                }
+
+                if (!context || typeof context.maxContext === 'undefined') {
+                    contextDetails = {
+                        totalContext: 'Not loaded yet (no chat active)',
+                        maxGeneration: 'N/A',
+                        maxGenerationNote: 'Context will be available after chat loads',
+                        modelName: context?.main_api || 'unknown'
+                    };
+                } else {
+                    const totalContext = context.maxContext;
+                    const extensionMaxTokens = Math.min(4096, Math.floor(totalContext * 0.15));
+
+                    contextDetails = {
+                        totalContext: totalContext,
+                        maxGeneration: extensionMaxTokens,
+                        maxGenerationNote: 'Extension-controlled (15% of context, max 4096)',
+                        modelName: context.main_api || 'unknown'
+                    };
+                }
+            } catch (error) {
+                debug.log('Could not load LLM config:', error);
                 contextDetails = {
-                    totalContext: 'Not loaded yet (no chat active)',
-                    maxGeneration: 'N/A',
-                    maxGenerationNote: 'Context will be available after chat loads',
-                    modelName: context?.main_api || 'unknown'
-                };
-            } else {
-                // Calculate our extension's max_tokens (same logic as in llm.js)
-                const totalContext = context.maxContext;
-                const extensionMaxTokens = Math.min(4096, Math.floor(totalContext * 0.15));
-                
-                contextDetails = {
-                    totalContext: totalContext,
-                    maxGeneration: extensionMaxTokens,
-                    maxGenerationNote: 'Extension-controlled (15% of context, max 4096)',
-                    modelName: context.main_api || 'unknown'
+                    totalContext: 'Error loading',
+                    maxGeneration: 'Error',
+                    maxGenerationNote: 'Check console for details',
+                    modelName: 'unknown'
                 };
             }
-        } catch (error) {
-            debug.log('Could not load LLM config:', error);
-            contextDetails = {
-                totalContext: 'Error loading',
-                maxGeneration: 'Error',
-                maxGenerationNote: 'Check console for details',
-                modelName: 'unknown'
+
+            // Get batch size constants from processing module
+            const batchConstants = {
+                MIN_MESSAGES_PER_BATCH: 5,
+                TARGET_MESSAGES_PER_BATCH: 30,
+                MAX_MESSAGES_PER_BATCH: 50,
+                CONTEXT_TARGET_PERCENT: 80,
+                MIN_CONTEXT_TARGET: 50
             };
-        }
 
-        // Get batch size constants from processing module
-        const batchConstants = {
-            MIN_MESSAGES_PER_BATCH: 5,
-            TARGET_MESSAGES_PER_BATCH: 30,
-            MAX_MESSAGES_PER_BATCH: 50,
-            CONTEXT_TARGET_PERCENT: 80,
-            MIN_CONTEXT_TARGET: 50
-        };
+            const systemPromptTokens = 500;
+            const maxGenTokens = typeof contextDetails.maxGeneration === 'number' ? contextDetails.maxGeneration : 2048;
+            const safetyMargin = 500;
+            const reservedTokens = systemPromptTokens + maxGenTokens + safetyMargin;
+            const availableTokens = maxPromptTokens;
 
-        const systemPromptTokens = 500;
-        const maxGenTokens = typeof contextDetails.maxGeneration === 'number' ? contextDetails.maxGeneration : 2048;
-        const safetyMargin = 500;
-        const reservedTokens = systemPromptTokens + maxGenTokens + safetyMargin;
-        const availableTokens = maxPromptTokens;
+            // Compile debug info
+            debugInfo = {
+                'Extension Status': {
+                    'Enabled': settings.enabled !== false,
+                    'Debug Mode': settings.debugMode !== false,
+                    'LLM Source': settings.llmSource || 'sillytavern',
+                    'Model API': contextDetails.modelName,
+                    'Tracked Characters': Object.keys(characters).length
+                },
+                'SillyTavern Context': {
+                    'Total Context Window': contextDetails.totalContext,
+                    'Extension Max Tokens': `${contextDetails.maxGeneration} (${contextDetails.maxGenerationNote})`,
+                    'System Prompt Reserve': systemPromptTokens,
+                    'Safety Margin': safetyMargin,
+                    'Total Reserved': reservedTokens
+                },
+                'Usable Token Budget': {
+                    'Max Prompt Tokens': maxPromptTokens,
+                    'Context Target %': batchConstants.CONTEXT_TARGET_PERCENT,
+                    'Tokens to Use': Math.floor(availableTokens * (batchConstants.CONTEXT_TARGET_PERCENT / 100))
+                },
+                'Batch Configuration': {
+                    'Min Messages/Batch': batchConstants.MIN_MESSAGES_PER_BATCH,
+                    'Target Messages/Batch': batchConstants.TARGET_MESSAGES_PER_BATCH,
+                    'Max Messages/Batch': batchConstants.MAX_MESSAGES_PER_BATCH,
+                    'Min Context Target': batchConstants.MIN_CONTEXT_TARGET
+                },
+                'Analysis Settings': {
+                    'Message Frequency': settings.messageFrequency || 10,
+                    'Auto-Analyze': settings.autoAnalyze !== false,
+                    'Confidence Threshold': settings.confidenceThreshold || 70
+                },
+                'Lorebook Settings': {
+                    'Position': ['After Char', 'Before Char', 'Top', 'Bottom'][settings.lorebookPosition || 0],
+                    'Depth': settings.lorebookDepth || 1,
+                    'Cooldown': settings.lorebookCooldown || 5,
+                    'Probability %': settings.lorebookProbability || 100,
+                    'Enabled': settings.lorebookEnabled !== false
+                }
+            };
 
-        // Compile debug info
-        const debugInfo = {
-            'Extension Status': {
-                'Enabled': settings.enabled !== false,
-                'Debug Mode': settings.debugMode !== false,
-                'LLM Source': settings.llmSource || 'sillytavern',
-                'Model API': contextDetails.modelName,
-                'Tracked Characters': Object.keys(characters).length
-            },
-            'SillyTavern Context': {
-                'Total Context Window': contextDetails.totalContext,
-                'Extension Max Tokens': `${contextDetails.maxGeneration} (${contextDetails.maxGenerationNote})`,
-                'System Prompt Reserve': systemPromptTokens,
-                'Safety Margin': safetyMargin,
-                'Total Reserved': reservedTokens
-            },
-            'Usable Token Budget': {
-                'Max Prompt Tokens': maxPromptTokens,
-                'Context Target %': batchConstants.CONTEXT_TARGET_PERCENT,
-                'Tokens to Use': Math.floor(availableTokens * (batchConstants.CONTEXT_TARGET_PERCENT / 100))
-            },
-            'Batch Configuration': {
-                'Min Messages/Batch': batchConstants.MIN_MESSAGES_PER_BATCH,
-                'Target Messages/Batch': batchConstants.TARGET_MESSAGES_PER_BATCH,
-                'Max Messages/Batch': batchConstants.MAX_MESSAGES_PER_BATCH,
-                'Min Context Target': batchConstants.MIN_CONTEXT_TARGET
-            },
-            'Analysis Settings': {
-                'Message Frequency': settings.messageFrequency || 10,
-                'Auto-Analyze': settings.autoAnalyze !== false,
-                'Confidence Threshold': settings.confidenceThreshold || 70
-            },
-            'Lorebook Settings': {
-                'Position': ['After Char', 'Before Char', 'Top', 'Bottom'][settings.lorebookPosition || 0],
-                'Depth': settings.lorebookDepth || 1,
-                'Cooldown': settings.lorebookCooldown || 5,
-                'Probability %': settings.lorebookProbability || 100,
-                'Enabled': settings.lorebookEnabled !== false
-            }
-        };
-
-        // Format for display with better colors
-        let htmlContent = '<div style="font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">';
-        
-        for (const [section, values] of Object.entries(debugInfo)) {
-            htmlContent += `<div style="margin-bottom: 15px; border-bottom: 1px solid #666; padding-bottom: 10px;">`;
-            htmlContent += `<strong style="color: #90EE90; font-size: 13px;">${section}</strong><br>`;
-            
-            for (const [key, value] of Object.entries(values)) {
-                const displayValue = value === true ? '✓' : (value === false ? '✗' : value);
-                htmlContent += `<div style="margin-left: 10px; padding: 2px 0;">
-                    <span style="color: #87CEEB;">${key}:</span> 
-                    <span style="color: #FFFF99;">${displayValue}</span>
-                </div>`;
+            // Format for display
+            let htmlContent = '<div style="font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">';
+            for (const [section, values] of Object.entries(debugInfo)) {
+                htmlContent += `<div style="margin-bottom: 15px; border-bottom: 1px solid #666; padding-bottom: 10px;">`;
+                htmlContent += `<strong style=\"color: #90EE90; font-size: 13px;\">${section}</strong><br>`;
+                for (const [key, value] of Object.entries(values)) {
+                    const displayValue = value === true ? '✓' : (value === false ? '✗' : value);
+                    htmlContent += `<div style=\"margin-left: 10px; padding: 2px 0;\">\n                        <span style=\"color: #87CEEB;\">${key}:</span> \n                        <span style=\"color: #FFFF99;\">${displayValue}</span>\n                    </div>`;
+                }
+                htmlContent += '</div>';
             }
             htmlContent += '</div>';
-        }
-        
-        htmlContent += '</div>';
+
+            return { debugInfo, htmlContent };
+        };
+
+        // Initial content
+        const initial = await buildDebugContent();
 
         // Show in modal
         const modal = $(`
-            <div class="nametracker-modal" style="
+            <div class=\"nametracker-modal\" style=\"
                 position: fixed;
                 top: 50%;
                 left: 50%;
@@ -923,13 +936,14 @@ function showDebugStatus() {
                 overflow-y: auto;
                 z-index: 9999;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-            ">
-                <h3 style="margin-top: 0; color: #90EE90; border-bottom: 2px solid #90EE90; padding-bottom: 10px;">
-                    <i class="fa-solid fa-bug"></i> Debug Status
+            \">
+                <h3 style=\"margin-top: 0; color: #90EE90; border-bottom: 2px solid #90EE90; padding-bottom: 10px;\">
+                    <i class=\"fa-solid fa-bug\"></i> Debug Status
                 </h3>
-                ${htmlContent}
-                <div style="margin-top: 20px; text-align: right; border-top: 1px solid #666; padding-top: 10px;">
-                    <button class="menu_button" id="debug-close" style="background: #2a2a2a; color: #90EE90; border: 1px solid #90EE90;">Close</button>
+                <div id=\"nt-debug-content\">${initial.htmlContent}</div>
+                <div style=\"margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #666; padding-top: 10px;\">
+                    <button class=\"menu_button\" id=\"debug-refresh\" style=\"background: #2a2a2a; color: #FFFF99; border: 1px solid #90EE90;\">Refresh</button>
+                    <button class=\"menu_button\" id=\"debug-close\" style=\"background: #2a2a2a; color: #90EE90; border: 1px solid #90EE90;\">Close</button>
                 </div>
             </div>
         `);
@@ -956,8 +970,19 @@ function showDebugStatus() {
         modal.find('#debug-close').on('click', removeModal);
         overlay.on('click', removeModal);
 
-        // Log to console as well
-        console.log('[NT-Debug]', debugInfo);
+        // Log initial to console
+        console.log('[NT-Debug]', initial.debugInfo);
+
+        // Refresh handler: recompute and update content in-place
+        modal.find('#debug-refresh').on('click', async () => {
+            try {
+                const refreshed = await buildDebugContent();
+                modal.find('#nt-debug-content').html(refreshed.htmlContent);
+                console.log('[NT-Debug]', refreshed.debugInfo);
+            } catch (e) {
+                console.error('[NT-Debug] Refresh failed:', e);
+            }
+        });
     });
 }
 
