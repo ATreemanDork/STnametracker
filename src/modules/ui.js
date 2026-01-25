@@ -770,7 +770,140 @@ export function bindSettingsHandlers() {
             showSystemPromptEditor();
         });
 
+        $('#name_tracker_debug_status').on('click', () => {
+            showDebugStatus();
+        });
+
         debug.log();
+    });
+}
+
+/**
+ * Show debug status popup with all relevant variables
+ * @returns {void}
+ */
+function showDebugStatus() {
+    return withErrorBoundary('showDebugStatus', () => {
+        const context = stContext();
+        const settings = get_settings();
+        const characters = getCharacters();
+        const chatMetadata = context?.chatMetadata || {};
+        
+        // Get batch size constants from processing module
+        const batchConstants = {
+            MIN_MESSAGES_PER_BATCH: 5,
+            TARGET_MESSAGES_PER_BATCH: 30,
+            MAX_MESSAGES_PER_BATCH: 50,
+            CONTEXT_TARGET_PERCENT: 80,
+            MIN_CONTEXT_TARGET: 50
+        };
+
+        // Compile debug info
+        const debugInfo = {
+            'Extension Status': {
+                'Enabled': settings.enabled !== false,
+                'Debug Mode': settings.debugMode !== false,
+                'LLM Source': settings.llmSource || 'sillytavern',
+                'Tracked Characters': Object.keys(characters).length,
+                'Chat Loaded': !!context?.chatId
+            },
+            'Batch Configuration': {
+                'Min Messages/Batch': batchConstants.MIN_MESSAGES_PER_BATCH,
+                'Target Messages/Batch': batchConstants.TARGET_MESSAGES_PER_BATCH,
+                'Max Messages/Batch': batchConstants.MAX_MESSAGES_PER_BATCH,
+                'Context Target %': batchConstants.CONTEXT_TARGET_PERCENT,
+                'Min Context Target': batchConstants.MIN_CONTEXT_TARGET
+            },
+            'Analysis Settings': {
+                'Message Frequency': settings.messageFrequency || 10,
+                'Auto-Analyze': settings.autoAnalyze !== false,
+                'Confidence Threshold': settings.confidenceThreshold || 70
+            },
+            'Lorebook Settings': {
+                'Position': ['After Char', 'Before Char', 'Top', 'Bottom'][settings.lorebookPosition || 0],
+                'Depth': settings.lorebookDepth || 1,
+                'Cooldown': settings.lorebookCooldown || 5,
+                'Probability %': settings.lorebookProbability || 100,
+                'Enabled': settings.lorebookEnabled !== false
+            },
+            'Current Chat': {
+                'Chat ID': context?.chatId || 'None',
+                'Character': context?.characters?.[0]?.name || 'None',
+                'Messages Count': context?.chat?.length || 0
+            }
+        };
+
+        // Format for display
+        let htmlContent = '<div style="font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">';
+        
+        for (const [section, values] of Object.entries(debugInfo)) {
+            htmlContent += `<div style="margin-bottom: 15px; border-bottom: 1px solid var(--SmartThemeBorderColor); padding-bottom: 10px;">`;
+            htmlContent += `<strong style="color: var(--SmartThemeQuoteColor);">${section}</strong><br>`;
+            
+            for (const [key, value] of Object.entries(values)) {
+                const displayValue = value === true ? '✓' : (value === false ? '✗' : value);
+                htmlContent += `<div style="margin-left: 10px; padding: 2px 0;">
+                    <span style="color: var(--SmartThemeBorderColor);">${key}:</span> 
+                    <span style="color: var(--SmartThemeMainColor);">${displayValue}</span>
+                </div>`;
+            }
+            htmlContent += '</div>';
+        }
+        
+        htmlContent += '</div>';
+
+        // Show in modal with copy-to-clipboard functionality
+        const modal = $(`
+            <div class="nametracker-modal" style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: var(--SmartThemeBlurTintColor);
+                border: 2px solid var(--SmartThemeMainColor);
+                border-radius: 10px;
+                padding: 20px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 70vh;
+                overflow-y: auto;
+                z-index: 9999;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            ">
+                <h3 style="margin-top: 0; color: var(--SmartThemeMainColor);">
+                    <i class="fa-solid fa-bug"></i> Debug Status
+                </h3>
+                ${htmlContent}
+                <div style="margin-top: 20px; text-align: right; border-top: 1px solid var(--SmartThemeBorderColor); padding-top: 10px;">
+                    <button class="menu_button" id="debug-close">Close</button>
+                </div>
+            </div>
+        `);
+
+        const overlay = $(`
+            <div class="nametracker-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                z-index: 9998;
+            "></div>
+        `);
+
+        $('body').append(overlay).append(modal);
+
+        const removeModal = () => {
+            modal.remove();
+            overlay.remove();
+        };
+
+        modal.find('#debug-close').on('click', removeModal);
+        overlay.on('click', removeModal);
+
+        // Log to console as well
+        console.log('[NT-Debug]', debugInfo);
     });
 }
 
