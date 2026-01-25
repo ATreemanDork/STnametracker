@@ -52,7 +52,7 @@ export async function initializeLorebook() {
         const context = stContext.getContext();
 
         if (!context.chatId) {
-            debug('No active chat, skipping lorebook initialization');
+            debug.log('No active chat, skipping lorebook initialization');
             lorebookName = null;
             return null;
         }
@@ -61,7 +61,7 @@ export async function initializeLorebook() {
         const chatMetadata = context.chatMetadata;
 
         if (!chatMetadata) {
-            debug('No chat metadata available, skipping lorebook initialization');
+            debug.log('No chat metadata available, skipping lorebook initialization');
             lorebookName = null;
             return null;
         }
@@ -69,7 +69,7 @@ export async function initializeLorebook() {
         // Check if chat already has a bound lorebook
         if (chatMetadata[METADATA_KEY]) {
             lorebookName = chatMetadata[METADATA_KEY];
-            debug(`Using existing chat lorebook: ${lorebookName}`);
+            debug.log(`Using existing chat lorebook: ${lorebookName}`);
             return lorebookName;
         }
 
@@ -79,7 +79,7 @@ export async function initializeLorebook() {
             .replace(/_{2,}/g, '_')
             .substring(0, 64);
 
-        debug(`Creating new chat lorebook: ${bookName}`);
+        debug.log(`Creating new chat lorebook: ${bookName}`);
         lorebookName = bookName;
 
         // Bind it to the chat metadata
@@ -88,12 +88,12 @@ export async function initializeLorebook() {
         // Save chat metadata using context API
         try {
             await context.saveMetadata();
-            debug(`Bound lorebook to chat: ${lorebookName}`);
+            debug.log(`Bound lorebook to chat: ${lorebookName}`);
 
             // Ensure the lorebook file exists (create empty if needed)
             const worldInfo = await context.loadWorldInfo(lorebookName);
             if (!worldInfo) {
-                debug(`Creating initial empty lorebook file: ${lorebookName}`);
+                debug.log();
                 await context.saveWorldInfo(lorebookName, { entries: {} }, true);
             }
 
@@ -117,11 +117,11 @@ export async function initializeLorebook() {
  */
 export async function updateLorebookEntry(character, characterName) {
     return withErrorBoundary('updateLorebookEntry', async () => {
-        debug(`updateLorebookEntry called for: ${characterName}`);
-        debug('  Character data:', character);
+        debug.log(`updateLorebookEntry called for: ${characterName}`);
+        debug.log('  Character data:', character);
 
         if (!lorebookName) {
-            debug('No lorebook initialized, skipping entry update');
+            debug.log('No lorebook initialized, skipping entry update');
             return;
         }
 
@@ -189,7 +189,7 @@ export async function updateLorebookEntry(character, characterName) {
         let worldInfo = await context.loadWorldInfo(lorebookName);
 
         if (!worldInfo) {
-            debug(`WARNING: Could not load lorebook ${lorebookName}. Creating new lorebook structure.`);
+            debug.log();
             // Match SillyTavern's world info structure
             worldInfo = {
                 entries: {},
@@ -217,7 +217,7 @@ export async function updateLorebookEntry(character, characterName) {
             existingEntry.scanDepth = lorebookConfig.scanDepth;
             existingEntry.cooldown = calculatedCooldown;
 
-            debug(`Updated existing lorebook entry ${existingUid} for ${characterName}`);
+            debug.log();
         } else {
             // Create new entry
             const newUid = generateUID();
@@ -267,7 +267,7 @@ export async function updateLorebookEntry(character, characterName) {
             worldInfo.entries[newUid] = newEntry;
             character.lorebookEntryId = newUid;
 
-            debug(`Created new lorebook entry ${newUid} for ${characterName}`);
+            debug.log();
         }
 
         // Save the lorebook
@@ -279,15 +279,15 @@ export async function updateLorebookEntry(character, characterName) {
             const targetUid = existingUid || character.lorebookEntryId;
 
             if (verifyWorldInfo && verifyWorldInfo.entries && verifyWorldInfo.entries[targetUid]) {
-                debug(`Verified lorebook entry ${targetUid} was saved successfully`);
+                debug.log();
             } else {
                 console.error('[Name Tracker] WARNING: Lorebook verification failed - entries may not have been saved!');
             }
 
-            debug(`Saved lorebook: ${lorebookName}`);
+            debug.log();
         } catch (error) {
             console.error('[Name Tracker] Error saving lorebook:', error);
-            debug(`Failed to save lorebook: ${error.message}`);
+            debug.log();
             throw error; // Re-throw so caller knows it failed
         }
     });
@@ -353,7 +353,7 @@ export async function viewInLorebook(characterName) {
 export async function deleteLorebookEntry(character) {
     return withErrorBoundary('deleteLorebookEntry', async () => {
         if (!lorebookName || !character.lorebookEntryId) {
-            debug('No lorebook or entry ID to delete');
+            debug.log();
             return false;
         }
 
@@ -365,7 +365,7 @@ export async function deleteLorebookEntry(character) {
                 delete worldInfo.entries[character.lorebookEntryId];
                 await context.saveWorldInfo(lorebookName, worldInfo, true);
 
-                debug(`Deleted lorebook entry ${character.lorebookEntryId} for ${character.preferredName}`);
+                debug.log();
                 return true;
             }
         } catch (error) {
@@ -385,7 +385,7 @@ export async function deleteLorebookEntry(character) {
 export async function purgeLorebookEntries(characters) {
     return withErrorBoundary('purgeLorebookEntries', async () => {
         if (!lorebookName) {
-            debug('No active lorebook');
+            debug.log();
             return 0;
         }
 
@@ -406,7 +406,7 @@ export async function purgeLorebookEntries(characters) {
                     if (worldInfo.entries[entryId]) {
                         delete worldInfo.entries[entryId];
                         deletedCount++;
-                        debug(`Deleted lorebook entry ${entryId}`);
+                        debug.log();
                     }
                 }
 
@@ -430,7 +430,7 @@ export async function purgeLorebookEntries(characters) {
 export async function adoptExistingEntries() {
     return withErrorBoundary('adoptExistingEntries', async () => {
         if (!lorebookName) {
-            debug('No active lorebook for adoption');
+            debug.log();
             return 0;
         }
 
@@ -441,7 +441,7 @@ export async function adoptExistingEntries() {
             const worldInfo = await context.loadWorldInfo(lorebookName);
 
             if (!worldInfo || !worldInfo.entries) {
-                debug('No lorebook entries to adopt');
+                debug.log();
                 return 0;
             }
 
@@ -479,7 +479,7 @@ export async function adoptExistingEntries() {
                     settings.setCharacter(primaryName, character);
                     adoptedCount++;
 
-                    debug(`Adopted existing lorebook entry for: ${primaryName}`);
+                    debug.log();
                 }
             }
 
@@ -509,7 +509,7 @@ export function getCurrentLorebookName() {
  */
 export function resetLorebookState() {
     lorebookName = null;
-    debug('Lorebook state reset');
+    debug.log();
 }
 
 /**
