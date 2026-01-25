@@ -49,6 +49,11 @@ const BATCH_TIMEOUT_MS = 30000;         // Maximum time for a single batch to pr
 const MAX_RETRY_ATTEMPTS = 3;           // Maximum retries before halting processing
 const CONTEXT_REDUCTION_STEP = 5;       // Percentage to reduce context target on each failure
 
+// Batch Size Constraints (token-based, but with message-count limits for safety)
+const MIN_MESSAGES_PER_BATCH = 5;       // Never create batches smaller than this (unless last batch)
+const MAX_MESSAGES_PER_BATCH = 50;      // Cap batches at this size even if tokens allow more
+const TARGET_MESSAGES_PER_BATCH = 30;   // Aim for this size when possible (balance: not too small, not too large)
+
 // Error Recovery
 const ENABLE_AUTO_RECOVERY = true;      // Enable automatic context reduction on failure
 const PRESERVE_PROCESSING_STATE = true; // Always save character state even on errors
@@ -483,29 +488,44 @@ export async function harvestMessages(messageCount, showProgress = true) {
         const startIdx = Math.max(0, endIdx - messageCount);
         const messagesToAnalyze = context.chat.slice(startIdx, endIdx);
 
+        debugLog(`[Batching] Message selection: startIdx=${startIdx}, endIdx=${endIdx}, requesting ${messageCount} messages, got ${messagesToAnalyze.length} messages`);
+
         // Check if messages fit in context window
         const maxPromptTokens = await getMaxPromptLength();
         const availableTokens = maxPromptTokens - 1000; // Reserve for system prompt and response
 
+        debugLog(`[Batching] Token budget: maxPromptTokens=${maxPromptTokens}, reserved=1000, availableTokens=${availableTokens}`);
+        debugLog(`[Batching] Context target: ${currentProcessingState.contextTarget}%`);
+
         // Calculate actual token count for the requested messages
         const messageTokens = await calculateMessageTokens(messagesToAnalyze);
 
+        debugLog(`[Batching] Total tokens for ${messagesToAnalyze.length} messages: ${messageTokens} tokens`);
+
         // If too large, split into batches
         if (messageTokens > availableTokens) {
-            debug.log();
+            debugLog(`[Batching] Messages exceed token limit (${messageTokens} > ${availableTokens}), creating batches`);
 
-            // Calculate optimal batch size based on tokens
+            // Calculate optimal batch size based on tokens AND message count constraints
             const batches = [];
             let currentBatch = [];
             let currentTokens = 0;
+            const batchDetails = []; // Track batch composition for logging
 
-            // Build batches by adding messages until token limit
+            // Build batches by adding messages until token limit OR message count limit
             for (const msg of messagesToAnalyze) {
                 const msgTokens = await calculateMessageTokens([msg]);
 
-                if (currentTokens + msgTokens > availableTokens && currentBatch.length > 0) {
+                // Check if batch would exceed token limit OR message count limit
+                const wouldExceedTokens = currentTokens + msgTokens > availableTokens;
+                const wouldExceedMessageCount = currentBatch.length >= MAX_MESSAGES_PER_BATCH;
+
+                if ((wouldExceedTokens || wouldExceedMessageCount) && currentBatch.length > 0) {
                     // Current batch is full, start new one
+                    const reason = wouldExceedTokens ? 'token limit' : 'message count limit';
+                    debugLog(`[Batching] Batch ${batches.length + 1} complete: ${currentBatch.length} messages, ${currentTokens} tokens (split by ${reason})`);
                     batches.push(currentBatch);
+                    batchDetails.push({ size: currentBatch.length, tokens: currentTokens, reason: reason });
                     currentBatch = [msg];
                     currentTokens = msgTokens;
                 } else {
@@ -518,14 +538,31 @@ export async function harvestMessages(messageCount, showProgress = true) {
             // Add final batch
             if (currentBatch.length > 0) {
                 batches.push(currentBatch);
+                batchDetails.push({ size: currentBatch.length, tokens: currentTokens, reason: 'final batch' });
+                debugLog(`[Batching] Final batch ${batches.length}: ${currentBatch.length} messages, ${currentTokens} tokens`);
             }
 
-            if (showProgress) {
-                notifications.info(`Splitting into ${batches.length} batches to fit context window`);
-            }
+            // Log comprehensive batch summary
+            const batchSummary = batchDetails.map((b, i) => `Batch ${i+1}: ${b.size}msg/${b.tokens}tok (${b.reason})`).join(' | ');
+            debugLog(`[Batching] Created ${batches.length} total batches: ${batchSummary}`);
+            debugLog(`[Batching] Constraints applied: MIN=${MIN_MESSAGES_PER_BATCH}, TARGET=${TARGET_MESSAGES_PER_BATCH}, MAX=${MAX_MESSAGES_PER_BATCH}, TokenLimit=${availableTokens}`);
 
             // Reset abort flag
             abortScan = false;
+
+            // Calculate average batch size for user notification
+            const avgBatchSize = Math.round(messagesToAnalyze.length / batches.length);
+            const notification = `Analyzing ${messagesToAnalyze.length} messages in ${batches.length} batches (~${avgBatchSize} messages each). This may take a while. Continue?`;
+            
+            if (showProgress) {
+                // Ask user before proceeding with large analysis
+                const shouldProceed = confirm(notification);
+                if (!shouldProceed) {
+                    debugLog(`[Batching] User cancelled batch processing`);
+                    abortScan = true;
+                    return;
+                }
+            }
 
             // Show progress bar
             showProgressBar(0, batches.length, 'Starting analysis...');
@@ -534,11 +571,13 @@ export async function harvestMessages(messageCount, showProgress = true) {
             let failedBatches = 0;
             const uniqueCharacters = new Set();
 
+            debugLog(`[Batching] Starting batch processing loop: ${batches.length} batches`);
+
             // Process each batch
             for (let i = 0; i < batches.length; i++) {
                 // Check if user aborted
                 if (abortScan) {
-                    debug.log();
+                    debugLog(`[BatchProcessing] User aborted at batch ${i + 1}/${batches.length}`);
                     hideProgressBar();
                     notifications.warning('Analysis aborted');
                     return;
@@ -550,6 +589,8 @@ export async function harvestMessages(messageCount, showProgress = true) {
                 const batchStartMsg = batches.slice(0, i).reduce((sum, b) => sum + b.length, 0);
                 const batchStart = startIdx + batchStartMsg;
                 const batchEnd = batchStart + batch.length;
+
+                debugLog(`[BatchProcessing] Processing batch ${i + 1}/${batches.length}: messages ${batchStart}-${batchEnd - 1} (${batch.length} messages)`);
 
                 try {
                     showProgressBar(i + 1, batches.length, `Analyzing messages ${batchStart + 1}-${batchEnd}...`);
@@ -574,6 +615,8 @@ export async function harvestMessages(messageCount, showProgress = true) {
                     }
 
                 } catch (error) {
+                    debugLog(`[BatchProcessing] ERROR in batch ${i + 1}: ${error.message}`);
+                    debugLog(`[BatchProcessing] Context: messages ${batchStart}-${batchEnd - 1}, batch size ${batch.length}, token count calc error`);
                     console.error(`Error processing batch ${i + 1}:`, error);
                     failedBatches++;
 
@@ -584,7 +627,10 @@ Error: ${error.message}
 
 Continue with remaining batches?`);
                     if (!continueOnError) {
+                        debugLog(`[BatchProcessing] User chose not to continue after error on batch ${i + 1}/${batches.length}`);
                         break;
+                    } else {
+                        debugLog(`[BatchProcessing] User chose to continue despite error on batch ${i + 1}/${batches.length}`);
                     }
                 }
             }
@@ -598,6 +644,9 @@ Continue with remaining batches?`);
 Batches processed: ${successfulBatches}/${batches.length}
 Unique characters found: ${uniqueCharacters.size}
 Failed batches: ${failedBatches}`;
+            
+            debugLog(`[BatchProcessing] Batch analysis complete: ${successfulBatches}/${batches.length} successful, ${failedBatches} failed, ${uniqueCharacters.size} characters found`);
+            
             if (failedBatches > 0) {
                 notifications.warning(summary, { timeOut: 8000 });
             } else {
