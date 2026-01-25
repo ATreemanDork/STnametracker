@@ -406,4 +406,5 @@ class SettingsManager {
 // Create singleton instance
 const settingsManager = new SettingsManager();
 
+export { settingsManager as settings };
 export default settingsManager;

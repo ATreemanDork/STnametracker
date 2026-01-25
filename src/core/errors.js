@@ -302,4 +302,5 @@ class ErrorHandler {
 const errorHandler = new ErrorHandler();
 
 export { errorHandler, NameTrackerError };
+export const withErrorBoundary = errorHandler.withErrorBoundary.bind(errorHandler);
 export default errorHandler;

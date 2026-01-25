@@ -219,4 +219,5 @@ const notifications = new NotificationManager();
 
 logger.debug('Notifications module loaded');
 
+export { NotificationManager };
 export default notifications;

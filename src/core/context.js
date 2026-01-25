@@ -257,4 +257,5 @@ class SillyTavernContext {
 // Create singleton instance
 const sillyTavernContext = new SillyTavernContext();
 
+export { sillyTavernContext as stContext };
 export default sillyTavernContext;
