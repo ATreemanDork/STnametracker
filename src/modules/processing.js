@@ -62,12 +62,12 @@ const PRESERVE_PROCESSING_STATE = true; // Always save character state even on e
 let processingQueue = [];
 let isProcessing = false;
 let abortScan = false;
-let currentProcessingState = {
+const currentProcessingState = {
     totalBatches: 0,
     currentBatch: 0,
     failedCharacters: [],
     lastError: null,
-    contextTarget: CONTEXT_TARGET_PERCENT
+    contextTarget: CONTEXT_TARGET_PERCENT,
 };
 
 /**
@@ -160,7 +160,7 @@ async function processCharacterData(analyzedChar) {
 export function scanForNewNames(messages) {
     return withErrorBoundary('scanForNewNames', () => {
         debugLog(`[PHASE 1] Starting name scan on ${messages.length} messages`);
-        
+
         if (!Array.isArray(messages) || messages.length === 0) {
             debugLog('[PHASE 1] No messages to scan');
             return [];
@@ -227,7 +227,7 @@ export function scanForNewNames(messages) {
         debugLog(`[PHASE 1] Quoted names found: ${quotedFound.join(', ')}`);
         debugLog(`[PHASE 1] Possessive forms found: ${possessiveFound.join(', ')}`);
         debugLog(`[PHASE 1] Total unique names to process: ${foundNames.size}`);
-        
+
         return Array.from(foundNames);
     }, []);
 }
@@ -242,15 +242,15 @@ export function scanForNewNames(messages) {
  */
 export async function processPhaseTwoAnalysis(newNames, messages, existingMentions = []) {
     return withErrorBoundary('processPhaseTwoAnalysis', async () => {
-        debugLog(`[PHASE 2] Starting focused LLM analysis`);
+        debugLog('[PHASE 2] Starting focused LLM analysis');
         debugLog(`[PHASE 2] New characters: ${newNames.length}, Existing mentions: ${existingMentions.length}`);
         debugLog(`[PHASE 2] Current context target: ${currentProcessingState.contextTarget}%`);
-        
+
         const results = {
             newCharactersCreated: [],
             existingCharactersUpdated: [],
             failedCharacters: [],
-            mergesDetected: []
+            mergesDetected: [],
         };
 
         if (!Array.isArray(messages) || messages.length === 0) {
@@ -262,7 +262,7 @@ export async function processPhaseTwoAnalysis(newNames, messages, existingMentio
             // Process new characters
             if (newNames && newNames.length > 0) {
                 debugLog(`[PHASE 2] Processing ${newNames.length} new characters`);
-                
+
                 for (const newName of newNames) {
                     if (abortScan) {
                         debugLog(`[PHASE 2] Processing aborted by user at character: ${newName}`);
@@ -285,7 +285,7 @@ export async function processPhaseTwoAnalysis(newNames, messages, existingMentio
                             // Halt processing after max retries
                             throw new NameTrackerError(
                                 `Processing halted: Maximum retries exceeded. Last error: ${error.message}`,
-                                'PROCESSING_MAX_RETRIES'
+                                'PROCESSING_MAX_RETRIES',
                             );
                         }
                     }
@@ -330,7 +330,7 @@ async function processNewCharacter(name, messages, results) {
     // Build context with 3-message overlap for this character
     const characterContext = buildCharacterContext(name, messages, OVERLAP_SIZE);
     debugLog(`[P2-NewChar] Context window size: ${characterContext ? characterContext.length : 0} chars`);
-    
+
     if (!characterContext || characterContext.length === 0) {
         debugLog(`[P2-NewChar] FAILED: No context for ${name}`);
         throw new NameTrackerError(`No context found for character: ${name}`, 'NO_CONTEXT');
@@ -339,7 +339,7 @@ async function processNewCharacter(name, messages, results) {
     // Analyze the character with LLM
     debugLog(`[P2-NewChar] Calling LLM for ${name}`);
     const characterData = await callLLMAnalysis([{ mes: characterContext }], [name], currentProcessingState.contextTarget);
-    
+
     if (!characterData || characterData.length === 0) {
         debugLog(`[P2-NewChar] FAILED: LLM returned no data for ${name}`);
         throw new NameTrackerError(`LLM returned no data for character: ${name}`, 'LLM_EMPTY_RESPONSE');
@@ -357,7 +357,7 @@ async function processNewCharacter(name, messages, results) {
     // Create the character
     const newCharacter = await createCharacter(characterData[0], false);
     await updateLorebookEntry(newCharacter, newCharacter.preferredName);
-    
+
     results.newCharactersCreated.push(newCharacter.preferredName);
     debugLog(`[P2-NewChar] Successfully created: ${newCharacter.preferredName}`);
 }
@@ -371,13 +371,13 @@ async function processExistingCharacter(existingChar, messages, results) {
 
     // Get character's last processed message ID (from state tracking)
     const lastProcessedId = existingChar.lastMessageProcessed || -1;
-    
+
     // Build context starting from overlap before last processed message
     const characterContext = buildCharacterContextFromPoint(
         existingChar.preferredName,
         messages,
         lastProcessedId,
-        OVERLAP_SIZE
+        OVERLAP_SIZE,
     );
 
     if (!characterContext || characterContext.length === 0) {
@@ -387,11 +387,11 @@ async function processExistingCharacter(existingChar, messages, results) {
 
     // Analyze with LLM
     const updates = await callLLMAnalysis([{ mes: characterContext }], [existingChar.preferredName], currentProcessingState.contextTarget);
-    
+
     if (updates && updates.length > 0) {
         await updateCharacter(existingChar, updates[0], false, existingChar.isMainChar);
         await updateLorebookEntry(existingChar, existingChar.preferredName);
-        
+
         results.existingCharactersUpdated.push(existingChar.preferredName);
         debug.log(`Updated character: ${existingChar.preferredName}`);
     }
@@ -403,10 +403,10 @@ async function processExistingCharacter(existingChar, messages, results) {
  */
 function buildCharacterContext(characterName, messages, overlapSize) {
     const contextMessages = [];
-    
+
     for (const msg of messages) {
         if (!msg.mes) continue;
-        
+
         // Check if this message mentions the character
         if (msg.mes.includes(characterName) || msg.mes.includes(characterName.split(' ')[0])) {
             contextMessages.push(msg);
@@ -543,7 +543,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
             }
 
             // Log comprehensive batch summary
-            const batchSummary = batchDetails.map((b, i) => `Batch ${i+1}: ${b.size}msg/${b.tokens}tok (${b.reason})`).join(' | ');
+            const batchSummary = batchDetails.map((b, i) => `Batch ${i + 1}: ${b.size}msg/${b.tokens}tok (${b.reason})`).join(' | ');
             debugLog(`[Batching] Created ${batches.length} total batches: ${batchSummary}`);
             debugLog(`[Batching] Constraints applied: MIN=${MIN_MESSAGES_PER_BATCH}, TARGET=${TARGET_MESSAGES_PER_BATCH}, MAX=${MAX_MESSAGES_PER_BATCH}, TokenLimit=${availableTokens}`);
 
@@ -553,12 +553,12 @@ export async function harvestMessages(messageCount, showProgress = true) {
             // Calculate average batch size for user notification
             const avgBatchSize = Math.round(messagesToAnalyze.length / batches.length);
             const notification = `Analyzing ${messagesToAnalyze.length} messages in ${batches.length} batches (~${avgBatchSize} messages each). This may take a while. Continue?`;
-            
+
             if (showProgress) {
                 // Ask user before proceeding with large analysis
                 const shouldProceed = confirm(notification);
                 if (!shouldProceed) {
-                    debugLog(`[Batching] User cancelled batch processing`);
+                    debugLog('[Batching] User cancelled batch processing');
                     abortScan = true;
                     return;
                 }
@@ -644,9 +644,9 @@ Continue with remaining batches?`);
 Batches processed: ${successfulBatches}/${batches.length}
 Unique characters found: ${uniqueCharacters.size}
 Failed batches: ${failedBatches}`;
-            
+
             debugLog(`[BatchProcessing] Batch analysis complete: ${successfulBatches}/${batches.length} successful, ${failedBatches} failed, ${uniqueCharacters.size} characters found`);
-            
+
             if (failedBatches > 0) {
                 notifications.warning(summary, { timeOut: 8000 });
             } else {
@@ -987,10 +987,10 @@ Continue with remaining batches?`);
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
-        
+
         // Ensure summary is a string (defense against undefined values)
         const safeSummary = String(summary || 'Scan completed');
-        
+
         if (failedBatches > 0) {
             notifications.warning(safeSummary, { timeOut: 10000 });
         } else {

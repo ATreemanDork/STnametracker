@@ -10,8 +10,8 @@ console.log('[LOREBOOK] Starting module load...');
 
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
-import { 
-    get_settings, getCharacters, getCharacter, setCharacter, getLorebookConfig 
+import {
+    get_settings, getCharacters, getCharacter, setCharacter, getLorebookConfig,
 } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { generateUID } from '../utils/helpers.js';
@@ -37,7 +37,7 @@ try {
         log: console.log.bind(console, '[LOREBOOK]'),
         error: console.error.bind(console, '[LOREBOOK]'),
         warn: console.warn.bind(console, '[LOREBOOK]'),
-        debug: console.debug.bind(console, '[LOREBOOK]')
+        debug: console.debug.bind(console, '[LOREBOOK]'),
     };
 }
 const notifications = new NotificationManager('Lorebook Management');

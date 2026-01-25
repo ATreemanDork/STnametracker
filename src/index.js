@@ -45,6 +45,8 @@ const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
  * This is the pattern that SillyTavern expects
  * @returns {Object} Extension settings object
  */
+// Kept for potential future use with SillyTavern API
+// eslint-disable-next-line no-unused-vars
 function getExtensionSettings() {
     // Use global extension_settings that SillyTavern provides
     return window.extension_settings?.[extensionName] || {};
@@ -142,11 +144,11 @@ class NameTrackerExtension {
     async initializeModules() {
         logger.debug('Initializing feature modules...');
         console.log('[STnametracker] initializeModules: Starting module initialization');
-        
+
         // Add extensive debugging for imports
         console.log('[STnametracker] initializeModules: Checking import of initializeLorebook...');
         console.log('[STnametracker] initializeModules: initializeLorebook =', typeof initializeLorebook, initializeLorebook);
-        
+
         if (typeof initializeLorebook !== 'function') {
             console.error('[STnametracker] initializeModules: CRITICAL - initializeLorebook is not a function!');
             console.error('[STnametracker] initializeModules: Type:', typeof initializeLorebook);

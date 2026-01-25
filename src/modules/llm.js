@@ -40,16 +40,24 @@ const GENERATION_TOP_K = 25;            // Standard focused sampling
 const GENERATION_REP_PEN = 1.1;         // Slight repetition penalty
 
 // Context Window Management
+// Reserved for future dynamic context management
+// eslint-disable-next-line no-unused-vars
 const RESPONSE_BUFFER_PERCENT = 25;     // Reserve 25% for response generation
+// eslint-disable-next-line no-unused-vars
 const SAFETY_MARGIN_PERCENT = 10;       // Reserve 10% safety margin
+// eslint-disable-next-line no-unused-vars
 const MIN_RESPONSE_TOKENS = 1000;       // Minimum tokens allowed for response
 
 // Ollama-Specific Parameters
+// eslint-disable-next-line no-unused-vars
 const OLLAMA_MIN_PREDICT = 500;         // Minimum tokens to predict
+// eslint-disable-next-line no-unused-vars
 const OLLAMA_MAX_PREDICT = 4000;        // Maximum tokens to predict
 
 // Cache Configuration
+// eslint-disable-next-line no-unused-vars
 const CACHE_MAX_ENTRIES = 50;           // Maximum cached analysis results
+// eslint-disable-next-line no-unused-vars
 const CACHE_INVALIDATION_TIME = 3600000; // 1 hour cache duration
 
 // LLM state management
@@ -77,66 +85,66 @@ const CHARACTER_EXTRACTION_SCHEMA = {
                     'properties': {
                         'name': {
                             'type': 'string',
-                            'description': 'Character\'s preferred name (first and last if provided)'
+                            'description': 'Character\'s preferred name (first and last if provided)',
                         },
                         'aliases': {
                             'type': 'array',
                             'description': 'Alternative names, nicknames, titles',
-                            'items': { 'type': 'string' }
+                            'items': { 'type': 'string' },
                         },
                         'physicalAge': {
                             'type': 'string',
-                            'description': 'Apparent age in years or ??? if unknown'
+                            'description': 'Apparent age in years or ??? if unknown',
                         },
                         'mentalAge': {
                             'type': 'string',
-                            'description': 'Actual age (can differ for immortals) or ??? if unknown'
+                            'description': 'Actual age (can differ for immortals) or ??? if unknown',
                         },
                         'physical': {
                             'type': 'string',
-                            'description': 'Physical description (2-3 paragraphs)'
+                            'description': 'Physical description (2-3 paragraphs)',
                         },
                         'personality': {
                             'type': 'string',
-                            'description': 'Personality traits, quirks, habits (2-3 paragraphs)'
+                            'description': 'Personality traits, quirks, habits (2-3 paragraphs)',
                         },
                         'sexuality': {
                             'type': 'string',
-                            'description': 'Sexual orientation, preferences if mentioned'
+                            'description': 'Sexual orientation, preferences if mentioned',
                         },
                         'raceEthnicity': {
                             'type': 'string',
-                            'description': 'Race/species/ethnicity if mentioned'
+                            'description': 'Race/species/ethnicity if mentioned',
                         },
                         'roleSkills': {
                             'type': 'string',
-                            'description': 'Occupation, abilities, talents'
+                            'description': 'Occupation, abilities, talents',
                         },
                         'lastInteraction': {
                             'type': 'string',
-                            'description': 'Most recent interaction with user'
+                            'description': 'Most recent interaction with user',
                         },
                         'relationships': {
                             'type': 'array',
                             'description': 'Relationships with other characters',
-                            'items': { 'type': 'string' }
+                            'items': { 'type': 'string' },
                         },
                         'confidence': {
                             'type': 'integer',
                             'description': 'Confidence score 0-100 (90+=explicit, 70-89=clear, 50-69=mentioned, <50=vague)',
                             'minimum': 0,
-                            'maximum': 100
-                        }
+                            'maximum': 100,
+                        },
                     },
-                    'required': ['name', 'aliases', 'physicalAge', 'mentalAge', 'physical', 'personality', 
-                                 'sexuality', 'raceEthnicity', 'roleSkills', 'lastInteraction', 'relationships', 'confidence'],
-                    'additionalProperties': false
-                }
-            }
+                    'required': ['name', 'aliases', 'physicalAge', 'mentalAge', 'physical', 'personality',
+                        'sexuality', 'raceEthnicity', 'roleSkills', 'lastInteraction', 'relationships', 'confidence'],
+                    'additionalProperties': false,
+                },
+            },
         },
         'required': ['characters'],
-        'additionalProperties': false
-    }
+        'additionalProperties': false,
+    },
 };
 
 /**
@@ -323,7 +331,7 @@ export async function getMaxPromptLength() {
         } else {
             // Use SillyTavern's context
             const context = stContext.getContext();
-            
+
             // Check if context is fully loaded
             if (!context || !context.maxContext) {
                 debug.log(`WARNING: Context not fully loaded yet (maxContext=${context?.maxContext}), using fallback`);
@@ -331,17 +339,17 @@ export async function getMaxPromptLength() {
                 maxGenTokens = 1024;
             } else {
                 debug.log(`Raw context properties available: ${Object.keys(context).filter(k => k.toLowerCase().includes('max') || k.toLowerCase().includes('context')).join(', ')}`);
-                
+
                 // SillyTavern exposes maxContext - this is the total context window
                 maxContext = context.maxContext;
-                
+
                 debug.log(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
-                
+
                 // For our extension's background analysis, we set our own max_tokens in generateRaw()
                 // We don't use amount_gen (that's for user chat messages)
                 // Reserve a reasonable amount for our structured JSON responses
                 maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
-                
+
                 debug.log(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
             }
         }
@@ -380,7 +388,8 @@ export async function calculateMessageTokens(messages) {
                     try {
                         const count = await context.getTokenCountAsync(text);
                         totalTokens += count;
-                    } catch (error) {
+                    // eslint-disable-next-line no-unused-vars
+                    } catch (_error) {
                         debug.log();
                         // Final fallback: rough estimate (4 chars per token)
                         totalTokens += Math.ceil(text.length / 4);
@@ -416,11 +425,13 @@ export async function callSillyTavern(prompt) {
         }
 
         // Get token count for the prompt
+        // eslint-disable-next-line no-unused-vars
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(prompt);
             debug.log();
-        } catch (error) {
+            // eslint-disable-next-line no-unused-vars
+        } catch (_error) {
             debug.log();
             promptTokens = Math.ceil(prompt.length / 4);
             debug.log();
@@ -611,7 +622,7 @@ export function parseJSONResponse(text) {
             const fallbackMatch = text.match(/\\{[\\s\\S]*"characters"[\\s\\S]*\\}/);
             if (fallbackMatch) {
                 try {
-                    return JSON.parse(fallbackMatch[0]);
+                    parsed = JSON.parse(fallbackMatch[0]);
                 } catch (parseError) {
                     debug.log();
                     // Give up

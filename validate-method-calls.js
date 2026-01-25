@@ -253,7 +253,7 @@ function validateMethodCalls() {
     // Enhanced validation with known SillyTavern patterns
     const knownInterfaces = {
         'stContext': {
-            methods: ['getContext', 'getChatMetadata', 'getChatId'],
+            methods: ['getContext', 'getChatMetadata', 'getChatId', 'clearCache'],
             commonErrors: {
                 'getSillyTavernContext': 'getContext',
                 'getChatData': 'getChatMetadata'

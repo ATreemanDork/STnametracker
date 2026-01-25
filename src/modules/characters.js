@@ -8,11 +8,10 @@
 import { updateLorebookEntry } from './lorebook.js';
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
-import { 
+import {
     getCharacters, getCharacter, setCharacter, removeCharacter,
-    get_settings, set_chat_metadata 
+    get_settings, set_chat_metadata,
 } from '../core/settings.js';
-import { escapeHtml, generateUID, normalizeTitle } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
 
 const debug = createModuleLogger('characters');
@@ -36,6 +35,7 @@ function debugLog(message, data = null) {
 // Merge Confidence Tiers (as percentages: 0-100)
 const MERGE_CONFIDENCE_HIGH = 0.9;      // 90%+ - Automatic merge (e.g., exact substring: "Jazz"/"Jasmine")
 const MERGE_CONFIDENCE_MEDIUM = 0.7;    // 70%+ - User prompt required (e.g., phonetic similarity)
+// eslint-disable-next-line no-unused-vars
 const MERGE_CONFIDENCE_LOW = 0.5;       // 50%+ - No automatic action (may indicate false positives)
 
 // Substring Matching Thresholds
@@ -228,16 +228,17 @@ export function cleanAliases(aliases, characterName) {
 export function detectMergeOpportunities(newCharacterName) {
     return withErrorBoundary('detectMergeOpportunities', () => {
         debugLog(`[MergeDetect] Checking merge opportunities for: ${newCharacterName}`);
-        
+
         const potentialMatches = [];
         const existingCharacters = getCharacters();
 
         if (!newCharacterName || typeof newCharacterName !== 'string') {
-            debugLog(`[MergeDetect] Invalid name provided`);
+            debugLog('[MergeDetect] Invalid name provided');
             return potentialMatches;
         }
 
-        for (const [existingName, existingChar] of Object.entries(existingCharacters)) {
+        // eslint-disable-next-line no-unused-vars
+        for (const [_existingName, existingChar] of Object.entries(existingCharacters)) {
             const confidence = calculateMergeConfidence(newCharacterName, existingChar);
 
             if (confidence >= MERGE_CONFIDENCE_MEDIUM) {
@@ -247,7 +248,7 @@ export function detectMergeOpportunities(newCharacterName) {
                     targetName: existingChar.preferredName,
                     confidence: confidence,
                     tier: tier,
-                    reason: reason
+                    reason: reason,
                 });
                 debugLog(`[MergeDetect] ${newCharacterName} -> ${existingChar.preferredName}: ${tier} (${Math.round(confidence * 100)}%) - ${reason}`);
             }
@@ -269,17 +270,17 @@ export function detectMergeOpportunities(newCharacterName) {
  */
 function calculateMergeConfidence(newName, existingChar) {
     debugLog(`[CalcConfidence] Comparing '${newName}' vs '${existingChar.preferredName}'`);
-    
+
     const existingName = existingChar.preferredName;
     let confidence = 0;
 
     // Check for exact substring match (e.g., "Jazz" in "Jasmine")
     if (isSubstringMatch(newName, existingName)) {
         confidence = SUBSTRING_MATCH_BONUS;
-        debugLog(`[CalcConfidence] Substring match detected`);
-    } 
+        debugLog('[CalcConfidence] Substring match detected');
+    }
     // Check if new name matches any existing alias
-    else if (existingChar.aliases && existingChar.aliases.some(alias => 
+    else if (existingChar.aliases && existingChar.aliases.some(alias =>
         newName.toLowerCase() === alias.toLowerCase())) {
         confidence = 0.95;
     }
@@ -334,8 +335,8 @@ function isPartialMatch(newName, existingName) {
     const existParts = existingName.toLowerCase().split(/\s+/);
 
     // Check if any part of new name matches parts of existing
-    return newParts.some(newPart => existParts.some(existPart => 
-        newPart === existPart && newPart.length > 2
+    return newParts.some(newPart => existParts.some(existPart =>
+        newPart === existPart && newPart.length > 2,
     ));
 }
 
@@ -345,7 +346,7 @@ function isPartialMatch(newName, existingName) {
  */
 function levenshteinDistance(str1, str2) {
     const track = Array(str2.length + 1).fill(null).map(() =>
-        Array(str1.length + 1).fill(null)
+        Array(str1.length + 1).fill(null),
     );
 
     for (let i = 0; i <= str1.length; i++) {
@@ -362,7 +363,7 @@ function levenshteinDistance(str1, str2) {
             track[j][i] = Math.min(
                 track[j][i - 1] + 1,
                 track[j - 1][i] + 1,
-                track[j - 1][i - 1] + indicator
+                track[j - 1][i - 1] + indicator,
             );
         }
     }
@@ -444,7 +445,7 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
 export function updateCharacterProcessingState(characterName, messageId) {
     return withErrorBoundary('updateCharacterProcessingState', () => {
         const character = findExistingCharacter(characterName);
-        
+
         if (!character) {
             debug.log(`Character not found for state update: ${characterName}`);
             return false;
@@ -452,9 +453,9 @@ export function updateCharacterProcessingState(characterName, messageId) {
 
         character.lastMessageProcessed = messageId;
         character.lastUpdated = Date.now();
-        
+
         setCharacter(character.preferredName, character);
-        
+
         debug.log(`Updated processing state for ${characterName}: messageId=${messageId}`);
         return true;
     }, false);

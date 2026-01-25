@@ -29,7 +29,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     lastScannedMessageId: -1,
     totalCharactersDetected: 0,
     lastAnalysisTime: null,
-    analysisCache: new Map()
+    analysisCache: new Map(),
 });
 
 // Default chat-level data structure
@@ -41,8 +41,8 @@ const DEFAULT_CHAT_DATA = Object.freeze({
     processingStats: {
         totalProcessed: 0,
         charactersFound: 0,
-        lastProcessedTime: null
-    }
+        lastProcessedTime: null,
+    },
 });
 
 /**
@@ -87,7 +87,7 @@ function set_settings(newSettings) {
 
         // Update settings
         Object.assign(extension_settings[MODULE_NAME], newSettings);
-        
+
         // Save to SillyTavern
         if (typeof saveSettingsDebounced !== 'undefined') {
             saveSettingsDebounced();
@@ -135,7 +135,7 @@ function setCharacters(characters) {
 
         // Update characters
         chat_metadata[MODULE_NAME].characters = characters;
-        
+
         // Save to SillyTavern
         if (typeof saveMetadataDebounced !== 'undefined') {
             saveMetadataDebounced();
@@ -183,7 +183,7 @@ function setChatData(data) {
 
         // Update data
         Object.assign(chat_metadata[MODULE_NAME], data);
-        
+
         // Save to SillyTavern
         if (typeof saveMetadataDebounced !== 'undefined') {
             saveMetadataDebounced();
@@ -229,7 +229,7 @@ function getSetting(key, defaultValue) {
 
 /**
  * Set a specific setting value
- * @param {string} key - Setting key  
+ * @param {string} key - Setting key
  * @param {*} value - Setting value
  */
 function setSetting(key, value) {
@@ -282,9 +282,9 @@ function getLLMConfig() {
     return errorHandler.withErrorBoundary('Settings', () => {
         return {
             source: getSetting('llmSource'),
-            ollamaEndpoint: getSetting('ollamaEndpoint'), 
+            ollamaEndpoint: getSetting('ollamaEndpoint'),
             ollamaModel: getSetting('ollamaModel'),
-            systemPrompt: getSetting('systemPrompt')
+            systemPrompt: getSetting('systemPrompt'),
         };
     }, { source: 'sillytavern', ollamaEndpoint: 'http://localhost:11434', ollamaModel: '', systemPrompt: null });
 }
@@ -301,7 +301,7 @@ function getLorebookConfig() {
             cooldown: getSetting('lorebookCooldown'),
             scanDepth: getSetting('lorebookScanDepth'),
             probability: getSetting('lorebookProbability'),
-            enabled: getSetting('lorebookEnabled')
+            enabled: getSetting('lorebookEnabled'),
         };
     }, { position: 0, depth: 1, cooldown: 5, scanDepth: 1, probability: 100, enabled: true });
 }
@@ -325,11 +325,11 @@ function get_chat_metadata(key) {
             console.warn('[STnametracker] chat_metadata not available');
             return DEFAULT_CHAT_DATA[key];
         }
-        
+
         if (!chat_metadata[MODULE_NAME]) {
             chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
         }
-        
+
         return chat_metadata[MODULE_NAME][key];
     }, DEFAULT_CHAT_DATA[key]);
 }
@@ -345,14 +345,14 @@ function set_chat_metadata(key, value) {
             console.warn('[STnametracker] chat_metadata not available for saving');
             return;
         }
-        
+
         if (!chat_metadata[MODULE_NAME]) {
             chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
         }
-        
+
         chat_metadata[MODULE_NAME][key] = value;
         debug.log(`Updated chat data ${key}`);
-        
+
         if (typeof saveMetadataDebounced !== 'undefined') {
             saveMetadataDebounced();
         }
@@ -379,5 +379,5 @@ export {
     getLorebookConfig,
     getSettings,
     get_chat_metadata,
-    set_chat_metadata
+    set_chat_metadata,
 };

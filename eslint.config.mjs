@@ -14,7 +14,11 @@ export default [
                 $: 'readonly',
                 toastr: 'readonly',
                 console: 'readonly',
-                process: 'readonly'
+                process: 'readonly',
+                extension_settings: 'readonly',
+                chat_metadata: 'readonly',
+                saveSettingsDebounced: 'readonly',
+                saveMetadataDebounced: 'readonly',
             },
             ecmaVersion: 2022,
             sourceType: 'module'
