@@ -2246,7 +2246,7 @@ async function findPotentialMatch(analyzedChar) {
         const chars = _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.getCharacters();
         const threshold = _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.getSetting('confidenceThreshold', 70);
 
-        debug('Searching for potential match with threshold:', threshold);
+        debug.log();
 
         // Simple matching logic - can be enhanced with LLM-based similarity
         for (const existingChar of Object.values(chars)) {
@@ -2254,7 +2254,7 @@ async function findPotentialMatch(analyzedChar) {
             const similarity = calculateNameSimilarity(analyzedChar.name, existingChar.preferredName);
 
             if (similarity >= threshold) {
-                debug('Found name similarity match:', similarity);
+                debug.log();
                 return existingChar;
             }
 
@@ -2262,7 +2262,7 @@ async function findPotentialMatch(analyzedChar) {
             for (const alias of existingChar.aliases) {
                 const aliasSimilarity = calculateNameSimilarity(analyzedChar.name, alias);
                 if (aliasSimilarity >= threshold) {
-                    debug('Found alias similarity match:', aliasSimilarity);
+                    debug.log();
                     return existingChar;
                 }
             }
@@ -2362,7 +2362,7 @@ function cleanAliases(aliases, characterName) {
  */
 async function createCharacter(analyzedChar, isMainChar = false) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('createCharacter', async () => {
-        debug('Creating character with data:', analyzedChar);
+        debug.log();
 
         // Clean and filter aliases
         const aliases = cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
@@ -2386,12 +2386,12 @@ async function createCharacter(analyzedChar, isMainChar = false) {
             isMainChar: isMainChar || false,
         };
 
-        debug('Created character object:', character);
+        debug.log();
 
         // Store character in settings
         _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.setCharacter(character.preferredName, character);
 
-        debug(`Created new character: ${character.preferredName}${isMainChar ? ' (MAIN CHARACTER)' : ''}`);
+        debug.log();
 
         return character;
     });
@@ -2407,7 +2407,7 @@ async function createCharacter(analyzedChar, isMainChar = false) {
  */
 async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, isMainChar = false) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('updateCharacter', async () => {
-        debug('Updating character:', existingChar.preferredName, 'with:', analyzedChar);
+        debug.log();
 
         // Mark as main character if detected
         if (isMainChar) {
@@ -2458,7 +2458,7 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
         // Update character in settings
         _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.setCharacter(existingChar.preferredName, existingChar);
 
-        debug(`Updated character: ${existingChar.preferredName}`);
+        debug.log();
 
         return existingChar;
     });
@@ -2534,7 +2534,7 @@ async function mergeCharacters(sourceName, targetName) {
         _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.setCharacter(targetChar.preferredName, targetChar);
         _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.removeCharacter(sourceName);
 
-        debug(`Merged ${sourceName} into ${targetName}`);
+        debug.log();
         notifications.success(`Merged ${sourceName} into ${targetName}`);
 
         return undoData;
@@ -2565,7 +2565,7 @@ async function undoLastMerge() {
         // Restore target character to pre-merge state
         _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.setCharacter(lastOp.targetName, lastOp.targetDataBefore);
 
-        debug('Merge undone successfully');
+        debug.log();
         notifications.success('Merge undone successfully');
 
         return true;
@@ -2591,7 +2591,7 @@ function toggleIgnoreCharacter(characterName) {
 
         const status = character.ignored ? 'ignored' : 'unignored';
         notifications.info(`${characterName} ${status}`);
-        debug(`Character ${characterName} ${status}`);
+        debug.log();
 
         return character.ignored;
     });
@@ -2633,7 +2633,7 @@ async function createNewCharacter(characterName) {
 
         const character = await createCharacter(newChar, false);
 
-        debug(`Manually created character: ${trimmedName}`);
+        debug.log();
         notifications.success(`Created character: ${trimmedName}`);
 
         return character;
@@ -2660,7 +2660,7 @@ async function purgeAllCharacters() {
         // Clear undo history
         undoHistory = [];
 
-        debug(`Purged ${characterCount} characters`);
+        debug.log();
         notifications.success(`Purged ${characterCount} characters`);
 
         return characterCount;
@@ -2708,7 +2708,7 @@ function getUndoHistory() {
  */
 function clearUndoHistory() {
     undoHistory = [];
-    debug('Undo history cleared');
+    debug.log();
 }
 
 /**
@@ -2742,7 +2742,7 @@ async function importCharacters(characterData, merge = false) {
             }
         }
 
-        debug(`Imported ${importCount} characters`);
+        debug.log();
         notifications.success(`Imported ${importCount} characters`);
 
         return importCount;
@@ -2858,7 +2858,7 @@ async function loadOllamaModels() {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('loadOllamaModels', async () => {
         const ollamaEndpoint = _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.getSetting('ollamaEndpoint', 'http://localhost:11434');
 
-        debug('Loading Ollama models from:', ollamaEndpoint);
+        debug.log();
 
         try {
             const response = await fetch(`${ollamaEndpoint}/api/tags`);
@@ -2870,7 +2870,7 @@ async function loadOllamaModels() {
             const data = await response.json();
             ollamaModels = data.models || [];
 
-            debug(`Loaded ${ollamaModels.length} Ollama models:`, ollamaModels.map(m => m.name));
+            debug.log();
 
             return ollamaModels;
         } catch (error) {
@@ -2891,7 +2891,7 @@ async function getOllamaModelContext(modelName) {
         const ollamaEndpoint = _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.getSetting('ollamaEndpoint', 'http://localhost:11434');
 
         if (!modelName) {
-            debug('No Ollama model specified, using default context size');
+            debug.log();
             return 4096;
         }
 
@@ -2918,7 +2918,7 @@ async function getOllamaModelContext(modelName) {
                     const match = param.match(/num_ctx\\s+(\\d+)/);
                     if (match) {
                         const contextSize = parseInt(match[1]);
-                        debug(`Ollama model ${modelName} context size: ${contextSize} tokens`);
+                        debug.log();
                         return contextSize;
                     }
                 }
@@ -2927,15 +2927,15 @@ async function getOllamaModelContext(modelName) {
             // Fallback: check if it's in model details
             if (data.model_info && data.model_info.num_ctx) {
                 const contextSize = parseInt(data.model_info.num_ctx);
-                debug(`Ollama model ${modelName} context size: ${contextSize} tokens`);
+                debug.log();
                 return contextSize;
             }
 
-            debug(`Could not find context size for ${modelName}, using default 4096`);
+            debug.log();
             return 4096;
         } catch (error) {
             console.error('Error fetching Ollama model context:', error);
-            debug('Failed to get Ollama context size, using default 4096');
+            debug.log();
             return 4096;
         }
     });
@@ -2991,7 +2991,7 @@ async function getMaxPromptLength() {
         // Reserve 50% of context for system prompt, response, and safety margin
         const tokensForPrompt = Math.floor(maxContext * 0.5);
 
-        debug(`API max context: ${maxContext} tokens, calculated max prompt: ${tokensForPrompt} tokens`);
+        debug.log();
 
         // Return at least 1000 tokens, max 25000 tokens
         return Math.max(1000, Math.min(tokensForPrompt, 25000));
@@ -3022,7 +3022,7 @@ async function calculateMessageTokens(messages) {
                         const count = await context.getTokenCountAsync(text);
                         totalTokens += count;
                     } catch (error) {
-                        debug('Token count estimation failed, using fallback:', error.message);
+                        debug.log();
                         // Final fallback: rough estimate (4 chars per token)
                         totalTokens += Math.ceil(text.length / 4);
                     }
@@ -3046,7 +3046,7 @@ async function calculateMessageTokens(messages) {
  */
 async function callSillyTavern(prompt) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('callSillyTavern', async () => {
-        debug('Calling SillyTavern LLM...');
+        debug.log();
 
         // Use SillyTavern.getContext() as recommended in official docs
         const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
@@ -3060,11 +3060,11 @@ async function callSillyTavern(prompt) {
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(prompt);
-            debug(`Generating with prompt: ${promptTokens} tokens (~${prompt.length} chars)`);
+            debug.log();
         } catch (error) {
-            debug('Token count failed, using character estimate:', error.message);
+            debug.log();
             promptTokens = Math.ceil(prompt.length / 4);
-            debug(`Generating with prompt length: ${prompt.length} chars (est. ${promptTokens} tokens)`);
+            debug.log();
         }
 
         // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
@@ -3072,7 +3072,7 @@ async function callSillyTavern(prompt) {
         const maxContext = context.maxContext || 4096;
         const calculatedMaxTokens = Math.floor(maxContext * 0.25);
         const maxTokens = Math.max(4000, calculatedMaxTokens);
-        debug(`Max tokens for response: ${maxTokens} (context: ${maxContext}, 25% = ${calculatedMaxTokens})`);
+        debug.log();
 
         // Use generateRaw as documented in:
         // https://docs.sillytavern.app/for-contributors/writing-extensions/#raw-generation
@@ -3091,7 +3091,7 @@ async function callSillyTavern(prompt) {
             stop: [],           // No custom stop sequences needed
         });
 
-        debug('SillyTavern LLM raw response:', result?.substring(0, 200));
+        debug.log();
 
         // The result should be a string
         if (!result) {
@@ -3116,13 +3116,13 @@ async function callOllama(prompt) {
             throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__.NameTrackerError('No Ollama model selected');
         }
 
-        debug(`Calling Ollama with model ${llmConfig.ollamaModel}...`);
+        debug.log();
 
         // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
         const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
         const calculatedMaxTokens = Math.floor(maxContext * 0.25);
         const maxTokens = Math.max(4000, calculatedMaxTokens);
-        debug(`Max tokens for response: ${maxTokens} (context: ${maxContext}, 25% = ${calculatedMaxTokens})`);
+        debug.log();
 
         const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
             method: 'POST',
@@ -3150,8 +3150,8 @@ async function callOllama(prompt) {
         }
 
         const data = await response.json();
-        debug('Ollama raw response:', data);
-        debug('Ollama response text:', data.response?.substring(0, 200));
+        debug.log();
+        debug.log();
 
         return parseJSONResponse(data.response);
     });
@@ -3208,8 +3208,8 @@ function parseJSONResponse(text) {
 
             // Check if response was truncated (common issue with long responses)
             if (text.includes('"characters"') && !text.trim().endsWith('}')) {
-                debug('Response appears truncated - missing closing braces');
-                debug(`Response length: ${text.length} chars, ends with: "${text.slice(-50)}"`);
+                debug.log();
+                debug.log();
 
                 // Try to salvage partial data by attempting to close the JSON
                 let salvaged = text;
@@ -3236,10 +3236,10 @@ function parseJSONResponse(text) {
 
                 try {
                     const recovered = JSON.parse(salvaged);
-                    debug(`Successfully recovered ${recovered.characters?.length || 0} characters from truncated response`);
+                    debug.log();
                     return recovered;
                 } catch (e) {
-                    debug('Failed to recover truncated JSON:', e.message);
+                    debug.log();
                 }
             }
 
@@ -3249,7 +3249,7 @@ function parseJSONResponse(text) {
                 try {
                     return JSON.parse(fallbackMatch[0]);
                 } catch (parseError) {
-                    debug('JSON fallback parsing also failed:', parseError.message);
+                    debug.log();
                     // Give up
                 }
             }
@@ -3273,7 +3273,7 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
         const maxPromptTokens = await getMaxPromptLength(); // Dynamic based on API context window
         const MAX_RETRIES = 3;
 
-        debug(`Starting LLM analysis (depth: ${depth}, retry: ${retryCount})`);
+        debug.log();
 
         // Extract message text
         const messages = messageObjs.map(msg => {
@@ -3288,7 +3288,7 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
 
         // Check cache
         if (analysisCache.has(cacheKey)) {
-            debug('Using cached analysis result');
+            debug.log();
             return analysisCache.get(cacheKey);
         }
 
@@ -3301,9 +3301,9 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
         let promptTokens;
         try {
             promptTokens = await calculateMessageTokens([{ mes: fullPrompt }]);
-            debug(`Prompt tokens: ${promptTokens}, limit: ${maxPromptTokens}`);
+            debug.log();
         } catch (tokenError) {
-            debug('Token estimation failed in batch processing:', tokenError.message);
+            debug.log();
             // Fallback to character-based estimate
             promptTokens = Math.ceil(fullPrompt.length / 4);
         }
@@ -3311,14 +3311,14 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
         // If prompt is too long, split into sub-batches
         if (promptTokens > maxPromptTokens && messageObjs.length > 1) {
             const indent = '  '.repeat(depth);
-            debug(`${indent}Prompt too long (${promptTokens} > ${maxPromptTokens}), splitting ${messageObjs.length} messages into batches...`);
+            debug.log();
 
             // Split roughly in half
             const midpoint = Math.floor(messageObjs.length / 2);
             const firstHalf = messageObjs.slice(0, midpoint);
             const secondHalf = messageObjs.slice(midpoint);
 
-            debug(`${indent}First batch: ${firstHalf.length} messages, second batch: ${secondHalf.length} messages`);
+            debug.log();
 
             // Analyze both halves in parallel
             const [result1, result2] = await Promise.all([
@@ -3334,7 +3334,7 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
                 ],
             };
 
-            debug(`${indent}Merged ${result1.characters?.length || 0} + ${result2.characters?.length || 0} = ${mergedResult.characters.length} characters`);
+            debug.log();
             return mergedResult;
         }
 
@@ -3354,7 +3354,7 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
                  error.message.includes('empty') ||
                  error.message.includes('truncated'))) {
 
-                debug(`Retrying LLM call (attempt ${retryCount + 1}/${MAX_RETRIES}): ${error.message}`);
+                debug.log();
 
                 // Add exponential backoff delay
                 const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
@@ -3376,7 +3376,7 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
         }
         analysisCache.set(cacheKey, result);
 
-        debug(`LLM analysis complete: found ${result.characters?.length || 0} characters`);
+        debug.log();
         return result;
     });
 }
@@ -3386,7 +3386,7 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
  */
 function clearAnalysisCache() {
     analysisCache.clear();
-    debug('Analysis cache cleared');
+    debug.log();
 }
 
 /**
@@ -4071,11 +4071,11 @@ let abortScan = false;
 async function processAnalysisResults(analyzedCharacters) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('processAnalysisResults', async () => {
         if (!analyzedCharacters || !Array.isArray(analyzedCharacters)) {
-            debug('No characters to process');
+            debug.log();
             return;
         }
 
-        debug(`Processing ${analyzedCharacters.length} analyzed characters`);
+        debug.log();
 
         for (const analyzedChar of analyzedCharacters) {
             try {
@@ -4096,7 +4096,7 @@ async function processAnalysisResults(analyzedCharacters) {
 async function processCharacterData(analyzedChar) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('processCharacterData', async () => {
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
-            debug('Skipping character with empty name');
+            debug.log();
             return;
         }
 
@@ -4104,7 +4104,7 @@ async function processCharacterData(analyzedChar) {
 
         // Check if character is ignored
         if ((0,_characters_js__WEBPACK_IMPORTED_MODULE_6__.isIgnoredCharacter)(characterName)) {
-            debug(`Ignoring character: ${characterName}`);
+            debug.log();
             return;
         }
 
@@ -4120,7 +4120,7 @@ async function processCharacterData(analyzedChar) {
             // Update existing character
             await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__.updateCharacter)(existingChar, analyzedChar, false, isMainChar);
             await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_7__.updateLorebookEntry)(existingChar, existingChar.preferredName);
-            debug(`Updated existing character: ${existingChar.preferredName}`);
+            debug.log();
         } else {
             // Check for potential matches (similar names)
             const potentialMatch = await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__.findPotentialMatch)(analyzedChar);
@@ -4129,12 +4129,12 @@ async function processCharacterData(analyzedChar) {
                 // Update potential match and add as alias
                 await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__.updateCharacter)(potentialMatch, analyzedChar, true, isMainChar);
                 await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_7__.updateLorebookEntry)(potentialMatch, potentialMatch.preferredName);
-                debug(`Updated potential match: ${potentialMatch.preferredName} (added alias: ${characterName})`);
+                debug.log();
             } else {
                 // Create new character
                 const newCharacter = await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__.createCharacter)(analyzedChar, isMainChar);
                 await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_7__.updateLorebookEntry)(newCharacter, newCharacter.preferredName);
-                debug(`Created new character: ${newCharacter.preferredName}`);
+                debug.log();
             }
         }
     });
@@ -4149,7 +4149,7 @@ async function processCharacterData(analyzedChar) {
 async function harvestMessages(messageCount, showProgress = true) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('harvestMessages', async () => {
         if (!_core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.getSetting('enabled', true)) {
-            debug('Extension disabled, skipping harvest');
+            debug.log();
             return;
         }
 
@@ -4165,7 +4165,7 @@ async function harvestMessages(messageCount, showProgress = true) {
 
         const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         if (!context.chat || context.chat.length === 0) {
-            debug('No chat messages to harvest');
+            debug.log();
             notifications.info('No messages in chat to analyze');
             return;
         }
@@ -4184,7 +4184,7 @@ async function harvestMessages(messageCount, showProgress = true) {
 
         // If too large, split into batches
         if (messageTokens > availableTokens) {
-            debug(`Requested ${messagesToAnalyze.length} messages (${messageTokens} tokens) exceeds context (${availableTokens} tokens), splitting into batches...`);
+            debug.log();
 
             // Calculate optimal batch size based on tokens
             const batches = [];
@@ -4230,7 +4230,7 @@ async function harvestMessages(messageCount, showProgress = true) {
             for (let i = 0; i < batches.length; i++) {
                 // Check if user aborted
                 if (abortScan) {
-                    debug('Analysis aborted by user');
+                    debug.log();
                     hideProgressBar();
                     notifications.warning('Analysis aborted');
                     return;
@@ -4303,7 +4303,7 @@ async function harvestMessages(messageCount, showProgress = true) {
             // Call LLM for analysis with character context
             const analysis = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__.callLLMAnalysis)(messagesToAnalyze, characterRoster);
 
-            debug('Analysis result:', analysis);
+            debug.log();
 
             // Process the analysis
             if (analysis.characters && Array.isArray(analysis.characters)) {
@@ -4313,7 +4313,7 @@ async function harvestMessages(messageCount, showProgress = true) {
                     notifications.success(`Found ${analysis.characters.length} character(s) in messages`);
                 }
             } else {
-                debug('No characters found in analysis');
+                debug.log();
             }
 
         } catch (error) {
@@ -4347,13 +4347,13 @@ async function onMessageReceived(messageId) {
         // Check if this message was already scanned
         const lastScannedId = _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.getSetting('lastScannedMessageId', -1);
         if (currentMessageIndex <= lastScannedId) {
-            debug(`Message ${currentMessageIndex} already scanned (last scanned: ${lastScannedId})`);
+            debug.log();
             return;
         }
 
         // Detect if messages were deleted (current index jumped backwards)
         if (lastScannedId >= 0 && currentMessageIndex < lastScannedId) {
-            debug(`Message deletion detected: current=${currentMessageIndex}, last scanned=${lastScannedId}`);
+            debug.log();
 
             // Prompt user for rescan decision
             const shouldRescan = await showRescanModal(currentMessageIndex, lastScannedId);
@@ -4379,7 +4379,7 @@ async function onMessageReceived(messageId) {
         const messagesSinceLastScan = currentMessageIndex - lastScannedId;
 
         if (messagesSinceLastScan >= messageFreq) {
-            debug(`Scan milestone reached: ${messagesSinceLastScan} messages since last scan`);
+            debug.log();
 
             // Queue harvest
             addToQueue(async () => {
@@ -4565,7 +4565,7 @@ async function scanEntireChat() {
         for (let i = 0; i < numBatches; i++) {
             // Check if user aborted
             if (abortScan) {
-                debug('Scan aborted by user');
+                debug.log();
                 break;
             }
 
@@ -4672,7 +4672,7 @@ async function processQueue() {
  */
 async function onChatChanged() {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('onChatChanged', async () => {
-        debug('Chat changed event triggered');
+        debug.log();
 
         // Clear processing state
         processingQueue = [];
@@ -4683,7 +4683,7 @@ async function onChatChanged() {
         _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.setSetting('lastScannedMessageId', -1);
         _core_settings_js__WEBPACK_IMPORTED_MODULE_2__.settings.setSetting('messageCounter', 0);
 
-        debug('Chat changed, reset processing state');
+        debug.log();
     });
 }
 
@@ -4693,7 +4693,7 @@ async function onChatChanged() {
 function clearProcessingQueue() {
     processingQueue = [];
     isProcessing = false;
-    debug('Processing queue cleared');
+    debug.log();
 }
 
 /**
@@ -4714,7 +4714,7 @@ function getProcessingStatus() {
 function abortCurrentScan() {
     abortScan = true;
     hideProgressBar();
-    debug('Scan aborted programmatically');
+    debug.log();
 }
 
 
@@ -4783,7 +4783,7 @@ function updateCharacterList() {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__.withErrorBoundary)('updateCharacterList', () => {
         const $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
-            debug('Character list container not found');
+            debug.log();
             return;
         }
 
@@ -5163,7 +5163,7 @@ function initializeUIHandlers() {
             await showEditLorebookModal(name);
         });
 
-        debug('UI event handlers initialized');
+        debug.log();
     });
 }
 
@@ -5405,7 +5405,7 @@ function initializeMenuButtons() {
             'Open the Name Tracker chat lorebook in the World Info editor',
         );
 
-        debug('Extension menu buttons initialized');
+        debug.log();
     });
 }
 
@@ -5448,7 +5448,7 @@ function bindSettingsHandlers() {
                 await (0,_llm_js__WEBPACK_IMPORTED_MODULE_7__.loadOllamaModels)();
                 notifications.success('Ollama models loaded');
             } catch (error) {
-                debug('Failed to load Ollama models:', error.message);
+                debug.log();
                 notifications.error('Failed to load Ollama models');
             }
         });
@@ -5522,7 +5522,7 @@ function bindSettingsHandlers() {
             showSystemPromptEditor();
         });
 
-        debug('Settings UI handlers bound');
+        debug.log();
     });
 }
 
@@ -5540,7 +5540,7 @@ async function loadSettingsHTML(extensionFolderPath) {
             // Append to the extensions settings panel
             $('#extensions_settings').append(settingsHtml);
 
-            debug('Settings HTML loaded and injected');
+            debug.log();
         } catch (error) {
             console.error('Failed to load settings HTML:', error);
             throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__.NameTrackerError(`Failed to load settings HTML: ${error.message}`);
@@ -5573,7 +5573,7 @@ function updateUI() {
         updateCharacterList();
         updateStatusDisplay();
 
-        debug('UI updated with current settings');
+        debug.log();
     });
 }
 

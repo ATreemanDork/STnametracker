@@ -30,11 +30,11 @@ let abortScan = false;
 export async function processAnalysisResults(analyzedCharacters) {
     return withErrorBoundary('processAnalysisResults', async () => {
         if (!analyzedCharacters || !Array.isArray(analyzedCharacters)) {
-            debug('No characters to process');
+            debug.log();
             return;
         }
 
-        debug(`Processing ${analyzedCharacters.length} analyzed characters`);
+        debug.log();
 
         for (const analyzedChar of analyzedCharacters) {
             try {
@@ -55,7 +55,7 @@ export async function processAnalysisResults(analyzedCharacters) {
 async function processCharacterData(analyzedChar) {
     return withErrorBoundary('processCharacterData', async () => {
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
-            debug('Skipping character with empty name');
+            debug.log();
             return;
         }
 
@@ -63,7 +63,7 @@ async function processCharacterData(analyzedChar) {
 
         // Check if character is ignored
         if (isIgnoredCharacter(characterName)) {
-            debug(`Ignoring character: ${characterName}`);
+            debug.log();
             return;
         }
 
@@ -79,7 +79,7 @@ async function processCharacterData(analyzedChar) {
             // Update existing character
             await updateCharacter(existingChar, analyzedChar, false, isMainChar);
             await updateLorebookEntry(existingChar, existingChar.preferredName);
-            debug(`Updated existing character: ${existingChar.preferredName}`);
+            debug.log();
         } else {
             // Check for potential matches (similar names)
             const potentialMatch = await findPotentialMatch(analyzedChar);
@@ -88,12 +88,12 @@ async function processCharacterData(analyzedChar) {
                 // Update potential match and add as alias
                 await updateCharacter(potentialMatch, analyzedChar, true, isMainChar);
                 await updateLorebookEntry(potentialMatch, potentialMatch.preferredName);
-                debug(`Updated potential match: ${potentialMatch.preferredName} (added alias: ${characterName})`);
+                debug.log();
             } else {
                 // Create new character
                 const newCharacter = await createCharacter(analyzedChar, isMainChar);
                 await updateLorebookEntry(newCharacter, newCharacter.preferredName);
-                debug(`Created new character: ${newCharacter.preferredName}`);
+                debug.log();
             }
         }
     });
@@ -108,7 +108,7 @@ async function processCharacterData(analyzedChar) {
 export async function harvestMessages(messageCount, showProgress = true) {
     return withErrorBoundary('harvestMessages', async () => {
         if (!settings.getSetting('enabled', true)) {
-            debug('Extension disabled, skipping harvest');
+            debug.log();
             return;
         }
 
@@ -124,7 +124,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
 
         const context = stContext.getContext();
         if (!context.chat || context.chat.length === 0) {
-            debug('No chat messages to harvest');
+            debug.log();
             notifications.info('No messages in chat to analyze');
             return;
         }
@@ -143,7 +143,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
 
         // If too large, split into batches
         if (messageTokens > availableTokens) {
-            debug(`Requested ${messagesToAnalyze.length} messages (${messageTokens} tokens) exceeds context (${availableTokens} tokens), splitting into batches...`);
+            debug.log();
 
             // Calculate optimal batch size based on tokens
             const batches = [];
@@ -189,7 +189,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
             for (let i = 0; i < batches.length; i++) {
                 // Check if user aborted
                 if (abortScan) {
-                    debug('Analysis aborted by user');
+                    debug.log();
                     hideProgressBar();
                     notifications.warning('Analysis aborted');
                     return;
@@ -262,7 +262,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
             // Call LLM for analysis with character context
             const analysis = await callLLMAnalysis(messagesToAnalyze, characterRoster);
 
-            debug('Analysis result:', analysis);
+            debug.log();
 
             // Process the analysis
             if (analysis.characters && Array.isArray(analysis.characters)) {
@@ -272,7 +272,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
                     notifications.success(`Found ${analysis.characters.length} character(s) in messages`);
                 }
             } else {
-                debug('No characters found in analysis');
+                debug.log();
             }
 
         } catch (error) {
@@ -306,13 +306,13 @@ export async function onMessageReceived(messageId) {
         // Check if this message was already scanned
         const lastScannedId = settings.getSetting('lastScannedMessageId', -1);
         if (currentMessageIndex <= lastScannedId) {
-            debug(`Message ${currentMessageIndex} already scanned (last scanned: ${lastScannedId})`);
+            debug.log();
             return;
         }
 
         // Detect if messages were deleted (current index jumped backwards)
         if (lastScannedId >= 0 && currentMessageIndex < lastScannedId) {
-            debug(`Message deletion detected: current=${currentMessageIndex}, last scanned=${lastScannedId}`);
+            debug.log();
 
             // Prompt user for rescan decision
             const shouldRescan = await showRescanModal(currentMessageIndex, lastScannedId);
@@ -338,7 +338,7 @@ export async function onMessageReceived(messageId) {
         const messagesSinceLastScan = currentMessageIndex - lastScannedId;
 
         if (messagesSinceLastScan >= messageFreq) {
-            debug(`Scan milestone reached: ${messagesSinceLastScan} messages since last scan`);
+            debug.log();
 
             // Queue harvest
             addToQueue(async () => {
@@ -524,7 +524,7 @@ export async function scanEntireChat() {
         for (let i = 0; i < numBatches; i++) {
             // Check if user aborted
             if (abortScan) {
-                debug('Scan aborted by user');
+                debug.log();
                 break;
             }
 
@@ -631,7 +631,7 @@ export async function processQueue() {
  */
 export async function onChatChanged() {
     return withErrorBoundary('onChatChanged', async () => {
-        debug('Chat changed event triggered');
+        debug.log();
 
         // Clear processing state
         processingQueue = [];
@@ -642,7 +642,7 @@ export async function onChatChanged() {
         settings.setSetting('lastScannedMessageId', -1);
         settings.setSetting('messageCounter', 0);
 
-        debug('Chat changed, reset processing state');
+        debug.log();
     });
 }
 
@@ -652,7 +652,7 @@ export async function onChatChanged() {
 export function clearProcessingQueue() {
     processingQueue = [];
     isProcessing = false;
-    debug('Processing queue cleared');
+    debug.log();
 }
 
 /**
@@ -673,5 +673,5 @@ export function getProcessingStatus() {
 export function abortCurrentScan() {
     abortScan = true;
     hideProgressBar();
-    debug('Scan aborted programmatically');
+    debug.log();
 }

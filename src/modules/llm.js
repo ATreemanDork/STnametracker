@@ -77,7 +77,7 @@ export async function loadOllamaModels() {
     return withErrorBoundary('loadOllamaModels', async () => {
         const ollamaEndpoint = settings.getSetting('ollamaEndpoint', 'http://localhost:11434');
 
-        debug('Loading Ollama models from:', ollamaEndpoint);
+        debug.log();
 
         try {
             const response = await fetch(`${ollamaEndpoint}/api/tags`);
@@ -89,7 +89,7 @@ export async function loadOllamaModels() {
             const data = await response.json();
             ollamaModels = data.models || [];
 
-            debug(`Loaded ${ollamaModels.length} Ollama models:`, ollamaModels.map(m => m.name));
+            debug.log();
 
             return ollamaModels;
         } catch (error) {
@@ -110,7 +110,7 @@ export async function getOllamaModelContext(modelName) {
         const ollamaEndpoint = settings.getSetting('ollamaEndpoint', 'http://localhost:11434');
 
         if (!modelName) {
-            debug('No Ollama model specified, using default context size');
+            debug.log();
             return 4096;
         }
 
@@ -137,7 +137,7 @@ export async function getOllamaModelContext(modelName) {
                     const match = param.match(/num_ctx\\s+(\\d+)/);
                     if (match) {
                         const contextSize = parseInt(match[1]);
-                        debug(`Ollama model ${modelName} context size: ${contextSize} tokens`);
+                        debug.log();
                         return contextSize;
                     }
                 }
@@ -146,15 +146,15 @@ export async function getOllamaModelContext(modelName) {
             // Fallback: check if it's in model details
             if (data.model_info && data.model_info.num_ctx) {
                 const contextSize = parseInt(data.model_info.num_ctx);
-                debug(`Ollama model ${modelName} context size: ${contextSize} tokens`);
+                debug.log();
                 return contextSize;
             }
 
-            debug(`Could not find context size for ${modelName}, using default 4096`);
+            debug.log();
             return 4096;
         } catch (error) {
             console.error('Error fetching Ollama model context:', error);
-            debug('Failed to get Ollama context size, using default 4096');
+            debug.log();
             return 4096;
         }
     });
@@ -210,7 +210,7 @@ export async function getMaxPromptLength() {
         // Reserve 50% of context for system prompt, response, and safety margin
         const tokensForPrompt = Math.floor(maxContext * 0.5);
 
-        debug(`API max context: ${maxContext} tokens, calculated max prompt: ${tokensForPrompt} tokens`);
+        debug.log();
 
         // Return at least 1000 tokens, max 25000 tokens
         return Math.max(1000, Math.min(tokensForPrompt, 25000));
@@ -241,7 +241,7 @@ export async function calculateMessageTokens(messages) {
                         const count = await context.getTokenCountAsync(text);
                         totalTokens += count;
                     } catch (error) {
-                        debug('Token count estimation failed, using fallback:', error.message);
+                        debug.log();
                         // Final fallback: rough estimate (4 chars per token)
                         totalTokens += Math.ceil(text.length / 4);
                     }
@@ -265,7 +265,7 @@ export async function calculateMessageTokens(messages) {
  */
 export async function callSillyTavern(prompt) {
     return withErrorBoundary('callSillyTavern', async () => {
-        debug('Calling SillyTavern LLM...');
+        debug.log();
 
         // Use SillyTavern.getContext() as recommended in official docs
         const context = stContext.getContext();
@@ -279,11 +279,11 @@ export async function callSillyTavern(prompt) {
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(prompt);
-            debug(`Generating with prompt: ${promptTokens} tokens (~${prompt.length} chars)`);
+            debug.log();
         } catch (error) {
-            debug('Token count failed, using character estimate:', error.message);
+            debug.log();
             promptTokens = Math.ceil(prompt.length / 4);
-            debug(`Generating with prompt length: ${prompt.length} chars (est. ${promptTokens} tokens)`);
+            debug.log();
         }
 
         // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
@@ -291,7 +291,7 @@ export async function callSillyTavern(prompt) {
         const maxContext = context.maxContext || 4096;
         const calculatedMaxTokens = Math.floor(maxContext * 0.25);
         const maxTokens = Math.max(4000, calculatedMaxTokens);
-        debug(`Max tokens for response: ${maxTokens} (context: ${maxContext}, 25% = ${calculatedMaxTokens})`);
+        debug.log();
 
         // Use generateRaw as documented in:
         // https://docs.sillytavern.app/for-contributors/writing-extensions/#raw-generation
@@ -310,7 +310,7 @@ export async function callSillyTavern(prompt) {
             stop: [],           // No custom stop sequences needed
         });
 
-        debug('SillyTavern LLM raw response:', result?.substring(0, 200));
+        debug.log();
 
         // The result should be a string
         if (!result) {
@@ -335,13 +335,13 @@ export async function callOllama(prompt) {
             throw new NameTrackerError('No Ollama model selected');
         }
 
-        debug(`Calling Ollama with model ${llmConfig.ollamaModel}...`);
+        debug.log();
 
         // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
         const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
         const calculatedMaxTokens = Math.floor(maxContext * 0.25);
         const maxTokens = Math.max(4000, calculatedMaxTokens);
-        debug(`Max tokens for response: ${maxTokens} (context: ${maxContext}, 25% = ${calculatedMaxTokens})`);
+        debug.log();
 
         const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
             method: 'POST',
@@ -369,8 +369,8 @@ export async function callOllama(prompt) {
         }
 
         const data = await response.json();
-        debug('Ollama raw response:', data);
-        debug('Ollama response text:', data.response?.substring(0, 200));
+        debug.log();
+        debug.log();
 
         return parseJSONResponse(data.response);
     });
@@ -427,8 +427,8 @@ export function parseJSONResponse(text) {
 
             // Check if response was truncated (common issue with long responses)
             if (text.includes('"characters"') && !text.trim().endsWith('}')) {
-                debug('Response appears truncated - missing closing braces');
-                debug(`Response length: ${text.length} chars, ends with: "${text.slice(-50)}"`);
+                debug.log();
+                debug.log();
 
                 // Try to salvage partial data by attempting to close the JSON
                 let salvaged = text;
@@ -455,10 +455,10 @@ export function parseJSONResponse(text) {
 
                 try {
                     const recovered = JSON.parse(salvaged);
-                    debug(`Successfully recovered ${recovered.characters?.length || 0} characters from truncated response`);
+                    debug.log();
                     return recovered;
                 } catch (e) {
-                    debug('Failed to recover truncated JSON:', e.message);
+                    debug.log();
                 }
             }
 
@@ -468,7 +468,7 @@ export function parseJSONResponse(text) {
                 try {
                     return JSON.parse(fallbackMatch[0]);
                 } catch (parseError) {
-                    debug('JSON fallback parsing also failed:', parseError.message);
+                    debug.log();
                     // Give up
                 }
             }
@@ -492,7 +492,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         const maxPromptTokens = await getMaxPromptLength(); // Dynamic based on API context window
         const MAX_RETRIES = 3;
 
-        debug(`Starting LLM analysis (depth: ${depth}, retry: ${retryCount})`);
+        debug.log();
 
         // Extract message text
         const messages = messageObjs.map(msg => {
@@ -507,7 +507,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
 
         // Check cache
         if (analysisCache.has(cacheKey)) {
-            debug('Using cached analysis result');
+            debug.log();
             return analysisCache.get(cacheKey);
         }
 
@@ -520,9 +520,9 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         let promptTokens;
         try {
             promptTokens = await calculateMessageTokens([{ mes: fullPrompt }]);
-            debug(`Prompt tokens: ${promptTokens}, limit: ${maxPromptTokens}`);
+            debug.log();
         } catch (tokenError) {
-            debug('Token estimation failed in batch processing:', tokenError.message);
+            debug.log();
             // Fallback to character-based estimate
             promptTokens = Math.ceil(fullPrompt.length / 4);
         }
@@ -530,14 +530,14 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         // If prompt is too long, split into sub-batches
         if (promptTokens > maxPromptTokens && messageObjs.length > 1) {
             const indent = '  '.repeat(depth);
-            debug(`${indent}Prompt too long (${promptTokens} > ${maxPromptTokens}), splitting ${messageObjs.length} messages into batches...`);
+            debug.log();
 
             // Split roughly in half
             const midpoint = Math.floor(messageObjs.length / 2);
             const firstHalf = messageObjs.slice(0, midpoint);
             const secondHalf = messageObjs.slice(midpoint);
 
-            debug(`${indent}First batch: ${firstHalf.length} messages, second batch: ${secondHalf.length} messages`);
+            debug.log();
 
             // Analyze both halves in parallel
             const [result1, result2] = await Promise.all([
@@ -553,7 +553,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
                 ],
             };
 
-            debug(`${indent}Merged ${result1.characters?.length || 0} + ${result2.characters?.length || 0} = ${mergedResult.characters.length} characters`);
+            debug.log();
             return mergedResult;
         }
 
@@ -573,7 +573,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
                  error.message.includes('empty') ||
                  error.message.includes('truncated'))) {
 
-                debug(`Retrying LLM call (attempt ${retryCount + 1}/${MAX_RETRIES}): ${error.message}`);
+                debug.log();
 
                 // Add exponential backoff delay
                 const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
@@ -595,7 +595,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         }
         analysisCache.set(cacheKey, result);
 
-        debug(`LLM analysis complete: found ${result.characters?.length || 0} characters`);
+        debug.log();
         return result;
     });
 }
@@ -605,7 +605,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
  */
 export function clearAnalysisCache() {
     analysisCache.clear();
-    debug('Analysis cache cleared');
+    debug.log();
 }
 
 /**

@@ -27,7 +27,7 @@ export function updateCharacterList() {
     return withErrorBoundary('updateCharacterList', () => {
         const $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
-            debug('Character list container not found');
+            debug.log();
             return;
         }
 
@@ -407,7 +407,7 @@ export function initializeUIHandlers() {
             await showEditLorebookModal(name);
         });
 
-        debug('UI event handlers initialized');
+        debug.log();
     });
 }
 
@@ -649,7 +649,7 @@ export function initializeMenuButtons() {
             'Open the Name Tracker chat lorebook in the World Info editor',
         );
 
-        debug('Extension menu buttons initialized');
+        debug.log();
     });
 }
 
@@ -692,7 +692,7 @@ export function bindSettingsHandlers() {
                 await loadOllamaModels();
                 notifications.success('Ollama models loaded');
             } catch (error) {
-                debug('Failed to load Ollama models:', error.message);
+                debug.log();
                 notifications.error('Failed to load Ollama models');
             }
         });
@@ -766,7 +766,7 @@ export function bindSettingsHandlers() {
             showSystemPromptEditor();
         });
 
-        debug('Settings UI handlers bound');
+        debug.log();
     });
 }
 
@@ -784,7 +784,7 @@ export async function loadSettingsHTML(extensionFolderPath) {
             // Append to the extensions settings panel
             $('#extensions_settings').append(settingsHtml);
 
-            debug('Settings HTML loaded and injected');
+            debug.log();
         } catch (error) {
             console.error('Failed to load settings HTML:', error);
             throw new NameTrackerError(`Failed to load settings HTML: ${error.message}`);
@@ -817,6 +817,6 @@ export function updateUI() {
         updateCharacterList();
         updateStatusDisplay();
 
-        debug('UI updated with current settings');
+        debug.log();
     });
 }

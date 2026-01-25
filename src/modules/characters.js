@@ -75,7 +75,7 @@ export async function findPotentialMatch(analyzedChar) {
         const chars = settings.getCharacters();
         const threshold = settings.getSetting('confidenceThreshold', 70);
 
-        debug('Searching for potential match with threshold:', threshold);
+        debug.log();
 
         // Simple matching logic - can be enhanced with LLM-based similarity
         for (const existingChar of Object.values(chars)) {
@@ -83,7 +83,7 @@ export async function findPotentialMatch(analyzedChar) {
             const similarity = calculateNameSimilarity(analyzedChar.name, existingChar.preferredName);
 
             if (similarity >= threshold) {
-                debug('Found name similarity match:', similarity);
+                debug.log();
                 return existingChar;
             }
 
@@ -91,7 +91,7 @@ export async function findPotentialMatch(analyzedChar) {
             for (const alias of existingChar.aliases) {
                 const aliasSimilarity = calculateNameSimilarity(analyzedChar.name, alias);
                 if (aliasSimilarity >= threshold) {
-                    debug('Found alias similarity match:', aliasSimilarity);
+                    debug.log();
                     return existingChar;
                 }
             }
@@ -191,7 +191,7 @@ export function cleanAliases(aliases, characterName) {
  */
 export async function createCharacter(analyzedChar, isMainChar = false) {
     return withErrorBoundary('createCharacter', async () => {
-        debug('Creating character with data:', analyzedChar);
+        debug.log();
 
         // Clean and filter aliases
         const aliases = cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
@@ -215,12 +215,12 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
             isMainChar: isMainChar || false,
         };
 
-        debug('Created character object:', character);
+        debug.log();
 
         // Store character in settings
         settings.setCharacter(character.preferredName, character);
 
-        debug(`Created new character: ${character.preferredName}${isMainChar ? ' (MAIN CHARACTER)' : ''}`);
+        debug.log();
 
         return character;
     });
@@ -236,7 +236,7 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
  */
 export async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, isMainChar = false) {
     return withErrorBoundary('updateCharacter', async () => {
-        debug('Updating character:', existingChar.preferredName, 'with:', analyzedChar);
+        debug.log();
 
         // Mark as main character if detected
         if (isMainChar) {
@@ -287,7 +287,7 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
         // Update character in settings
         settings.setCharacter(existingChar.preferredName, existingChar);
 
-        debug(`Updated character: ${existingChar.preferredName}`);
+        debug.log();
 
         return existingChar;
     });
@@ -363,7 +363,7 @@ export async function mergeCharacters(sourceName, targetName) {
         settings.setCharacter(targetChar.preferredName, targetChar);
         settings.removeCharacter(sourceName);
 
-        debug(`Merged ${sourceName} into ${targetName}`);
+        debug.log();
         notifications.success(`Merged ${sourceName} into ${targetName}`);
 
         return undoData;
@@ -394,7 +394,7 @@ export async function undoLastMerge() {
         // Restore target character to pre-merge state
         settings.setCharacter(lastOp.targetName, lastOp.targetDataBefore);
 
-        debug('Merge undone successfully');
+        debug.log();
         notifications.success('Merge undone successfully');
 
         return true;
@@ -420,7 +420,7 @@ export function toggleIgnoreCharacter(characterName) {
 
         const status = character.ignored ? 'ignored' : 'unignored';
         notifications.info(`${characterName} ${status}`);
-        debug(`Character ${characterName} ${status}`);
+        debug.log();
 
         return character.ignored;
     });
@@ -462,7 +462,7 @@ export async function createNewCharacter(characterName) {
 
         const character = await createCharacter(newChar, false);
 
-        debug(`Manually created character: ${trimmedName}`);
+        debug.log();
         notifications.success(`Created character: ${trimmedName}`);
 
         return character;
@@ -489,7 +489,7 @@ export async function purgeAllCharacters() {
         // Clear undo history
         undoHistory = [];
 
-        debug(`Purged ${characterCount} characters`);
+        debug.log();
         notifications.success(`Purged ${characterCount} characters`);
 
         return characterCount;
@@ -537,7 +537,7 @@ export function getUndoHistory() {
  */
 export function clearUndoHistory() {
     undoHistory = [];
-    debug('Undo history cleared');
+    debug.log();
 }
 
 /**
@@ -571,7 +571,7 @@ export async function importCharacters(characterData, merge = false) {
             }
         }
 
-        debug(`Imported ${importCount} characters`);
+        debug.log();
         notifications.success(`Imported ${importCount} characters`);
 
         return importCount;
