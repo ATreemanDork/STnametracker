@@ -4,8 +4,10 @@
  */
 
 import { errorHandler } from './errors.js';
+import { createModuleLogger } from './debug.js';
 
 const MODULE_NAME = 'STnametracker';
+const debug = createModuleLogger('Settings');
 
 // Default settings structure
 const DEFAULT_SETTINGS = Object.freeze({
@@ -236,6 +238,127 @@ function setSetting(key, value) {
     set_settings(update);
 }
 
+/**
+ * Get a single character by name
+ * @param {string} name - Character name
+ * @returns {Object|null} Character data or null if not found
+ */
+function getCharacter(name) {
+    return errorHandler.withErrorBoundary('Settings', () => {
+        if (!name || typeof name !== 'string') {
+            console.warn('[STnametracker] Invalid character name:', name);
+            return null;
+        }
+        const chars = getCharacters();
+        return chars[name] || null;
+    }, null);
+}
+
+/**
+ * Set a character by name
+ * @param {string} name - Character name
+ * @param {Object} character - Character data
+ */
+function setCharacter(name, character) {
+    return errorHandler.withErrorBoundary('Settings', () => {
+        if (!name || typeof name !== 'string') {
+            throw new Error('Character name must be a non-empty string');
+        }
+        if (!character || typeof character !== 'object') {
+            throw new Error('Character data must be an object');
+        }
+        const chars = { ...getCharacters() };
+        chars[name] = character;
+        setCharacters(chars);
+        debug.log(`Set character: ${name}`);
+    });
+}
+
+/**
+ * Get LLM configuration
+ * @returns {Object} LLM configuration object
+ */
+function getLLMConfig() {
+    return errorHandler.withErrorBoundary('Settings', () => {
+        return {
+            source: getSetting('llmSource'),
+            ollamaEndpoint: getSetting('ollamaEndpoint'), 
+            ollamaModel: getSetting('ollamaModel'),
+            systemPrompt: getSetting('systemPrompt')
+        };
+    }, { source: 'sillytavern', ollamaEndpoint: 'http://localhost:11434', ollamaModel: '', systemPrompt: null });
+}
+
+/**
+ * Get lorebook configuration
+ * @returns {Object} Lorebook configuration object
+ */
+function getLorebookConfig() {
+    return errorHandler.withErrorBoundary('Settings', () => {
+        return {
+            position: getSetting('lorebookPosition'),
+            depth: getSetting('lorebookDepth'),
+            cooldown: getSetting('lorebookCooldown'),
+            scanDepth: getSetting('lorebookScanDepth'),
+            probability: getSetting('lorebookProbability'),
+            enabled: getSetting('lorebookEnabled')
+        };
+    }, { position: 0, depth: 1, cooldown: 5, scanDepth: 1, probability: 100, enabled: true });
+}
+
+/**
+ * Alias for get_settings for compatibility
+ * @returns {Object} Current settings
+ */
+function getSettings() {
+    return get_settings();
+}
+
+/**
+ * Get chat metadata value
+ * @param {string} key - Metadata key
+ * @returns {any} Metadata value
+ */
+function get_chat_metadata(key) {
+    return errorHandler.withErrorBoundary('Settings', () => {
+        if (typeof chat_metadata === 'undefined') {
+            console.warn('[STnametracker] chat_metadata not available');
+            return DEFAULT_CHAT_DATA[key];
+        }
+        
+        if (!chat_metadata[MODULE_NAME]) {
+            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+        }
+        
+        return chat_metadata[MODULE_NAME][key];
+    }, DEFAULT_CHAT_DATA[key]);
+}
+
+/**
+ * Set chat metadata value
+ * @param {string} key - Metadata key
+ * @param {any} value - New value
+ */
+function set_chat_metadata(key, value) {
+    return errorHandler.withErrorBoundary('Settings', () => {
+        if (typeof chat_metadata === 'undefined') {
+            console.warn('[STnametracker] chat_metadata not available for saving');
+            return;
+        }
+        
+        if (!chat_metadata[MODULE_NAME]) {
+            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+        }
+        
+        chat_metadata[MODULE_NAME][key] = value;
+        debug.log(`Updated chat data ${key}`);
+        
+        if (typeof saveMetadataDebounced !== 'undefined') {
+            saveMetadataDebounced();
+        }
+    });
+}
+
 export {
     MODULE_NAME,
     DEFAULT_SETTINGS,
@@ -249,5 +372,12 @@ export {
     addCharacter,
     removeCharacter,
     getSetting,
-    setSetting
+    setSetting,
+    getCharacter,
+    setCharacter,
+    getLLMConfig,
+    getLorebookConfig,
+    getSettings,
+    get_chat_metadata,
+    set_chat_metadata
 };

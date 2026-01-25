@@ -11,7 +11,7 @@ import {
     getSettings, get_settings, set_settings, 
     getCharacters, getCharacter, setCharacter, removeCharacter,
     get_chat_metadata, set_chat_metadata, getSetting, setSetting
-} from '../utils/settings.js';
+} from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';

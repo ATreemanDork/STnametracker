@@ -12,7 +12,7 @@ import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
 import { 
     get_settings, getCharacters, getCharacter, setCharacter, getLorebookConfig 
-} from '../utils/settings.js';
+} from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { generateUID } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';

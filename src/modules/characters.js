@@ -11,7 +11,7 @@ import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
 import { 
     getCharacters, getCharacter, setCharacter, removeCharacter,
     get_settings, set_chat_metadata 
-} from '../utils/settings.js';
+} from '../core/settings.js';
 import { escapeHtml, generateUID, normalizeTitle } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
 

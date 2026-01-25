@@ -7,7 +7,7 @@
 
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
-import { get_settings, getCharacters, getLLMConfig } from '../utils/settings.js';
+import { get_settings, getCharacters, getLLMConfig } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { simpleHash } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';

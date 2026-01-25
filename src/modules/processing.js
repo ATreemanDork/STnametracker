@@ -7,7 +7,7 @@
 
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary } from '../core/errors.js';
-import { get_settings, set_settings, getLLMConfig } from '../utils/settings.js';
+import { get_settings, set_settings, getLLMConfig } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { NotificationManager } from '../utils/notifications.js';
 import { callLLMAnalysis, buildCharacterRoster, getMaxPromptLength, calculateMessageTokens } from './llm.js';
