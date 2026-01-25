@@ -5,6 +5,9 @@
  * for the Name Tracker extension.
  */
 
+// Early debugging
+console.log('[LOREBOOK] Starting module load...');
+
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
 import { settings } from '../core/settings.js';
@@ -12,7 +15,29 @@ import { stContext } from '../core/context.js';
 import { generateUID } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
 
-const debug = createModuleLogger('lorebook');
+// Post-import debugging
+console.log('[LOREBOOK] Imports completed. Types:');
+console.log('[LOREBOOK] createModuleLogger:', typeof createModuleLogger);
+console.log('[LOREBOOK] withErrorBoundary:', typeof withErrorBoundary);
+console.log('[LOREBOOK] NameTrackerError:', typeof NameTrackerError);
+
+// Try to create debug logger with explicit error handling
+let debug;
+try {
+    console.log('[LOREBOOK] About to call createModuleLogger...');
+    debug = createModuleLogger('lorebook');
+    console.log('[LOREBOOK] Debug logger created successfully:', debug);
+} catch (error) {
+    console.error('[LOREBOOK] Failed to create debug logger:', error);
+    console.error('[LOREBOOK] Error stack:', error.stack);
+    // Create fallback logger
+    debug = {
+        log: console.log.bind(console, '[LOREBOOK]'),
+        error: console.error.bind(console, '[LOREBOOK]'),
+        warn: console.warn.bind(console, '[LOREBOOK]'),
+        debug: console.debug.bind(console, '[LOREBOOK]')
+    };
+}
 const notifications = new NotificationManager('Lorebook Management');
 
 // Lorebook state

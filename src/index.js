@@ -23,6 +23,17 @@ import { initializeLorebook } from './modules/lorebook.js';
 import { /* initializeProcessingManager */ } from './modules/processing.js';
 import { initializeUIHandlers, initializeMenuButtons } from './modules/ui.js';
 
+// Immediate import validation
+console.log('[STnametracker] Main index.js: Import validation');
+console.log('[STnametracker] Main index.js: initializeLorebook import =', typeof initializeLorebook, initializeLorebook);
+console.log('[STnametracker] Main index.js: initializeUIHandlers import =', typeof initializeUIHandlers, initializeUIHandlers);
+console.log('[STnametracker] Main index.js: initializeMenuButtons import =', typeof initializeMenuButtons, initializeMenuButtons);
+
+if (typeof initializeLorebook !== 'function') {
+    console.error('[STnametracker] Main index.js: CRITICAL ERROR - initializeLorebook import failed!');
+    console.error('[STnametracker] Main index.js: Expected function, got:', typeof initializeLorebook, initializeLorebook);
+}
+
 // Extension name constant - MUST match manifest
 const extensionName = 'STnametracker';
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
@@ -130,13 +141,28 @@ class NameTrackerExtension {
      */
     async initializeModules() {
         logger.debug('Initializing feature modules...');
+        console.log('[STnametracker] initializeModules: Starting module initialization');
+        
+        // Add extensive debugging for imports
+        console.log('[STnametracker] initializeModules: Checking import of initializeLorebook...');
+        console.log('[STnametracker] initializeModules: initializeLorebook =', typeof initializeLorebook, initializeLorebook);
+        
+        if (typeof initializeLorebook !== 'function') {
+            console.error('[STnametracker] initializeModules: CRITICAL - initializeLorebook is not a function!');
+            console.error('[STnametracker] initializeModules: Type:', typeof initializeLorebook);
+            console.error('[STnametracker] initializeModules: Value:', initializeLorebook);
+            throw new Error('initializeLorebook is not a function: ' + typeof initializeLorebook);
+        }
 
         try {
             // Initialize lorebook for current chat
+            console.log('[STnametracker] initializeModules: About to call initializeLorebook()...');
             await initializeLorebook();
+            console.log('[STnametracker] initializeModules: initializeLorebook() completed successfully');
 
             logger.debug('Feature modules initialized');
         } catch (error) {
+            console.error('[STnametracker] initializeModules: Error in initializeLorebook:', error);
             logger.error('Failed to initialize feature modules:', error);
             throw error;
         }
