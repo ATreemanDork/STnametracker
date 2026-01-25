@@ -10,7 +10,7 @@ import '../style.css';
 import debugLogger from './core/debug.js';
 import { errorHandler } from './core/errors.js';
 import sillyTavernContext from './core/context.js';
-import { initializeSettings, onChatChanged, get_settings, getSettings, get_chat_metadata } from './utils/settings.js';
+import { get_settings, getSetting, setChatData, getChatData } from './core/settings.js';
 
 // Utilities
 import notifications from './utils/notifications.js';
@@ -123,13 +123,11 @@ class NameTrackerExtension {
 
         // Connect debug system to settings
         console.log('[STnametracker] initializeCore: Connecting debug system...');
-        debugLogger.isDebugEnabled = () => get_settings('debugMode');
+        debugLogger.isDebugEnabled = () => getSetting('debugMode', false);
         console.log('[STnametracker] initializeCore: Debug system connected');
 
-        // Initialize simplified settings system
-        console.log('[STnametracker] initializeCore: Initializing settings...');
-        await initializeSettings();
-        console.log('[STnametracker] initializeCore: Settings initialized');
+        // Settings are auto-initialized when accessed
+        console.log('[STnametracker] initializeCore: Settings ready');
 
         // Setup error recovery strategies
         this.setupErrorRecovery();
@@ -247,7 +245,8 @@ class NameTrackerExtension {
 
             eventSource.on(event_types.CHAT_CHANGED, async () => {
                 logger.debug('Chat changed event received');
-                await onChatChanged();
+                // Reset chat-level data when chat changes
+                setChatData({ characters: {}, lastScannedMessageId: -1 });
             });
 
             logger.debug('Event listeners registered');
@@ -289,7 +288,7 @@ class NameTrackerExtension {
         return {
             initialized: this.initialized,
             context: sillyTavernContext.getStatus(),
-            settings: { initialized: true, moduleCount: Object.keys(getSettings()).length },
+            settings: { initialized: true, moduleCount: Object.keys(get_settings()).length },
             debug: debugLogger.getPerformanceSummary(),
             errors: errorHandler.getRecentErrors(5).length,
         };
@@ -346,12 +345,8 @@ jQuery(async () => {
         window.ntDebug = {
             status: () => nameTrackerExtension.getStatus(),
             errors: () => errorHandler.getRecentErrors(),
-            settings: () => getExtensionSettings(),
-            chatData: () => ({ 
-                characters: get_chat_metadata('characters') || {},
-                messageCounter: get_chat_metadata('messageCounter') || 0,
-                lastScannedMessageId: get_chat_metadata('lastScannedMessageId') || -1
-            }),
+            settings: () => get_settings(),
+            chatData: () => getChatData(),
             clear: () => debugLogger.clear(),
         };
 
