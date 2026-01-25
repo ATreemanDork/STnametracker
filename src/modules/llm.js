@@ -432,10 +432,10 @@ export function parseJSONResponse(text) {
                 let salvaged = text;
                 
                 // Count open vs closed braces to determine how many we need
-                const openBraces = (text.match(/\\{/g) || []).length;
-                const closeBraces = (text.match(/\\}/g) || []).length;
-                const openBrackets = (text.match(/\\[/g) || []).length;
-                const closeBrackets = (text.match(/\\]/g) || []).length;
+                const openBraces = (text.match(/\{/g) || []).length;
+                const closeBraces = (text.match(/\}/g) || []).length;
+                const openBrackets = (text.match(/\[/g) || []).length;
+                const closeBrackets = (text.match(/\]/g) || []).length;
                 
                 // Try to close incomplete strings and objects
                 if (salvaged.match(/"[^"]*$/)) {

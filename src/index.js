@@ -16,6 +16,28 @@ import settingsManager from './core/settings.js';
 import notifications from './utils/notifications.js';
 import { /* escapeHtml, generateUID */ } from './utils/helpers.js';
 
+// Feature modules
+import { /* initializeCharacterManager */ } from './modules/characters.js';
+import { /* initializeLLMManager */ } from './modules/llm.js';
+import { initializeLorebook } from './modules/lorebook.js';
+import { /* initializeProcessingManager */ } from './modules/processing.js';
+import { loadSettingsHTML, initializeUIHandlers, initializeMenuButtons } from './modules/ui.js';
+
+// Extension name constant - MUST match manifest
+const extensionName = 'STnametracker';
+const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+
+/**
+ * Get extension settings - Required for SillyTavern integration
+ * This is the pattern that SillyTavern expects
+ * @returns {Object} Extension settings object
+ */
+function getSettings() {
+    // Use global extension_settings that SillyTavern provides
+    return window.extension_settings?.[extensionName] || {};
+}
+
+// Create the logger AFTER the getSettings function is defined
 const logger = debugLogger.createModuleLogger('Main');
 
 /**
@@ -42,14 +64,14 @@ class NameTrackerExtension {
             // Initialize core systems
             await this.initializeCore();
 
-            // TODO: Initialize feature modules
-            // await this.initializeModules();
+            // Initialize feature modules
+            await this.initializeModules();
 
-            // TODO: Setup UI
-            // await this.initializeUI();
+            // Setup UI
+            await this.initializeUI();
 
-            // TODO: Register event listeners
-            // this.registerEventListeners();
+            // Register event listeners
+            this.registerEventListeners();
 
             this.initialized = true;
             logger.log('Name Tracker Extension initialized successfully');
@@ -83,6 +105,85 @@ class NameTrackerExtension {
         logger.debug('Core systems initialized');
     }
 
+    /**
+     * Initialize feature modules
+     * @returns {Promise<void>}
+     */
+    async initializeModules() {
+        logger.debug('Initializing feature modules...');
+
+        try {
+            // Initialize lorebook for current chat
+            await initializeLorebook();
+            
+            logger.debug('Feature modules initialized');
+        } catch (error) {
+            logger.error('Failed to initialize feature modules:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Initialize UI components
+     * @returns {Promise<void>}
+     */
+    async initializeUI() {
+        logger.debug('Initializing UI...');
+        
+        try {
+            // Load settings HTML using proper jQuery pattern
+            const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+            $('#extensions_settings').append(settingsHtml);
+            
+            // Initialize UI handlers
+            initializeUIHandlers();
+            initializeMenuButtons();
+            
+            logger.debug('UI initialized');
+        } catch (error) {
+            logger.error('Failed to initialize UI:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Register SillyTavern event listeners
+     */
+    registerEventListeners() {
+        logger.debug('Registering event listeners...');
+        
+        try {
+            // Get event objects from SillyTavern context
+            const context = sillyTavernContext.getContext();
+            const eventSource = context.eventSource;
+            const event_types = context.event_types;
+
+            if (!eventSource || !event_types) {
+                logger.warn('SillyTavern event system not available');
+                return;
+            }
+
+            // Register for SillyTavern events
+            eventSource.on(event_types.MESSAGE_RECEIVED, async (messageId) => {
+                logger.debug('Message received event:', messageId);
+                // TODO: Process new message
+            });
+
+            eventSource.on(event_types.MESSAGE_SENT, async (messageId) => {
+                logger.debug('Message sent event:', messageId);
+                // TODO: Process new message
+            });
+
+            eventSource.on(event_types.CHAT_CHANGED, async () => {
+                logger.debug('Chat changed event received');
+                await settingsManager.onChatChanged();
+            });
+            
+            logger.debug('Event listeners registered');
+        } catch (error) {
+            logger.error('Failed to register event listeners:', error);
+        }
+    }
     /**
      * Setup error recovery strategies
      */
@@ -146,9 +247,17 @@ class NameTrackerExtension {
 // Create extension instance
 const nameTrackerExtension = new NameTrackerExtension();
 
-// Initialize when jQuery is ready
+// Initialize extension when jQuery is ready - SillyTavern pattern
 jQuery(async () => {
     try {
+        logger.log('Name Tracker Extension loading...');
+        
+        // Initialize extension_settings for this extension
+        if (!window.extension_settings) {
+            window.extension_settings = {};
+        }
+        window.extension_settings[extensionName] = window.extension_settings[extensionName] || {};
+        
         await nameTrackerExtension.initialize();
 
         // Make extension available globally for debugging
@@ -158,11 +267,12 @@ jQuery(async () => {
         window.ntDebug = {
             status: () => nameTrackerExtension.getStatus(),
             errors: () => errorHandler.getRecentErrors(),
-            settings: () => settingsManager.getSettings(),
+            settings: () => getSettings(),
             chatData: () => settingsManager.getChatData(),
             clear: () => debugLogger.clear(),
         };
 
+        logger.log('Name Tracker Extension loaded successfully');
         console.log('[STnametracker] Extension loaded. Use ntDebug.status() for diagnostics.');
 
     } catch (error) {
