@@ -59,13 +59,13 @@ class SettingsManager {
             }
 
             logger.debug('Initializing settings manager');
-            
+
             // Load global settings
             await this.loadSettings();
-            
+
             // Load chat-level data
             await this.loadChatData();
-            
+
             this._initialized = true;
             logger.debug('Settings manager initialized');
         });
@@ -78,7 +78,7 @@ class SettingsManager {
     async loadSettings() {
         return errorHandler.withErrorBoundary('Settings', async () => {
             const extensionSettings = sillyTavernContext.getExtensionSettings();
-            
+
             // Initialize with defaults if not exists
             if (!extensionSettings[EXTENSION_NAME]) {
                 extensionSettings[EXTENSION_NAME] = {};
@@ -87,12 +87,12 @@ class SettingsManager {
             // Merge with defaults to ensure all properties exist
             this._settings = { ...DEFAULT_SETTINGS };
             Object.assign(this._settings, extensionSettings[EXTENSION_NAME]);
-            
+
             // Update the reference in SillyTavern
             extensionSettings[EXTENSION_NAME] = this._settings;
-            
+
             logger.debug('Loaded global settings:', Object.keys(this._settings));
-            
+
             // Trigger callbacks
             this._settingsCallbacks.forEach(callback => {
                 try {
@@ -111,7 +111,7 @@ class SettingsManager {
     async loadChatData() {
         return errorHandler.withErrorBoundary('Settings', async () => {
             const chatMetadata = sillyTavernContext.getChatMetadata();
-            
+
             // Initialize chat data if not exists
             if (!chatMetadata[EXTENSION_NAME]) {
                 this._chatData = { ...DEFAULT_CHAT_DATA };
@@ -124,7 +124,7 @@ class SettingsManager {
                 chatMetadata[EXTENSION_NAME] = this._chatData;
                 logger.debug('Loaded existing chat data:', Object.keys(this._chatData.characters));
             }
-            
+
             // Trigger callbacks
             this._chatCallbacks.forEach(callback => {
                 try {
@@ -176,9 +176,9 @@ class SettingsManager {
 
             const oldValue = this._settings[key];
             this._settings[key] = value;
-            
+
             logger.debug(`Updated setting ${key}: ${oldValue} → ${value}`);
-            
+
             // Trigger callbacks
             this._settingsCallbacks.forEach(callback => {
                 try {
@@ -187,7 +187,7 @@ class SettingsManager {
                     logger.error('Settings callback error:', error);
                 }
             });
-            
+
             // Save with debounce
             await this.saveSettings();
         });
@@ -211,9 +211,9 @@ class SettingsManager {
 
             const oldValue = this._chatData[key];
             this._chatData[key] = value;
-            
+
             logger.debug(`Updated chat data ${key}`);
-            
+
             // Trigger callbacks
             this._chatCallbacks.forEach(callback => {
                 try {
@@ -222,7 +222,7 @@ class SettingsManager {
                     logger.error('Chat data callback error:', error);
                 }
             });
-            
+
             // Save with debounce
             await this.saveChatData();
         });
@@ -249,7 +249,7 @@ class SettingsManager {
         if (this._saveTimeout) {
             clearTimeout(this._saveTimeout);
         }
-        
+
         this._saveTimeout = setTimeout(async () => {
             await errorHandler.withErrorBoundary('Settings', async () => {
                 await sillyTavernContext.saveExtensionSettings();
@@ -359,13 +359,13 @@ class SettingsManager {
     async reset() {
         return errorHandler.withErrorBoundary('Settings', async () => {
             logger.warn('Resetting settings to defaults');
-            
+
             Object.assign(this._settings, DEFAULT_SETTINGS);
             Object.assign(this._chatData, DEFAULT_CHAT_DATA);
-            
+
             await this.saveSettings();
             await this.saveChatData();
-            
+
             // Trigger callbacks
             this._settingsCallbacks.forEach(callback => {
                 try {
@@ -374,7 +374,7 @@ class SettingsManager {
                     logger.error('Settings callback error:', error);
                 }
             });
-            
+
             this._chatCallbacks.forEach(callback => {
                 try {
                     callback(this._chatData);

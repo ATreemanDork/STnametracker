@@ -49,7 +49,7 @@ class DebugLogger {
 
         const timestamp = new Date().toLocaleTimeString();
         const prefix = `[${MODULE_NAME}:${moduleName}] ${timestamp}`;
-        
+
         switch (level) {
             case 'error':
                 console.error(prefix, ...args);
@@ -108,14 +108,14 @@ class DebugLogger {
 
     /**
      * End performance timer and log duration
-     * @param {string} moduleName - Module name  
+     * @param {string} moduleName - Module name
      * @param {string} timerName - Timer identifier
      * @returns {number} Duration in milliseconds
      */
     endTimer(moduleName, timerName) {
         const key = `${moduleName}:${timerName}`;
         const startTime = this.performanceMarks.get(key);
-        
+
         if (startTime === undefined) {
             this.log(moduleName, 'warn', `Timer '${timerName}' was not started`);
             return 0;
@@ -123,7 +123,7 @@ class DebugLogger {
 
         const duration = performance.now() - startTime;
         this.performanceMarks.delete(key);
-        
+
         this.log(moduleName, 'debug', `Timer '${timerName}': ${duration.toFixed(2)}ms`);
         return duration;
     }

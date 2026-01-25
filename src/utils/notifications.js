@@ -16,7 +16,7 @@ class NotificationManager {
             progressBar: true,
             preventDuplicates: true,
         };
-        
+
         this.prefix = 'Name Tracker: ';
     }
 
@@ -34,7 +34,7 @@ class NotificationManager {
 
     /**
      * Show info notification
-     * @param {string} message - Message to display  
+     * @param {string} message - Message to display
      * @param {string} title - Optional title
      * @param {Object} options - Toastr options
      */
@@ -47,7 +47,7 @@ class NotificationManager {
     /**
      * Show warning notification
      * @param {string} message - Message to display
-     * @param {string} title - Optional title  
+     * @param {string} title - Optional title
      * @param {Object} options - Toastr options
      */
     warning(message, title = 'Warning', options = {}) {
@@ -63,11 +63,11 @@ class NotificationManager {
      * @param {Object} options - Toastr options
      */
     error(message, title = 'Error', options = {}) {
-        const opts = { 
-            ...this.defaultOptions, 
-            timeOut: 10000, 
+        const opts = {
+            ...this.defaultOptions,
+            timeOut: 10000,
             extendedTimeOut: 5000,
-            ...options 
+            ...options,
         };
         toastr.error(this.prefix + message, title, opts);
         logger.error('Error notification:', message);
@@ -99,7 +99,7 @@ class NotificationManager {
             default:
                 toastr.info(this.prefix + message, title, opts);
         }
-        
+
         logger.debug('Persistent notification:', message);
     }
 
@@ -131,10 +131,10 @@ class NotificationManager {
 
         // Remove existing notification with same ID
         toastr.remove();
-        
+
         toastr.info(progressHtml, '', opts);
         logger.debug('Progress notification:', message, `${progress}%`);
-        
+
         return notificationId;
     }
 
@@ -167,7 +167,7 @@ class NotificationManager {
         window.nameTrackerNotifications = window.nameTrackerNotifications || {};
         window.nameTrackerNotifications.confirmCallbacks = window.nameTrackerNotifications.confirmCallbacks || {};
         window.nameTrackerNotifications.confirmCallbacks[confirmId] = { onConfirm, onCancel };
-        
+
         window.nameTrackerNotifications.handleConfirmOk = (id) => {
             const callbacks = window.nameTrackerNotifications.confirmCallbacks[id];
             if (callbacks && callbacks.onConfirm) {
@@ -197,7 +197,7 @@ class NotificationManager {
 
         toastr.info(confirmHtml, this.prefix + title, opts);
         logger.debug('Confirmation notification:', message);
-        
+
         return confirmId;
     }
 

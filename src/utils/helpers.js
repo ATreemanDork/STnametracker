@@ -31,7 +31,7 @@ export function escapeHtml(text) {
     if (typeof text !== 'string') {
         return '';
     }
-    
+
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -54,15 +54,15 @@ export function deepClone(obj) {
     if (obj === null || typeof obj !== 'object') {
         return obj;
     }
-    
+
     if (obj instanceof Date) {
         return new Date(obj.getTime());
     }
-    
+
     if (obj instanceof Array) {
         return obj.map(item => deepClone(item));
     }
-    
+
     if (typeof obj === 'object') {
         const cloned = {};
         Object.keys(obj).forEach(key => {
@@ -70,7 +70,7 @@ export function deepClone(obj) {
         });
         return cloned;
     }
-    
+
     return obj;
 }
 
@@ -131,7 +131,7 @@ export function normalizeName(name) {
     if (typeof name !== 'string') {
         return '';
     }
-    
+
     return name
         .trim()
         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
@@ -148,23 +148,23 @@ export function normalizeName(name) {
  */
 export function calculateSimilarity(str1, str2) {
     if (!str1 || !str2) return 0;
-    
+
     const a = str1.toLowerCase();
     const b = str2.toLowerCase();
-    
+
     if (a === b) return 1;
-    
+
     // Simple Levenshtein distance
     const matrix = [];
-    
+
     for (let i = 0; i <= b.length; i++) {
         matrix[i] = [i];
     }
-    
+
     for (let j = 0; j <= a.length; j++) {
         matrix[0][j] = j;
     }
-    
+
     for (let i = 1; i <= b.length; i++) {
         for (let j = 1; j <= a.length; j++) {
             if (b.charAt(i - 1) === a.charAt(j - 1)) {
@@ -173,12 +173,12 @@ export function calculateSimilarity(str1, str2) {
                 matrix[i][j] = Math.min(
                     matrix[i - 1][j - 1] + 1, // substitution
                     matrix[i][j - 1] + 1,     // insertion
-                    matrix[i - 1][j] + 1      // deletion
+                    matrix[i - 1][j] + 1,      // deletion
                 );
             }
         }
     }
-    
+
     const maxLength = Math.max(a.length, b.length);
     return 1 - (matrix[b.length][a.length] / maxLength);
 }
@@ -192,12 +192,12 @@ export function formatTimestamp(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now - date;
-    
+
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     if (minutes > 0) return `${minutes}m ago`;

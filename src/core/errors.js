@@ -51,15 +51,15 @@ class ErrorHandler {
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
                 const result = await operation();
-                
+
                 if (operationId) {
                     logger.trace(operationId, `Operation completed successfully in ${moduleName}`);
                 }
-                
+
                 return result;
             } catch (error) {
                 lastError = error;
-                
+
                 if (attempt < retries) {
                     logger.warn(`Retrying operation in ${moduleName}, attempt ${attempt + 1}/${retries + 1}:`, error.message);
                     await this.delay(Math.pow(2, attempt) * 100); // Exponential backoff
@@ -122,7 +122,7 @@ class ErrorHandler {
                 error.message,
                 code,
                 moduleName,
-                this.isRecoverable(error, code)
+                this.isRecoverable(error, code),
             );
         }
 
@@ -153,19 +153,19 @@ class ErrorHandler {
         if (error.message.includes('fetch') || error.message.includes('network')) {
             return 'NETWORK_ERROR';
         }
-        
+
         if (error.message.includes('JSON') || error.message.includes('parse')) {
             return 'DATA_FORMAT_ERROR';
         }
-        
+
         if (error.message.includes('context') || error.message.includes('SillyTavern')) {
             return 'CONTEXT_ERROR';
         }
-        
+
         if (error.name === 'TypeError') {
             return 'TYPE_ERROR';
         }
-        
+
         if (moduleName === 'LLM' && (error.message.includes('quota') || error.message.includes('rate'))) {
             return 'API_LIMIT_ERROR';
         }
@@ -184,7 +184,7 @@ class ErrorHandler {
             'CONTEXT_ERROR',
             'TYPE_ERROR',
         ];
-        
+
         return !nonRecoverableErrors.includes(code);
     }
 
@@ -253,13 +253,13 @@ class ErrorHandler {
      * @param {NameTrackerError} error - Error to display
      */
     notifyUser(error) {
-        let message = `Name Tracker: ${error.message}`;
-        
+        const message = `Name Tracker: ${error.message}`;
+
         if (error.recoverable) {
             toastr.warning(message, 'Warning', { timeOut: 5000 });
         } else {
             toastr.error(message, 'Error', { timeOut: 8000 });
-            
+
             // Notify critical error callbacks
             this.criticalErrorCallbacks.forEach(callback => {
                 try {

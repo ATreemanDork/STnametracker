@@ -14,7 +14,7 @@ import settingsManager from './core/settings.js';
 
 // Utilities
 import notifications from './utils/notifications.js';
-import { escapeHtml, generateUID } from './utils/helpers.js';
+import { /* escapeHtml, generateUID */ } from './utils/helpers.js';
 
 const logger = debugLogger.createModuleLogger('Main');
 
@@ -38,29 +38,29 @@ class NameTrackerExtension {
             }
 
             logger.log('Starting Name Tracker Extension v2.1.0');
-            
+
             // Initialize core systems
             await this.initializeCore();
-            
+
             // TODO: Initialize feature modules
             // await this.initializeModules();
-            
+
             // TODO: Setup UI
             // await this.initializeUI();
-            
+
             // TODO: Register event listeners
             // this.registerEventListeners();
 
             this.initialized = true;
             logger.log('Name Tracker Extension initialized successfully');
 
-        }, { 
+        }, {
             retries: 2,
             fallback: async (error) => {
                 logger.error('Failed to initialize extension:', error);
                 notifications.error('Failed to initialize', 'Extension Error');
                 return false;
-            }
+            },
         });
     }
 
@@ -73,13 +73,13 @@ class NameTrackerExtension {
 
         // Connect debug system to settings
         debugLogger.isDebugEnabled = () => settingsManager.isDebugMode();
-        
+
         // Initialize settings manager
         await settingsManager.initialize();
-        
+
         // Setup error recovery strategies
         this.setupErrorRecovery();
-        
+
         logger.debug('Core systems initialized');
     }
 
@@ -130,14 +130,14 @@ class NameTrackerExtension {
     async shutdown() {
         return errorHandler.withErrorBoundary('Main', async () => {
             logger.log('Shutting down Name Tracker Extension');
-            
+
             // TODO: Cleanup modules
             // TODO: Remove event listeners
             // TODO: Save state
-            
+
             this.initialized = false;
             debugLogger.clear();
-            
+
             logger.log('Extension shutdown complete');
         }, { silent: true });
     }
@@ -150,10 +150,10 @@ const nameTrackerExtension = new NameTrackerExtension();
 jQuery(async () => {
     try {
         await nameTrackerExtension.initialize();
-        
+
         // Make extension available globally for debugging
         window.nameTrackerExtension = nameTrackerExtension;
-        
+
         // Add debug commands to browser console
         window.ntDebug = {
             status: () => nameTrackerExtension.getStatus(),
@@ -162,9 +162,9 @@ jQuery(async () => {
             chatData: () => settingsManager.getChatData(),
             clear: () => debugLogger.clear(),
         };
-        
+
         console.log('[STnametracker] Extension loaded. Use ntDebug.status() for diagnostics.');
-        
+
     } catch (error) {
         console.error('[STnametracker] Failed to initialize:', error);
         notifications.error('Extension failed to load', 'Critical Error');
