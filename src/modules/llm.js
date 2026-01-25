@@ -57,6 +57,89 @@ const analysisCache = new Map(); // Cache for LLM analysis results
 let ollamaModels = []; // Available Ollama models
 
 /**
+ * JSON Schema for structured character extraction
+ * Enforces strict JSON structure for reliable parsing
+ * Per: https://docs.sillytavern.app/for-contributors/writing-extensions/#structured-outputs
+ */
+const CHARACTER_EXTRACTION_SCHEMA = {
+    name: 'CharacterAnalysis',
+    description: 'Structured character information extracted from chat messages',
+    strict: true,
+    value: {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        'type': 'object',
+        'properties': {
+            'characters': {
+                'type': 'array',
+                'description': 'Array of character objects',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'name': {
+                            'type': 'string',
+                            'description': 'Character\'s preferred name (first and last if provided)'
+                        },
+                        'aliases': {
+                            'type': 'array',
+                            'description': 'Alternative names, nicknames, titles',
+                            'items': { 'type': 'string' }
+                        },
+                        'physicalAge': {
+                            'type': 'string',
+                            'description': 'Apparent age in years or ??? if unknown'
+                        },
+                        'mentalAge': {
+                            'type': 'string',
+                            'description': 'Actual age (can differ for immortals) or ??? if unknown'
+                        },
+                        'physical': {
+                            'type': 'string',
+                            'description': 'Physical description (2-3 paragraphs)'
+                        },
+                        'personality': {
+                            'type': 'string',
+                            'description': 'Personality traits, quirks, habits (2-3 paragraphs)'
+                        },
+                        'sexuality': {
+                            'type': 'string',
+                            'description': 'Sexual orientation, preferences if mentioned'
+                        },
+                        'raceEthnicity': {
+                            'type': 'string',
+                            'description': 'Race/species/ethnicity if mentioned'
+                        },
+                        'roleSkills': {
+                            'type': 'string',
+                            'description': 'Occupation, abilities, talents'
+                        },
+                        'lastInteraction': {
+                            'type': 'string',
+                            'description': 'Most recent interaction with user'
+                        },
+                        'relationships': {
+                            'type': 'array',
+                            'description': 'Relationships with other characters',
+                            'items': { 'type': 'string' }
+                        },
+                        'confidence': {
+                            'type': 'integer',
+                            'description': 'Confidence score 0-100 (90+=explicit, 70-89=clear, 50-69=mentioned, <50=vague)',
+                            'minimum': 0,
+                            'maximum': 100
+                        }
+                    },
+                    'required': ['name', 'aliases', 'physicalAge', 'mentalAge', 'physical', 'personality', 
+                                 'sexuality', 'raceEthnicity', 'roleSkills', 'lastInteraction', 'relationships', 'confidence'],
+                    'additionalProperties': false
+                }
+            }
+        },
+        'required': ['characters'],
+        'additionalProperties': false
+    }
+};
+
+/**
  * Default system prompt for character analysis
  */
 const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
@@ -238,24 +321,22 @@ export async function getMaxPromptLength() {
             // Get Ollama model's context size
             maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
         } else {
-            // Use SillyTavern's context - try multiple possible property names
+            // Use SillyTavern's context
             const context = stContext.getContext();
             
-            // SillyTavern stores context size in different properties depending on API
-            maxContext = context.maxContext 
-                      || context.max_context 
-                      || context.contextSize 
-                      || context.context_size
-                      || 4096;
+            debug.log(`Raw context properties available: ${Object.keys(context).filter(k => k.toLowerCase().includes('max') || k.toLowerCase().includes('context')).join(', ')}`);
             
-            // Get max generation tokens (response length limit)
-            maxGenTokens = context.amount_gen 
-                        || context.max_length 
-                        || context.maxLength
-                        || 2048;
+            // SillyTavern exposes maxContext - this is the total context window
+            maxContext = context.maxContext || 4096;
             
-            debug.log(`Context detection: maxContext=${maxContext}, maxGenTokens=${maxGenTokens}`);
-            debug.log(`Context object keys: ${Object.keys(context).filter(k => k.toLowerCase().includes('context') || k.toLowerCase().includes('max') || k.toLowerCase().includes('length')).join(', ')}`);
+            debug.log(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
+            
+            // For our extension's background analysis, we set our own max_tokens in generateRaw()
+            // We don't use amount_gen (that's for user chat messages)
+            // Reserve a reasonable amount for our structured JSON responses
+            maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
+            
+            debug.log(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
         }
 
         // Reserve space for: system prompt (500 tokens) + max generation (maxGenTokens) + safety margin (500)
@@ -347,6 +428,7 @@ export async function callSillyTavern(prompt) {
 
         // Use generateRaw as documented in:
         // https://docs.sillytavern.app/for-contributors/writing-extensions/#raw-generation
+        // With structured outputs per: https://docs.sillytavern.app/for-contributors/writing-extensions/#structured-outputs
         const result = await context.generateRaw({
             prompt: prompt,  // Can be string (Text Completion) or array (Chat Completion)
             systemPrompt: '',  // Empty, we include instructions in prompt
@@ -360,6 +442,9 @@ export async function callSillyTavern(prompt) {
             rep_pen: GENERATION_REP_PEN,             // Slight repetition penalty
             max_tokens: maxTokens,  // Dynamic: 25% of context, min 4000 (prevents truncation)
             stop: [],           // No custom stop sequences needed
+            // JSON Schema for structured output (Chat Completion APIs only)
+            // This enforces valid JSON structure - if API doesn't support it, will be ignored
+            jsonSchema: CHARACTER_EXTRACTION_SCHEMA,
         });
 
         debug.log();

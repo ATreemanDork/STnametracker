@@ -800,9 +800,15 @@ function showDebugStatus() {
             
             // Get raw context info
             const context = stContext.getContext();
+            
+            // Calculate our extension's max_tokens (same logic as in llm.js)
+            const totalContext = context.maxContext || 4096;
+            const extensionMaxTokens = Math.min(4096, Math.floor(totalContext * 0.15));
+            
             contextDetails = {
-                totalContext: context.maxContext || context.max_context || context.contextSize || context.context_size || 'unknown',
-                maxGeneration: context.amount_gen || context.max_length || context.maxLength || 'unknown',
+                totalContext: totalContext,
+                maxGeneration: extensionMaxTokens,
+                maxGenerationNote: 'Extension-controlled (15% of context, max 4096)',
                 modelName: context.main_api || 'unknown'
             };
         } catch (error) {
@@ -835,7 +841,7 @@ function showDebugStatus() {
             },
             'SillyTavern Context': {
                 'Total Context Window': contextDetails.totalContext,
-                'Max Generation Tokens': contextDetails.maxGeneration,
+                'Extension Max Tokens': `${contextDetails.maxGeneration} (${contextDetails.maxGenerationNote})`,
                 'System Prompt Reserve': systemPromptTokens,
                 'Safety Margin': safetyMargin,
                 'Total Reserved': reservedTokens
