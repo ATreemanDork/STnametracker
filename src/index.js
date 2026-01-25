@@ -54,27 +54,41 @@ class NameTrackerExtension {
      * @returns {Promise<void>}
      */
     async initialize() {
+        console.log('[STnametracker] Enter initialize() method');
         return errorHandler.withErrorBoundary('Main', async () => {
+            console.log('[STnametracker] Inside error boundary');
             if (this.initialized) {
+                console.log('[STnametracker] Already initialized, skipping');
                 return;
             }
 
+            console.log('[STnametracker] Starting initialization sequence');
             logger.log('Starting Name Tracker Extension v2.1.0');
 
             // Initialize core systems
+            console.log('[STnametracker] Step 1: Initializing core systems...');
             await this.initializeCore();
+            console.log('[STnametracker] Step 1: Core systems completed');
 
             // Initialize feature modules
+            console.log('[STnametracker] Step 2: Initializing feature modules...');
             await this.initializeModules();
+            console.log('[STnametracker] Step 2: Feature modules completed');
 
             // Setup UI
+            console.log('[STnametracker] Step 3: Initializing UI...');
             await this.initializeUI();
+            console.log('[STnametracker] Step 3: UI completed');
 
             // Register event listeners
+            console.log('[STnametracker] Step 4: Registering event listeners...');
             this.registerEventListeners();
+            console.log('[STnametracker] Step 4: Event listeners completed');
 
             this.initialized = true;
+            console.log('[STnametracker] Marking as initialized');
             logger.log('Name Tracker Extension initialized successfully');
+            console.log('[STnametracker] Full initialization sequence completed successfully');
 
         }, {
             retries: 2,
@@ -91,13 +105,18 @@ class NameTrackerExtension {
      * @returns {Promise<void>}
      */
     async initializeCore() {
+        console.log('[STnametracker] initializeCore: Starting...');
         logger.debug('Initializing core systems...');
 
         // Connect debug system to settings
+        console.log('[STnametracker] initializeCore: Connecting debug system...');
         debugLogger.isDebugEnabled = () => settingsManager.isDebugMode();
+        console.log('[STnametracker] initializeCore: Debug system connected');
 
         // Initialize settings manager
+        console.log('[STnametracker] initializeCore: Initializing settings manager...');
         await settingsManager.initialize();
+        console.log('[STnametracker] initializeCore: Settings manager initialized');
 
         // Setup error recovery strategies
         this.setupErrorRecovery();
@@ -128,16 +147,30 @@ class NameTrackerExtension {
      * @returns {Promise<void>}
      */
     async initializeUI() {
+        console.log('[STnametracker] initializeUI: Starting UI initialization...');
         logger.debug('Initializing UI...');
         
         try {
             // Load settings HTML using proper jQuery pattern
+            console.log('[STnametracker] initializeUI: Loading settings HTML from:', `${extensionFolderPath}/settings.html`);
             const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
-            $('#extensions_settings').append(settingsHtml);
+            console.log('[STnametracker] initializeUI: Settings HTML loaded, length:', settingsHtml.length);
+            
+            console.log('[STnametracker] initializeUI: Finding #extensions_settings element...');
+            const targetElement = $('#extensions_settings');
+            console.log('[STnametracker] initializeUI: Target element found:', targetElement.length > 0);
+            
+            targetElement.append(settingsHtml);
+            console.log('[STnametracker] initializeUI: Settings HTML appended');
             
             // Initialize UI handlers
+            console.log('[STnametracker] initializeUI: Initializing UI handlers...');
             initializeUIHandlers();
+            console.log('[STnametracker] initializeUI: UI handlers initialized');
+            
+            console.log('[STnametracker] initializeUI: Initializing menu buttons...');
             initializeMenuButtons();
+            console.log('[STnametracker] initializeUI: Menu buttons initialized');
             
             logger.debug('UI initialized');
         } catch (error) {
@@ -249,16 +282,24 @@ const nameTrackerExtension = new NameTrackerExtension();
 
 // Initialize extension when jQuery is ready - SillyTavern pattern
 jQuery(async () => {
+    console.log('[STnametracker] jQuery ready, starting extension load...');
     try {
+        console.log('[STnametracker] Logger available, initializing...');
         logger.log('Name Tracker Extension loading...');
         
         // Initialize extension_settings for this extension
+        console.log('[STnametracker] Setting up extension_settings...');
         if (!window.extension_settings) {
+            console.log('[STnametracker] Creating window.extension_settings');
             window.extension_settings = {};
         }
+        console.log('[STnametracker] Current extension_settings keys:', Object.keys(window.extension_settings));
         window.extension_settings[extensionName] = window.extension_settings[extensionName] || {};
+        console.log('[STnametracker] Extension settings initialized');
         
+        console.log('[STnametracker] Starting main initialization...');
         await nameTrackerExtension.initialize();
+        console.log('[STnametracker] Main initialization completed');
 
         // Make extension available globally for debugging
         window.nameTrackerExtension = nameTrackerExtension;

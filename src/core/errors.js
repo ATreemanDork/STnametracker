@@ -58,9 +58,11 @@ class ErrorHandler {
 
                 return result;
             } catch (error) {
+                console.log(`[STnametracker] Error caught in ${moduleName}:`, error);
                 lastError = error;
 
                 if (attempt < retries) {
+                    console.log(`[STnametracker] Retrying operation in ${moduleName}, attempt ${attempt + 1}/${retries + 1}:`, error.message);
                     logger.warn(`Retrying operation in ${moduleName}, attempt ${attempt + 1}/${retries + 1}:`, error.message);
                     await this.delay(Math.pow(2, attempt) * 100); // Exponential backoff
                     continue;
@@ -69,6 +71,7 @@ class ErrorHandler {
         }
 
         // All retries failed
+        console.log(`[STnametracker] All retries failed in ${moduleName}, tracking error:`, lastError);
         const trackedError = this.trackError(lastError, moduleName, {
             operation: operation.name || 'anonymous',
             duration: Date.now() - startTime,
@@ -77,6 +80,7 @@ class ErrorHandler {
         });
 
         if (!silent) {
+            console.log(`[STnametracker] Notifying user of error in ${moduleName}`);
             this.notifyUser(trackedError);
         }
 

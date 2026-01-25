@@ -53,20 +53,29 @@ class SettingsManager {
      * @returns {Promise<void>}
      */
     async initialize() {
+        console.log('[STnametracker] SettingsManager.initialize: Starting...');
         return errorHandler.withErrorBoundary('Settings', async () => {
+            console.log('[STnametracker] SettingsManager.initialize: Inside error boundary');
             if (this._initialized) {
+                console.log('[STnametracker] SettingsManager.initialize: Already initialized');
                 return;
             }
 
+            console.log('[STnametracker] SettingsManager.initialize: Initializing settings manager');
             logger.debug('Initializing settings manager');
 
             // Load global settings
+            console.log('[STnametracker] SettingsManager.initialize: Loading global settings...');
             await this.loadSettings();
+            console.log('[STnametracker] SettingsManager.initialize: Global settings loaded');
 
             // Load chat-level data
+            console.log('[STnametracker] SettingsManager.initialize: Loading chat data...');
             await this.loadChatData();
+            console.log('[STnametracker] SettingsManager.initialize: Chat data loaded');
 
             this._initialized = true;
+            console.log('[STnametracker] SettingsManager.initialize: Marked as initialized');
             logger.debug('Settings manager initialized');
         });
     }

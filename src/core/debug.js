@@ -164,6 +164,7 @@ const debugLogger = new DebugLogger();
 // Export the instance and key methods for easy access
 export { debugLogger };
 export const createModuleLogger = debugLogger.createModuleLogger.bind(debugLogger);
-export const measurePerformance = debugLogger.measurePerformance.bind(debugLogger);
-export const traceOperation = debugLogger.traceOperation.bind(debugLogger);
+export const addTrace = debugLogger.addTrace.bind(debugLogger);
+export const startTimer = debugLogger.startTimer.bind(debugLogger);
+export const endTimer = debugLogger.endTimer.bind(debugLogger);
 export default debugLogger;

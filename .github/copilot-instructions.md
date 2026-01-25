@@ -40,6 +40,73 @@ npm run dev       # Development build with watch
 npm run lint      # ESLint validation
 ```
 
+## MANDATORY PRE-EDIT VALIDATION
+
+**⚠️ CRITICAL REQUIREMENT: Before making ANY code edits, you MUST validate interfaces to avoid assumption-based errors.**
+
+### Required Validation Steps
+
+1. **Check Import/Export Consistency**
+   ```bash
+   # Use validation script to check for mismatches
+   node validate-interfaces.js
+   ```
+
+2. **Verify Method Existence Before Binding**
+   ```bash
+   # Check what methods actually exist in class
+   grep -n "^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*(" src/core/debug.js
+   
+   # Check what's being imported
+   grep -r "import.*{.*createModuleLogger" src/
+   ```
+
+3. **Cross-Reference Interface Requirements**
+   - Map all import statements to see what's being requested
+   - Check source files to see what actually exists  
+   - Compare interface expectations vs reality
+   - Test exports by examining webpack output
+
+4. **Validate Function Signatures**
+   ```bash
+   # Before adding exports, verify the function exists
+   grep -n "function functionName\|const functionName\|functionName.*=" file.js
+   ```
+
+### Interface Validation Checklist
+
+**Before ANY export statement:**
+- [ ] Confirm the method/property actually exists in the class/object
+- [ ] Check the exact method signature and parameters
+- [ ] Verify the method is not private or internal-only
+- [ ] Test that bind() calls reference valid methods
+
+**Before ANY import statement:**
+- [ ] Confirm the target file exports the requested item
+- [ ] Check that export names match exactly (case-sensitive)
+- [ ] Verify the import path is correct
+- [ ] Ensure circular dependencies won't occur
+
+### Common Anti-Patterns to Avoid
+
+❌ **DON'T** assume methods exist based on naming patterns
+❌ **DON'T** bind undefined methods (e.g., `obj.nonExistentMethod.bind(obj)`)  
+❌ **DON'T** export functions that haven't been implemented
+❌ **DON'T** import from modules without checking their exports
+
+✅ **DO** grep for actual function definitions first
+✅ **DO** run validation script before making changes
+✅ **DO** read the actual source code to understand interfaces
+✅ **DO** test webpack builds after interface changes
+
+### Emergency Recovery
+
+If validation reveals missing exports/functions:
+1. **Stop immediately** - don't guess or assume
+2. **Map out what actually exists** vs what's needed
+3. **Create missing functions** or **remove invalid imports**
+4. **Rebuild and test** systematically
+
 ## Critical Integration Patterns
 
 ### SillyTavern API Usage
