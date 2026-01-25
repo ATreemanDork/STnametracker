@@ -10,7 +10,9 @@ console.log('[LOREBOOK] Starting module load...');
 
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
-import { settings } from '../core/settings.js';
+import { 
+    get_settings, getCharacters, getCharacter, setCharacter, getLorebookConfig 
+} from '../utils/settings.js';
 import { stContext } from '../core/context.js';
 import { generateUID } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
@@ -126,7 +128,7 @@ export async function updateLorebookEntry(character, characterName) {
         }
 
         const context = stContext.getContext();
-        const lorebookConfig = settings.getLorebookConfig();
+        const lorebookConfig = getLorebookConfig();
 
         // Build the entry content in a readable format
         const contentParts = [];
@@ -141,17 +143,17 @@ export async function updateLorebookEntry(character, characterName) {
 
         // Physical (consolidated body description)
         if (character.physical) {
-            contentParts.push(`\\n**Physical Description:**\\n${character.physical}`);
+            contentParts.push(`\n**Physical Description:**\n${character.physical}`);
         }
 
         // Personality (consolidated traits, likes, dislikes)
         if (character.personality) {
-            contentParts.push(`\\n**Personality:**\\n${character.personality}`);
+            contentParts.push(`\n**Personality:**\n${character.personality}`);
         }
 
         // Sexuality
         if (character.sexuality) {
-            contentParts.push(`\\n**Sexuality:**\\n${character.sexuality}`);
+            contentParts.push(`\n**Sexuality:**\n${character.sexuality}`);
         }
 
         // Race/Ethnicity
@@ -161,23 +163,23 @@ export async function updateLorebookEntry(character, characterName) {
 
         // Role & Skills
         if (character.roleSkills) {
-            contentParts.push(`\\n**Role & Skills:**\\n${character.roleSkills}`);
+            contentParts.push(`\n**Role & Skills:**\n${character.roleSkills}`);
         }
 
         // Last Interaction
         if (character.lastInteraction) {
-            contentParts.push(`\\n**Last Interaction with {{user}}:**\\n${character.lastInteraction}`);
+            contentParts.push(`\n**Last Interaction with {{user}}:**\n${character.lastInteraction}`);
         }
 
         // Relationships
         if (character.relationships && character.relationships.length > 0) {
-            contentParts.push('\\n**Relationships:**');
+            contentParts.push('\n**Relationships:**');
             character.relationships.forEach(rel => {
                 contentParts.push(`- ${rel}`);
             });
         }
 
-        const content = contentParts.join('\\n');
+        const content = contentParts.join('\n');
 
         // Build the keys array (name + aliases)
         const keys = [character.preferredName];
@@ -197,7 +199,7 @@ export async function updateLorebookEntry(character, characterName) {
         }
 
         // Calculate dynamic cooldown
-        const messageFreq = settings.getSetting('messageFrequency', 10);
+        const messageFreq = get_settings('messageFrequency', 10);
         const calculatedCooldown = Math.max(1, Math.floor(messageFreq * 0.75));
 
         let existingUid = null;
@@ -319,7 +321,7 @@ export function createLorebookContent(character) {
  */
 export async function viewInLorebook(characterName) {
     return withErrorBoundary('viewInLorebook', async () => {
-        const character = settings.getCharacter(characterName);
+        const character = getCharacter(characterName);
 
         if (!character) {
             throw new NameTrackerError('Character not found');
@@ -445,7 +447,7 @@ export async function adoptExistingEntries() {
                 return 0;
             }
 
-            const characters = settings.getCharacters();
+            const characters = getCharacters();
 
             // Look for entries that might belong to our extension
             for (const [entryId, entry] of Object.entries(worldInfo.entries)) {
@@ -476,7 +478,7 @@ export async function adoptExistingEntries() {
                     };
 
                     // Store the adopted character
-                    settings.setCharacter(primaryName, character);
+                    setCharacter(primaryName, character);
                     adoptedCount++;
 
                     debug.log();
@@ -531,7 +533,7 @@ export async function getLorebookStats() {
 
         try {
             const worldInfo = await context.loadWorldInfo(lorebookName);
-            const characters = settings.getCharacters();
+            const characters = getCharacters();
 
             if (!worldInfo || !worldInfo.entries) {
                 return {

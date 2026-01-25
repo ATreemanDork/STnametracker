@@ -7,7 +7,7 @@
 
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary } from '../core/errors.js';
-import { settings } from '../core/settings.js';
+import { get_settings, set_settings, getLLMConfig } from '../utils/settings.js';
 import { stContext } from '../core/context.js';
 import { NotificationManager } from '../utils/notifications.js';
 import { callLLMAnalysis, buildCharacterRoster, getMaxPromptLength, calculateMessageTokens } from './llm.js';
@@ -107,13 +107,13 @@ async function processCharacterData(analyzedChar) {
  */
 export async function harvestMessages(messageCount, showProgress = true) {
     return withErrorBoundary('harvestMessages', async () => {
-        if (!settings.getSetting('enabled', true)) {
+        if (!get_settings('enabled', true)) {
             debug.log();
             return;
         }
 
         // Check API connection for SillyTavern mode
-        const llmConfig = settings.getLLMConfig();
+        const llmConfig = getLLMConfig();
         if (llmConfig.source === 'sillytavern') {
             const context = stContext.getContext();
             if (!context.onlineStatus) {
@@ -289,7 +289,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
  */
 export async function onMessageReceived(messageId) {
     return withErrorBoundary('onMessageReceived', async () => {
-        if (!settings.getSetting('enabled', true) || !settings.getSetting('autoAnalyze', true)) {
+        if (!get_settings('enabled', true) || !get_settings('autoAnalyze', true)) {
             return;
         }
 
@@ -304,7 +304,7 @@ export async function onMessageReceived(messageId) {
         const currentMessageIndex = chat.length - 1;
 
         // Check if this message was already scanned
-        const lastScannedId = settings.getSetting('lastScannedMessageId', -1);
+        const lastScannedId = get_settings('lastScannedMessageId', -1);
         if (currentMessageIndex <= lastScannedId) {
             debug.log();
             return;
@@ -318,7 +318,7 @@ export async function onMessageReceived(messageId) {
             const shouldRescan = await showRescanModal(currentMessageIndex, lastScannedId);
 
             if (shouldRescan.rescan) {
-                settings.setSetting('lastScannedMessageId', shouldRescan.fromMessage - 1);
+                set_settings('lastScannedMessageId', shouldRescan.fromMessage - 1);
 
                 // Queue a full scan from the specified message
                 addToQueue(async () => {
@@ -328,13 +328,13 @@ export async function onMessageReceived(messageId) {
                 return;
             } else {
                 // Reset to current position without scanning
-                settings.setSetting('lastScannedMessageId', currentMessageIndex);
+                set_settings('lastScannedMessageId', currentMessageIndex);
                 return;
             }
         }
 
         // Check if we've reached the next scan milestone
-        const messageFreq = settings.getSetting('messageFrequency', 10);
+        const messageFreq = get_settings('messageFrequency', 10);
         const messagesSinceLastScan = currentMessageIndex - lastScannedId;
 
         if (messagesSinceLastScan >= messageFreq) {
@@ -344,7 +344,7 @@ export async function onMessageReceived(messageId) {
             addToQueue(async () => {
                 await harvestMessages(messageFreq, true);
                 // Update last scanned message ID after successful harvest
-                settings.setSetting('lastScannedMessageId', currentMessageIndex);
+                set_settings('lastScannedMessageId', currentMessageIndex);
             });
         }
     });
@@ -462,7 +462,7 @@ export async function scanEntireChat() {
         }
 
         // Check API connection for SillyTavern mode
-        const llmConfig = settings.getLLMConfig();
+        const llmConfig = getLLMConfig();
         if (llmConfig.source === 'sillytavern') {
             if (!context.onlineStatus) {
                 notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
@@ -573,7 +573,7 @@ export async function scanEntireChat() {
         hideProgressBar();
 
         // Update scan completion status
-        settings.setSetting('lastScannedMessageId', totalMessages - 1);
+        set_settings('lastScannedMessageId', totalMessages - 1);
 
         // Show summary
         const summary = `Full chat scan complete!\\n\\nMessages: ${totalMessages}\\nBatches: ${successfulBatches}/${numBatches}\\nCharacters found: ${uniqueCharacters.size}\\nFailed: ${failedBatches}`;
@@ -639,8 +639,8 @@ export async function onChatChanged() {
         abortScan = false;
 
         // Reset scan state
-        settings.setSetting('lastScannedMessageId', -1);
-        settings.setSetting('messageCounter', 0);
+        set_settings('lastScannedMessageId', -1);
+        set_settings('messageCounter', 0);
 
         debug.log();
     });

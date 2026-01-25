@@ -5,9 +5,14 @@
  * for the Name Tracker extension.
  */
 
+import { updateLorebookEntry } from './lorebook.js';
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
-import { settings } from '../core/settings.js';
+import { 
+    getCharacters, getCharacter, setCharacter, removeCharacter,
+    get_settings, set_chat_metadata 
+} from '../utils/settings.js';
+import { escapeHtml, generateUID, normalizeTitle } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
 
 const debug = createModuleLogger('characters');
@@ -44,7 +49,7 @@ let undoHistory = []; // Store last 3 merge operations
  */
 export function isIgnoredCharacter(name) {
     return withErrorBoundary('isIgnoredCharacter', () => {
-        const chars = settings.getCharacters();
+        const chars = getCharacters();
         return Object.values(chars).some(
             char => char.ignored && (char.preferredName === name || char.aliases.includes(name)),
         );
@@ -58,7 +63,7 @@ export function isIgnoredCharacter(name) {
  */
 export function findExistingCharacter(name) {
     return withErrorBoundary('findExistingCharacter', () => {
-        const chars = settings.getCharacters();
+        const chars = getCharacters();
         return Object.values(chars).find(
             char => char.preferredName === name || char.aliases.includes(name),
         ) || null;
@@ -72,8 +77,8 @@ export function findExistingCharacter(name) {
  */
 export async function findPotentialMatch(analyzedChar) {
     return withErrorBoundary('findPotentialMatch', async () => {
-        const chars = settings.getCharacters();
-        const threshold = settings.getSetting('confidenceThreshold', 70);
+        const chars = getCharacters();
+        const threshold = get_settings('confidenceThreshold', 70);
 
         debug.log();
 
@@ -218,7 +223,10 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
         debug.log();
 
         // Store character in settings
-        settings.setCharacter(character.preferredName, character);
+        setCharacter(character.preferredName, character);
+
+        // Create lorebook entry
+        await updateLorebookEntry(character, character.preferredName);
 
         debug.log();
 
@@ -285,7 +293,7 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
         existingChar.lastUpdated = Date.now();
 
         // Update character in settings
-        settings.setCharacter(existingChar.preferredName, existingChar);
+        setCharacter(existingChar.preferredName, existingChar);
 
         debug.log();
 
@@ -301,7 +309,7 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
  */
 export async function mergeCharacters(sourceName, targetName) {
     return withErrorBoundary('mergeCharacters', async () => {
-        const chars = settings.getCharacters();
+        const chars = getCharacters();
 
         const sourceChar = chars[sourceName];
         const targetChar = chars[targetName];
@@ -360,8 +368,11 @@ export async function mergeCharacters(sourceName, targetName) {
         targetChar.lastUpdated = Date.now();
 
         // Update target character and delete source
-        settings.setCharacter(targetChar.preferredName, targetChar);
-        settings.removeCharacter(sourceName);
+        setCharacter(targetChar.preferredName, targetChar);
+        removeCharacter(sourceName);
+
+        // Save chat data
+        // Auto-saved by new settings system
 
         debug.log();
         notifications.success(`Merged ${sourceName} into ${targetName}`);
@@ -389,10 +400,10 @@ export async function undoLastMerge() {
         }
 
         // Restore source character
-        settings.setCharacter(lastOp.sourceName, lastOp.sourceData);
+        setCharacter(lastOp.sourceName, lastOp.sourceData);
 
         // Restore target character to pre-merge state
-        settings.setCharacter(lastOp.targetName, lastOp.targetDataBefore);
+        setCharacter(lastOp.targetName, lastOp.targetDataBefore);
 
         debug.log();
         notifications.success('Merge undone successfully');
@@ -406,9 +417,9 @@ export async function undoLastMerge() {
  * @param {string} characterName - Name of character to toggle
  * @returns {boolean} New ignore status
  */
-export function toggleIgnoreCharacter(characterName) {
-    return withErrorBoundary('toggleIgnoreCharacter', () => {
-        const character = settings.getCharacter(characterName);
+export async function toggleIgnoreCharacter(characterName) {
+    return withErrorBoundary('toggleIgnoreCharacter', async () => {
+        const character = getCharacter(characterName);
 
         if (!character) {
             throw new NameTrackerError('Character not found');
@@ -416,7 +427,10 @@ export function toggleIgnoreCharacter(characterName) {
 
         character.ignored = !character.ignored;
 
-        settings.setCharacter(characterName, character);
+        setCharacter(characterName, character);
+
+        // Save chat data
+        // Auto-saved by new settings system
 
         const status = character.ignored ? 'ignored' : 'unignored';
         notifications.info(`${characterName} ${status}`);
@@ -440,7 +454,7 @@ export async function createNewCharacter(characterName) {
         const trimmedName = characterName.trim();
 
         // Check if character already exists
-        if (settings.getCharacter(trimmedName)) {
+        if (getCharacter(trimmedName)) {
             throw new NameTrackerError(`Character "${trimmedName}" already exists`);
         }
 
@@ -462,6 +476,9 @@ export async function createNewCharacter(characterName) {
 
         const character = await createCharacter(newChar, false);
 
+        // Save chat data
+        // Auto-saved by new settings system
+
         debug.log();
         notifications.success(`Created character: ${trimmedName}`);
 
@@ -475,7 +492,7 @@ export async function createNewCharacter(characterName) {
  */
 export async function purgeAllCharacters() {
     return withErrorBoundary('purgeAllCharacters', async () => {
-        const chars = settings.getCharacters();
+        const chars = getCharacters();
         const characterCount = Object.keys(chars).length;
 
         if (characterCount === 0) {
@@ -484,7 +501,7 @@ export async function purgeAllCharacters() {
         }
 
         // Clear all character data
-        settings.clearAllCharacters();
+        set_chat_metadata('characters', {});
 
         // Clear undo history
         undoHistory = [];
@@ -507,7 +524,7 @@ export function hasUnresolvedRelationships(character) {
             return false;
         }
 
-        const chars = settings.getCharacters();
+        const chars = getCharacters();
         const knownNames = Object.values(chars).reduce((names, char) => {
             names.add(char.preferredName.toLowerCase());
             char.aliases.forEach(alias => names.add(alias.toLowerCase()));
@@ -546,7 +563,7 @@ export function clearUndoHistory() {
  */
 export function exportCharacters() {
     return withErrorBoundary('exportCharacters', () => {
-        return settings.getCharacters();
+        return getCharacters();
     });
 }
 
@@ -565,8 +582,8 @@ export async function importCharacters(characterData, merge = false) {
         let importCount = 0;
 
         for (const [name, character] of Object.entries(characterData)) {
-            if (merge || !settings.getCharacter(name)) {
-                settings.setCharacter(name, character);
+            if (merge || !getCharacter(name)) {
+                setCharacter(name, character);
                 importCount++;
             }
         }

@@ -7,7 +7,11 @@
 
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
-import { settings } from '../core/settings.js';
+import { 
+    getSettings, get_settings, set_settings, 
+    getCharacters, getCharacter, setCharacter, removeCharacter,
+    get_chat_metadata, set_chat_metadata, getSetting, setSetting
+} from '../utils/settings.js';
 import { stContext } from '../core/context.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
@@ -31,7 +35,7 @@ export function updateCharacterList() {
             return;
         }
 
-        const characters = settings.getCharacters();
+        const characters = getCharacters();
         const characterNames = Object.keys(characters);
 
         if (characterNames.length === 0) {
@@ -121,11 +125,11 @@ export function updateStatusDisplay() {
             return;
         }
 
-        const characters = settings.getCharacters();
+        const characters = getCharacters();
         const characterCount = Object.keys(characters).length;
-        const messageCounter = settings.getSetting('messageCounter', 0);
-        const lastScannedId = settings.getSetting('lastScannedMessageId', -1);
-        const messageFreq = settings.getSetting('messageFrequency', 10);
+        const messageCounter = getSetting('messageCounter', 0);
+        const lastScannedId = getSetting('lastScannedMessageId', -1);
+        const messageFreq = getSetting('messageFrequency', 10);
 
         const context = stContext.getContext();
         const currentMessageId = context?.chat?.length || 0;
@@ -165,7 +169,7 @@ export function updateStatusDisplay() {
  */
 export async function showMergeDialog(sourceName) {
     return withErrorBoundary('showMergeDialog', async () => {
-        const characters = settings.getCharacters();
+        const characters = getCharacters();
 
         // Create list of other characters
         const otherChars = Object.keys(characters).filter(name => name !== sourceName);
@@ -215,7 +219,7 @@ export async function showCreateCharacterModal() {
  */
 export async function showPurgeConfirmation() {
     return withErrorBoundary('showPurgeConfirmation', async () => {
-        const characters = settings.getCharacters();
+        const characters = getCharacters();
         const characterCount = Object.keys(characters).length;
 
         if (characterCount === 0) {
@@ -244,7 +248,7 @@ export async function showPurgeConfirmation() {
  */
 export async function showSystemPromptEditor() {
     return withErrorBoundary('showSystemPromptEditor', async () => {
-        const currentPrompt = settings.getSetting('systemPrompt') || '';
+        const currentPrompt = getSetting('systemPrompt') || '';
 
         // Create modal dialog
         const modal = $(`
@@ -297,14 +301,14 @@ export async function showSystemPromptEditor() {
 
         modal.find('#system_prompt_save').on('click', () => {
             const newPrompt = modal.find('#system_prompt_editor').val().trim();
-            settings.setSetting('systemPrompt', newPrompt || null);
+            setSetting('systemPrompt', newPrompt || null);
             notifications.success('System prompt updated');
             removeModal();
         });
 
         modal.find('#system_prompt_reset').on('click', () => {
             modal.find('#system_prompt_editor').val('');
-            settings.setSetting('systemPrompt', null);
+            setSetting('systemPrompt', null);
             notifications.success('Reset to default system prompt');
             removeModal();
         });
@@ -320,7 +324,7 @@ export async function showSystemPromptEditor() {
  */
 export function showCharacterListModal() {
     return withErrorBoundary('showCharacterListModal', () => {
-        const characters = Object.values(settings.getCharacters() || {});
+        const characters = Object.values(getCharacters() || {});
 
         // Build character list HTML
         let charactersHtml = '';
@@ -390,9 +394,9 @@ export function initializeUIHandlers() {
             await showMergeDialog(sourceName);
         });
 
-        $(document).on('click', '.char-action-ignore', function() {
+        $(document).on('click', '.char-action-ignore', async function() {
             const name = $(this).data('name');
-            toggleIgnoreCharacter(name);
+            await toggleIgnoreCharacter(name);
             updateCharacterList();
             updateStatusDisplay();
         });
@@ -418,7 +422,7 @@ export function initializeUIHandlers() {
  */
 async function showEditLorebookModal(characterName) {
     return withErrorBoundary('showEditLorebookModal', async () => {
-        const character = settings.getCharacter(characterName);
+        const character = getCharacter(characterName);
 
         if (!character) {
             notifications.error('Character not found');
@@ -519,9 +523,9 @@ async function showEditLorebookModal(characterName) {
 
             // If preferred name changed, need to update the key in settings
             if (preferredName !== characterName) {
-                settings.removeCharacter(characterName);
+                removeCharacter(characterName);
             }
-            settings.setCharacter(preferredName, character);
+            setCharacter(preferredName, character);
 
             updateCharacterList();
             updateStatusDisplay();
@@ -570,8 +574,8 @@ export function addMenuButton(text, faIcon, callback, hover = null, className = 
  */
 export function toggleAutoHarvest() {
     return withErrorBoundary('toggleAutoHarvest', () => {
-        const currentValue = settings.getSetting('autoAnalyze', true);
-        settings.setSetting('autoAnalyze', !currentValue);
+        const currentValue = getSetting('autoAnalyze', true);
+        setSetting('autoAnalyze', !currentValue);
 
         // Update the settings UI
         $('#name_tracker_auto_analyze').prop('checked', !currentValue);
@@ -623,7 +627,7 @@ export async function openChatLorebook() {
 export function initializeMenuButtons() {
     return withErrorBoundary('initializeMenuButtons', () => {
         // Add toggle auto-harvest button with visual state
-        const autoAnalyze = settings.getSetting('autoAnalyze', true);
+        const autoAnalyze = getSetting('autoAnalyze', true);
         const toggleIcon = autoAnalyze ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
         addMenuButton(
             'Toggle Auto-Harvest',
@@ -661,30 +665,30 @@ export function bindSettingsHandlers() {
     return withErrorBoundary('bindSettingsHandlers', () => {
         // Main settings handlers
         $('#name_tracker_enabled').on('input', (event) => {
-            settings.setSetting('enabled', event.target.checked);
+            setSetting('enabled', event.target.checked);
             updateStatusDisplay();
         });
 
         $('#name_tracker_auto_analyze').on('input', (event) => {
-            settings.setSetting('autoAnalyze', event.target.checked);
+            setSetting('autoAnalyze', event.target.checked);
             updateStatusDisplay();
         });
 
         $('#name_tracker_message_frequency').on('input', (event) => {
-            settings.setSetting('messageFrequency', parseInt(event.target.value) || 10);
+            setSetting('messageFrequency', parseInt(event.target.value) || 10);
             updateStatusDisplay();
         });
 
         $('#name_tracker_llm_source').on('change', (event) => {
-            settings.setSetting('llmSource', event.target.value);
+            setSetting('llmSource', event.target.value);
         });
 
         $('#name_tracker_ollama_endpoint').on('input', (event) => {
-            settings.setSetting('ollamaEndpoint', event.target.value);
+            setSetting('ollamaEndpoint', event.target.value);
         });
 
         $('#name_tracker_ollama_model').on('change', (event) => {
-            settings.setSetting('ollamaModel', event.target.value);
+            setSetting('ollamaModel', event.target.value);
         });
 
         $('#name_tracker_load_models').on('click', async () => {
@@ -698,37 +702,37 @@ export function bindSettingsHandlers() {
         });
 
         $('#name_tracker_confidence_threshold').on('input', (event) => {
-            settings.setSetting('confidenceThreshold', parseInt(event.target.value) || 70);
+            setSetting('confidenceThreshold', parseInt(event.target.value) || 70);
         });
 
         // Lorebook settings handlers
         $('#name_tracker_lorebook_position').on('change', (event) => {
-            settings.setSetting('lorebookPosition', parseInt(event.target.value) || 0);
+            setSetting('lorebookPosition', parseInt(event.target.value) || 0);
         });
 
         $('#name_tracker_lorebook_depth').on('input', (event) => {
-            settings.setSetting('lorebookDepth', parseInt(event.target.value) || 1);
+            setSetting('lorebookDepth', parseInt(event.target.value) || 1);
         });
 
         $('#name_tracker_lorebook_cooldown').on('input', (event) => {
-            settings.setSetting('lorebookCooldown', parseInt(event.target.value) || 5);
+            setSetting('lorebookCooldown', parseInt(event.target.value) || 5);
         });
 
         $('#name_tracker_lorebook_probability').on('input', (event) => {
-            settings.setSetting('lorebookProbability', parseInt(event.target.value) || 100);
+            setSetting('lorebookProbability', parseInt(event.target.value) || 100);
         });
 
         $('#name_tracker_lorebook_enabled').on('input', (event) => {
-            settings.setSetting('lorebookEnabled', event.target.checked);
+            setSetting('lorebookEnabled', event.target.checked);
         });
 
         $('#name_tracker_debug_mode').on('input', (event) => {
-            settings.setSetting('debugMode', event.target.checked);
+            setSetting('debugMode', event.target.checked);
         });
 
         // Action button handlers
         $('#name_tracker_manual_analyze').on('click', async () => {
-            const messageFreq = settings.getSetting('messageFrequency', 10);
+            const messageFreq = getSetting('messageFrequency', 10);
             await harvestMessages(messageFreq, true);
             updateCharacterList();
             updateStatusDisplay();
@@ -799,19 +803,19 @@ export async function loadSettingsHTML(extensionFolderPath) {
 export function updateUI() {
     return withErrorBoundary('updateUI', () => {
         // Update all form elements with current settings
-        $('#name_tracker_enabled').prop('checked', settings.getSetting('enabled', true));
-        $('#name_tracker_auto_analyze').prop('checked', settings.getSetting('autoAnalyze', true));
-        $('#name_tracker_message_frequency').val(settings.getSetting('messageFrequency', 10));
-        $('#name_tracker_llm_source').val(settings.getSetting('llmSource', 'sillytavern'));
-        $('#name_tracker_ollama_endpoint').val(settings.getSetting('ollamaEndpoint', 'http://localhost:11434'));
-        $('#name_tracker_ollama_model').val(settings.getSetting('ollamaModel', ''));
-        $('#name_tracker_confidence_threshold').val(settings.getSetting('confidenceThreshold', 70));
-        $('#name_tracker_lorebook_position').val(settings.getSetting('lorebookPosition', 0));
-        $('#name_tracker_lorebook_depth').val(settings.getSetting('lorebookDepth', 1));
-        $('#name_tracker_lorebook_cooldown').val(settings.getSetting('lorebookCooldown', 5));
-        $('#name_tracker_lorebook_probability').val(settings.getSetting('lorebookProbability', 100));
-        $('#name_tracker_lorebook_enabled').prop('checked', settings.getSetting('lorebookEnabled', true));
-        $('#name_tracker_debug_mode').prop('checked', settings.getSetting('debugMode', false));
+        $('#name_tracker_enabled').prop('checked', getSetting('enabled', true));
+        $('#name_tracker_auto_analyze').prop('checked', getSetting('autoAnalyze', true));
+        $('#name_tracker_message_frequency').val(getSetting('messageFrequency', 10));
+        $('#name_tracker_llm_source').val(getSetting('llmSource', 'sillytavern'));
+        $('#name_tracker_ollama_endpoint').val(getSetting('ollamaEndpoint', 'http://localhost:11434'));
+        $('#name_tracker_ollama_model').val(getSetting('ollamaModel', ''));
+        $('#name_tracker_confidence_threshold').val(getSetting('confidenceThreshold', 70));
+        $('#name_tracker_lorebook_position').val(getSetting('lorebookPosition', 0));
+        $('#name_tracker_lorebook_depth').val(getSetting('lorebookDepth', 1));
+        $('#name_tracker_lorebook_cooldown').val(getSetting('lorebookCooldown', 5));
+        $('#name_tracker_lorebook_probability').val(getSetting('lorebookProbability', 100));
+        $('#name_tracker_lorebook_enabled').prop('checked', getSetting('lorebookEnabled', true));
+        $('#name_tracker_debug_mode').prop('checked', getSetting('debugMode', false));
 
         // Update character list and status
         updateCharacterList();

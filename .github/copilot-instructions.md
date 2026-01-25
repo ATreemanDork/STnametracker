@@ -281,4 +281,25 @@ This extension drew patterns and insights from these SillyTavern extensions:
 - **[Codex](https://github.com/LenAnderson/SillyTavern-Codex)** - Chat metadata management, persistent data storage, and extension lifecycle patterns  
 - **[Nicknames](https://github.com/Wolfsblvt/SillyTavern-Nicknames)** - Character name handling, alias management, and UI integration approaches
 
+### Settings Architecture (v2.1.1+)
+
+**✅ SIMPLIFIED SETTINGS SYSTEM IMPLEMENTED**
+
+The extension now uses **SillyTavern standard patterns** with preserved error handling:
+
+- **Direct API access**: `extension_settings[MODULE_NAME]` and `chat_metadata[MODULE_NAME]`
+- **Built-in persistence**: `saveSettingsDebounced()` and `saveMetadataDebounced()`
+- **Simple helper functions**: `get_settings()`, `set_settings()`, `getCharacters()`, etc.
+- **Preserved error boundaries**: All operations wrapped with try/catch and user notifications
+- **No backward compatibility needed**: Settings data resets cleanly during upgrades
+
+**CRITICAL ARCHITECTURAL DECISIONS:**
+
+1. **Error handling is mandatory** - all public functions have try/catch boundaries with user notifications
+2. **Validation preserved** - setting key validation, character name sanitization, API availability checks
+3. **Initialization order critical** - Settings → Error Boundaries → Context → Modules → UI → Events
+4. **Context availability strategy** - direct `getContext()` checks without caching, following MessageSummarize patterns
+5. **Module update sequence** follows dependency flow: Settings → Core → Processing → Characters → UI
+6. **Transaction rollback capability** maintained for character operations and state consistency
+
 When working on this codebase, prioritize maintaining the event-driven architecture and ensuring data persistence through SillyTavern's API patterns.

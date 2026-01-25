@@ -7,7 +7,7 @@
 
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
-import { settings } from '../core/settings.js';
+import { get_settings, getCharacters, getLLMConfig } from '../utils/settings.js';
 import { stContext } from '../core/context.js';
 import { simpleHash } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
@@ -66,7 +66,7 @@ Focus on major speaking characters and those with significant interactions. Avoi
  * @returns {string} System prompt text
  */
 function getSystemPrompt() {
-    return settings.getSetting('systemPrompt') || DEFAULT_SYSTEM_PROMPT;
+    return get_settings('systemPrompt') || DEFAULT_SYSTEM_PROMPT;
 }
 
 /**
@@ -75,7 +75,7 @@ function getSystemPrompt() {
  */
 export async function loadOllamaModels() {
     return withErrorBoundary('loadOllamaModels', async () => {
-        const ollamaEndpoint = settings.getSetting('ollamaEndpoint', 'http://localhost:11434');
+        const ollamaEndpoint = get_settings('ollamaEndpoint', 'http://localhost:11434');
 
         debug.log();
 
@@ -107,7 +107,7 @@ export async function loadOllamaModels() {
  */
 export async function getOllamaModelContext(modelName) {
     return withErrorBoundary('getOllamaModelContext', async () => {
-        const ollamaEndpoint = settings.getSetting('ollamaEndpoint', 'http://localhost:11434');
+        const ollamaEndpoint = get_settings('ollamaEndpoint', 'http://localhost:11434');
 
         if (!modelName) {
             debug.log();
@@ -166,7 +166,7 @@ export async function getOllamaModelContext(modelName) {
  */
 export function buildCharacterRoster() {
     return withErrorBoundary('buildCharacterRoster', () => {
-        const characters = settings.getCharacters();
+        const characters = getCharacters();
         const characterNames = Object.keys(characters);
 
         if (characterNames.length === 0) {
@@ -195,7 +195,7 @@ export function buildCharacterRoster() {
  */
 export async function getMaxPromptLength() {
     return withErrorBoundary('getMaxPromptLength', async () => {
-        const llmConfig = settings.getLLMConfig();
+        const llmConfig = getLLMConfig();
         let maxContext = 4096; // Default
 
         if (llmConfig.source === 'ollama' && llmConfig.ollamaModel) {
@@ -329,7 +329,7 @@ export async function callSillyTavern(prompt) {
  */
 export async function callOllama(prompt) {
     return withErrorBoundary('callOllama', async () => {
-        const llmConfig = settings.getLLMConfig();
+        const llmConfig = getLLMConfig();
 
         if (!llmConfig.ollamaModel) {
             throw new NameTrackerError('No Ollama model selected');
@@ -488,7 +488,7 @@ export function parseJSONResponse(text) {
  */
 export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, retryCount = 0) {
     return withErrorBoundary('callLLMAnalysis', async () => {
-        const llmConfig = settings.getLLMConfig();
+        const llmConfig = getLLMConfig();
         const maxPromptTokens = await getMaxPromptLength(); // Dynamic based on API context window
         const MAX_RETRIES = 3;
 

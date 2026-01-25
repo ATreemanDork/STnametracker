@@ -10,7 +10,7 @@ import '../style.css';
 import debugLogger from './core/debug.js';
 import { errorHandler } from './core/errors.js';
 import sillyTavernContext from './core/context.js';
-import settingsManager from './core/settings.js';
+import { initializeSettings, onChatChanged, get_settings, getSettings, get_chat_metadata } from './utils/settings.js';
 
 // Utilities
 import notifications from './utils/notifications.js';
@@ -20,7 +20,7 @@ import { /* escapeHtml, generateUID */ } from './utils/helpers.js';
 import { /* initializeCharacterManager */ } from './modules/characters.js';
 import { /* initializeLLMManager */ } from './modules/llm.js';
 import { initializeLorebook } from './modules/lorebook.js';
-import { /* initializeProcessingManager */ } from './modules/processing.js';
+import { onMessageReceived } from './modules/processing.js';
 import { initializeUIHandlers, initializeMenuButtons, bindSettingsHandlers, updateUI } from './modules/ui.js';
 
 // Immediate import validation
@@ -45,7 +45,7 @@ const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
  * This is the pattern that SillyTavern expects
  * @returns {Object} Extension settings object
  */
-function getSettings() {
+function getExtensionSettings() {
     // Use global extension_settings that SillyTavern provides
     return window.extension_settings?.[extensionName] || {};
 }
@@ -123,13 +123,13 @@ class NameTrackerExtension {
 
         // Connect debug system to settings
         console.log('[STnametracker] initializeCore: Connecting debug system...');
-        debugLogger.isDebugEnabled = () => settingsManager.isDebugMode();
+        debugLogger.isDebugEnabled = () => get_settings('debugMode');
         console.log('[STnametracker] initializeCore: Debug system connected');
 
-        // Initialize settings manager
-        console.log('[STnametracker] initializeCore: Initializing settings manager...');
-        await settingsManager.initialize();
-        console.log('[STnametracker] initializeCore: Settings manager initialized');
+        // Initialize simplified settings system
+        console.log('[STnametracker] initializeCore: Initializing settings...');
+        await initializeSettings();
+        console.log('[STnametracker] initializeCore: Settings initialized');
 
         // Setup error recovery strategies
         this.setupErrorRecovery();
@@ -237,17 +237,17 @@ class NameTrackerExtension {
             // Register for SillyTavern events
             eventSource.on(event_types.MESSAGE_RECEIVED, async (messageId) => {
                 logger.debug('Message received event:', messageId);
-                // TODO: Process new message
+                await onMessageReceived(messageId);
             });
 
             eventSource.on(event_types.MESSAGE_SENT, async (messageId) => {
                 logger.debug('Message sent event:', messageId);
-                // TODO: Process new message
+                await onMessageReceived(messageId);
             });
 
             eventSource.on(event_types.CHAT_CHANGED, async () => {
                 logger.debug('Chat changed event received');
-                await settingsManager.onChatChanged();
+                await onChatChanged();
             });
 
             logger.debug('Event listeners registered');
@@ -289,7 +289,7 @@ class NameTrackerExtension {
         return {
             initialized: this.initialized,
             context: sillyTavernContext.getStatus(),
-            settings: settingsManager.getStatus(),
+            settings: { initialized: true, moduleCount: Object.keys(getSettings()).length },
             debug: debugLogger.getPerformanceSummary(),
             errors: errorHandler.getRecentErrors(5).length,
         };
@@ -346,8 +346,12 @@ jQuery(async () => {
         window.ntDebug = {
             status: () => nameTrackerExtension.getStatus(),
             errors: () => errorHandler.getRecentErrors(),
-            settings: () => getSettings(),
-            chatData: () => settingsManager.getChatData(),
+            settings: () => getExtensionSettings(),
+            chatData: () => ({ 
+                characters: get_chat_metadata('characters') || {},
+                messageCounter: get_chat_metadata('messageCounter') || 0,
+                lastScannedMessageId: get_chat_metadata('lastScannedMessageId') || -1
+            }),
             clear: () => debugLogger.clear(),
         };
 
