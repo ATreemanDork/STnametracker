@@ -7,8 +7,8 @@
  * Run before making changes to avoid assumption errors
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 function findImportExportMismatches(srcDir) {
     const imports = new Map(); // file -> [imported items]
@@ -118,5 +118,9 @@ function resolveModulePath(fromFile, modulePath) {
 }
 
 // Run validation
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const srcDir = path.join(__dirname, 'src');
 findImportExportMismatches(srcDir);

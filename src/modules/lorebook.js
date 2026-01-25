@@ -11,8 +11,14 @@ import { settings } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { generateUID } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
+import { createSafeWrapper, validateInterface } from '../utils/runtime-validation.js';
 
 const debug = createModuleLogger('lorebook');
+
+// Development-time validation wrapper
+const safeContext = process?.env?.NODE_ENV === 'development'
+    ? createSafeWrapper(stContext, 'stContext', ['getContext', 'getChatMetadata', 'getChatId'])
+    : stContext;
 const notifications = new NotificationManager('Lorebook Management');
 
 // Lorebook state
@@ -24,7 +30,10 @@ let lorebookName = null;
  */
 export async function initializeLorebook() {
     return withErrorBoundary('initializeLorebook', async () => {
-        const context = stContext.getSillyTavernContext();
+        // Validate context interface at initialization
+        validateInterface(stContext, ['getContext', 'getChatMetadata', 'getChatId'], 'SillyTavernContext');
+
+        const context = safeContext.getContext();
 
         if (!context.chatId) {
             debug('No active chat, skipping lorebook initialization');
@@ -100,7 +109,7 @@ export async function updateLorebookEntry(character, characterName) {
             return;
         }
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
         const lorebookConfig = settings.getLorebookConfig();
 
         // Build the entry content in a readable format
@@ -306,7 +315,7 @@ export async function viewInLorebook(characterName) {
         }
 
         // Import the openWorldInfoEditor function from SillyTavern
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
 
         // Open the lorebook editor
         if (typeof context.openWorldInfoEditor === 'function') {
@@ -332,7 +341,7 @@ export async function deleteLorebookEntry(character) {
             return false;
         }
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
 
         try {
             const worldInfo = await context.loadWorldInfo(lorebookName);
@@ -364,7 +373,7 @@ export async function purgeLorebookEntries(characters) {
             return 0;
         }
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
         let deletedCount = 0;
 
         try {
@@ -409,7 +418,7 @@ export async function adoptExistingEntries() {
             return 0;
         }
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
         let adoptedCount = 0;
 
         try {
@@ -502,7 +511,7 @@ export async function getLorebookStats() {
             };
         }
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
 
         try {
             const worldInfo = await context.loadWorldInfo(lorebookName);

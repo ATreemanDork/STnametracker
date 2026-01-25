@@ -6,7 +6,7 @@
  */
 
 import { createModuleLogger } from '../core/debug.js';
-import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
+import { withErrorBoundary } from '../core/errors.js';
 import { settings } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { NotificationManager } from '../utils/notifications.js';

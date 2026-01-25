@@ -127,20 +127,26 @@ export function updateStatusDisplay() {
         const lastScannedId = settings.getSetting('lastScannedMessageId', -1);
         const messageFreq = settings.getSetting('messageFrequency', 10);
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
+        const currentMessageId = context?.chat?.length || 0;
+        const pendingMessages = Math.max(0, currentMessageId - lastScannedId);
+        const progressText = messageCounter > 0 ? ` (${messageCounter} analyzed)` : '';
         const currentChatLength = context.chat ? context.chat.length : 0;
         const messagesToNextScan = Math.max(0, messageFreq - (currentChatLength - lastScannedId));
 
         const statusHtml = `
             <div class="name_tracker_status">
                 <div class="status-item">
-                    <strong>Characters tracked:</strong> ${characterCount}
+                    <strong>Characters tracked:</strong> ${characterCount}${progressText}
                 </div>
                 <div class="status-item">
                     <strong>Messages in chat:</strong> ${currentChatLength}
                 </div>
                 <div class="status-item">
                     <strong>Last scanned message:</strong> ${lastScannedId >= 0 ? lastScannedId + 1 : 'None'}
+                </div>
+                <div class="status-item">
+                    <strong>Pending messages:</strong> ${pendingMessages}
                 </div>
                 <div class="status-item">
                     <strong>Messages until next scan:</strong> ${messagesToNextScan}
@@ -367,7 +373,7 @@ export function showCharacterListModal() {
             </div>
         `;
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
         context.callGenericPopup(modalHtml, context.POPUP_TYPE.TEXT, '', { wider: true, okButton: 'Close' });
     });
 }
@@ -592,7 +598,7 @@ export function toggleAutoHarvest() {
  */
 export async function openChatLorebook() {
     return withErrorBoundary('openChatLorebook', async () => {
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
         const lorebookName = context.chatMetadata?.world_info;
 
         if (!lorebookName) {
@@ -686,6 +692,7 @@ export function bindSettingsHandlers() {
                 await loadOllamaModels();
                 notifications.success('Ollama models loaded');
             } catch (error) {
+                debug('Failed to load Ollama models:', error.message);
                 notifications.error('Failed to load Ollama models');
             }
         });

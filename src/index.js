@@ -21,7 +21,7 @@ import { /* initializeCharacterManager */ } from './modules/characters.js';
 import { /* initializeLLMManager */ } from './modules/llm.js';
 import { initializeLorebook } from './modules/lorebook.js';
 import { /* initializeProcessingManager */ } from './modules/processing.js';
-import { loadSettingsHTML, initializeUIHandlers, initializeMenuButtons } from './modules/ui.js';
+import { initializeUIHandlers, initializeMenuButtons } from './modules/ui.js';
 
 // Extension name constant - MUST match manifest
 const extensionName = 'STnametracker';
@@ -134,7 +134,7 @@ class NameTrackerExtension {
         try {
             // Initialize lorebook for current chat
             await initializeLorebook();
-            
+
             logger.debug('Feature modules initialized');
         } catch (error) {
             logger.error('Failed to initialize feature modules:', error);
@@ -149,29 +149,29 @@ class NameTrackerExtension {
     async initializeUI() {
         console.log('[STnametracker] initializeUI: Starting UI initialization...');
         logger.debug('Initializing UI...');
-        
+
         try {
             // Load settings HTML using proper jQuery pattern
             console.log('[STnametracker] initializeUI: Loading settings HTML from:', `${extensionFolderPath}/settings.html`);
             const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
             console.log('[STnametracker] initializeUI: Settings HTML loaded, length:', settingsHtml.length);
-            
+
             console.log('[STnametracker] initializeUI: Finding #extensions_settings element...');
             const targetElement = $('#extensions_settings');
             console.log('[STnametracker] initializeUI: Target element found:', targetElement.length > 0);
-            
+
             targetElement.append(settingsHtml);
             console.log('[STnametracker] initializeUI: Settings HTML appended');
-            
+
             // Initialize UI handlers
             console.log('[STnametracker] initializeUI: Initializing UI handlers...');
             initializeUIHandlers();
             console.log('[STnametracker] initializeUI: UI handlers initialized');
-            
+
             console.log('[STnametracker] initializeUI: Initializing menu buttons...');
             initializeMenuButtons();
             console.log('[STnametracker] initializeUI: Menu buttons initialized');
-            
+
             logger.debug('UI initialized');
         } catch (error) {
             logger.error('Failed to initialize UI:', error);
@@ -184,7 +184,7 @@ class NameTrackerExtension {
      */
     registerEventListeners() {
         logger.debug('Registering event listeners...');
-        
+
         try {
             // Get event objects from SillyTavern context
             const context = sillyTavernContext.getContext();
@@ -211,7 +211,7 @@ class NameTrackerExtension {
                 logger.debug('Chat changed event received');
                 await settingsManager.onChatChanged();
             });
-            
+
             logger.debug('Event listeners registered');
         } catch (error) {
             logger.error('Failed to register event listeners:', error);
@@ -286,7 +286,7 @@ jQuery(async () => {
     try {
         console.log('[STnametracker] Logger available, initializing...');
         logger.log('Name Tracker Extension loading...');
-        
+
         // Initialize extension_settings for this extension
         console.log('[STnametracker] Setting up extension_settings...');
         if (!window.extension_settings) {
@@ -296,7 +296,7 @@ jQuery(async () => {
         console.log('[STnametracker] Current extension_settings keys:', Object.keys(window.extension_settings));
         window.extension_settings[extensionName] = window.extension_settings[extensionName] || {};
         console.log('[STnametracker] Extension settings initialized');
-        
+
         console.log('[STnametracker] Starting main initialization...');
         await nameTrackerExtension.initialize();
         console.log('[STnametracker] Main initialization completed');
