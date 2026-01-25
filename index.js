@@ -1616,10 +1616,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _errors_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./errors.js */ "./src/core/errors.js");
 /* harmony import */ var _debug_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./debug.js */ "./src/core/debug.js");
+/* harmony import */ var _context_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./context.js */ "./src/core/context.js");
 /**
  * Simplified settings management for Name Tracker extension
  * Uses SillyTavern standard patterns with preserved error handling
  */
+
 
 
 
@@ -1719,18 +1721,19 @@ function set_settings(newSettings) {
  */
 function getCharacters() {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__.errorHandler.withErrorBoundary('Settings', () => {
-        // Ensure chat_metadata exists
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available');
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME].characters || {};
+        } catch (error) {
+            debug.warn('Failed to get characters:', error.message);
             return {};
         }
-
-        // Initialize if not exists
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
-
-        return chat_metadata[MODULE_NAME].characters || {};
     }, {});
 }
 
@@ -1740,23 +1743,23 @@ function getCharacters() {
  */
 function setCharacters(characters) {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__.errorHandler.withErrorBoundary('Settings', () => {
-        // Ensure chat_metadata exists
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available for saving');
-            return;
-        }
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
 
-        // Initialize if not exists
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
 
-        // Update characters
-        chat_metadata[MODULE_NAME].characters = characters;
+            // Update characters
+            metadata[MODULE_NAME].characters = characters;
 
-        // Save to SillyTavern
-        if (typeof saveMetadataDebounced !== 'undefined') {
-            saveMetadataDebounced();
+            // Save to SillyTavern
+            _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata().catch(err => {
+                debug.warn('Failed to save chat metadata:', err.message);
+            });
+        } catch (error) {
+            debug.warn('Failed to set characters:', error.message);
         }
     });
 }
@@ -1767,18 +1770,19 @@ function setCharacters(characters) {
  */
 function getChatData() {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__.errorHandler.withErrorBoundary('Settings', () => {
-        // Ensure chat_metadata exists
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available');
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME];
+        } catch (error) {
+            debug.warn('Failed to get chat data:', error.message);
             return { ...DEFAULT_CHAT_DATA };
         }
-
-        // Initialize if not exists
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
-
-        return chat_metadata[MODULE_NAME];
     }, { ...DEFAULT_CHAT_DATA });
 }
 
@@ -1788,23 +1792,23 @@ function getChatData() {
  */
 function setChatData(data) {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__.errorHandler.withErrorBoundary('Settings', () => {
-        // Ensure chat_metadata exists
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available for saving');
-            return;
-        }
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
 
-        // Initialize if not exists
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
 
-        // Update data
-        Object.assign(chat_metadata[MODULE_NAME], data);
+            // Update data
+            Object.assign(metadata[MODULE_NAME], data);
 
-        // Save to SillyTavern
-        if (typeof saveMetadataDebounced !== 'undefined') {
-            saveMetadataDebounced();
+            // Save to SillyTavern
+            _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata().catch(err => {
+                debug.warn('Failed to save chat metadata:', err.message);
+            });
+        } catch (error) {
+            debug.warn('Failed to set chat data:', error.message);
         }
     });
 }
@@ -1939,16 +1943,18 @@ function getSettings() {
  */
 function get_chat_metadata(key) {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__.errorHandler.withErrorBoundary('Settings', () => {
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available');
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME][key];
+        } catch (error) {
+            debug.warn('Failed to get chat metadata:', error.message);
             return DEFAULT_CHAT_DATA[key];
         }
-
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
-
-        return chat_metadata[MODULE_NAME][key];
     }, DEFAULT_CHAT_DATA[key]);
 }
 
@@ -1959,20 +1965,21 @@ function get_chat_metadata(key) {
  */
 function set_chat_metadata(key, value) {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__.errorHandler.withErrorBoundary('Settings', () => {
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available for saving');
-            return;
-        }
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
 
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
 
-        chat_metadata[MODULE_NAME][key] = value;
-        debug.log(`Updated chat data ${key}`);
+            metadata[MODULE_NAME][key] = value;
+            debug.log(`Updated chat data ${key}`);
 
-        if (typeof saveMetadataDebounced !== 'undefined') {
-            saveMetadataDebounced();
+            _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata().catch(err => {
+                debug.warn('Failed to save chat metadata:', err.message);
+            });
+        } catch (error) {
+            debug.warn('Failed to set chat metadata:', error.message);
         }
     });
 }
@@ -3293,7 +3300,7 @@ async function callSillyTavern(prompt) {
         }
 
         // Get token count for the prompt
-        // eslint-disable-next-line no-unused-vars
+
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(prompt);
@@ -4934,9 +4941,9 @@ Failed batches: ${failedBatches}`;
             debugLog(`[BatchProcessing] Batch analysis complete: ${successfulBatches}/${batches.length} successful, ${failedBatches} failed, ${uniqueCharacters.size} characters found`);
 
             if (failedBatches > 0) {
-                notifications.warning(summary, { timeOut: 8000 });
+                notifications.warning(summary, 'Batch Analysis', { timeOut: 8000 });
             } else {
-                notifications.success(summary, { timeOut: 8000 });
+                notifications.success(summary, 'Batch Analysis', { timeOut: 8000 });
             }
 
             return;
@@ -5278,9 +5285,9 @@ Continue with remaining batches?`);
         const safeSummary = String(summary || 'Scan completed');
 
         if (failedBatches > 0) {
-            notifications.warning(safeSummary, { timeOut: 10000 });
+            notifications.warning(safeSummary, 'Scan Complete', { timeOut: 10000 });
         } else {
-            notifications.success(safeSummary, { timeOut: 10000 });
+            notifications.success(safeSummary, 'Scan Complete', { timeOut: 10000 });
         }
     });
 }

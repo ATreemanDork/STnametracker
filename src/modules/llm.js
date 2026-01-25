@@ -425,7 +425,7 @@ export async function callSillyTavern(prompt) {
         }
 
         // Get token count for the prompt
-        // eslint-disable-next-line no-unused-vars
+
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(prompt);

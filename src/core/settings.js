@@ -5,6 +5,7 @@
 
 import { errorHandler } from './errors.js';
 import { createModuleLogger } from './debug.js';
+import { stContext } from './context.js';
 
 const MODULE_NAME = 'STnametracker';
 const debug = createModuleLogger('Settings');
@@ -101,18 +102,19 @@ function set_settings(newSettings) {
  */
 function getCharacters() {
     return errorHandler.withErrorBoundary('Settings', () => {
-        // Ensure chat_metadata exists
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available');
+        try {
+            const metadata = stContext.getChatMetadata();
+
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME].characters || {};
+        } catch (error) {
+            debug.warn('Failed to get characters:', error.message);
             return {};
         }
-
-        // Initialize if not exists
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
-
-        return chat_metadata[MODULE_NAME].characters || {};
     }, {});
 }
 
@@ -122,23 +124,23 @@ function getCharacters() {
  */
 function setCharacters(characters) {
     return errorHandler.withErrorBoundary('Settings', () => {
-        // Ensure chat_metadata exists
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available for saving');
-            return;
-        }
+        try {
+            const metadata = stContext.getChatMetadata();
 
-        // Initialize if not exists
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
 
-        // Update characters
-        chat_metadata[MODULE_NAME].characters = characters;
+            // Update characters
+            metadata[MODULE_NAME].characters = characters;
 
-        // Save to SillyTavern
-        if (typeof saveMetadataDebounced !== 'undefined') {
-            saveMetadataDebounced();
+            // Save to SillyTavern
+            stContext.saveChatMetadata().catch(err => {
+                debug.warn('Failed to save chat metadata:', err.message);
+            });
+        } catch (error) {
+            debug.warn('Failed to set characters:', error.message);
         }
     });
 }
@@ -149,18 +151,19 @@ function setCharacters(characters) {
  */
 function getChatData() {
     return errorHandler.withErrorBoundary('Settings', () => {
-        // Ensure chat_metadata exists
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available');
+        try {
+            const metadata = stContext.getChatMetadata();
+
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME];
+        } catch (error) {
+            debug.warn('Failed to get chat data:', error.message);
             return { ...DEFAULT_CHAT_DATA };
         }
-
-        // Initialize if not exists
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
-
-        return chat_metadata[MODULE_NAME];
     }, { ...DEFAULT_CHAT_DATA });
 }
 
@@ -170,23 +173,23 @@ function getChatData() {
  */
 function setChatData(data) {
     return errorHandler.withErrorBoundary('Settings', () => {
-        // Ensure chat_metadata exists
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available for saving');
-            return;
-        }
+        try {
+            const metadata = stContext.getChatMetadata();
 
-        // Initialize if not exists
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
 
-        // Update data
-        Object.assign(chat_metadata[MODULE_NAME], data);
+            // Update data
+            Object.assign(metadata[MODULE_NAME], data);
 
-        // Save to SillyTavern
-        if (typeof saveMetadataDebounced !== 'undefined') {
-            saveMetadataDebounced();
+            // Save to SillyTavern
+            stContext.saveChatMetadata().catch(err => {
+                debug.warn('Failed to save chat metadata:', err.message);
+            });
+        } catch (error) {
+            debug.warn('Failed to set chat data:', error.message);
         }
     });
 }
@@ -321,16 +324,18 @@ function getSettings() {
  */
 function get_chat_metadata(key) {
     return errorHandler.withErrorBoundary('Settings', () => {
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available');
+        try {
+            const metadata = stContext.getChatMetadata();
+
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME][key];
+        } catch (error) {
+            debug.warn('Failed to get chat metadata:', error.message);
             return DEFAULT_CHAT_DATA[key];
         }
-
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
-
-        return chat_metadata[MODULE_NAME][key];
     }, DEFAULT_CHAT_DATA[key]);
 }
 
@@ -341,20 +346,21 @@ function get_chat_metadata(key) {
  */
 function set_chat_metadata(key, value) {
     return errorHandler.withErrorBoundary('Settings', () => {
-        if (typeof chat_metadata === 'undefined') {
-            console.warn('[STnametracker] chat_metadata not available for saving');
-            return;
-        }
+        try {
+            const metadata = stContext.getChatMetadata();
 
-        if (!chat_metadata[MODULE_NAME]) {
-            chat_metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
-        }
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
 
-        chat_metadata[MODULE_NAME][key] = value;
-        debug.log(`Updated chat data ${key}`);
+            metadata[MODULE_NAME][key] = value;
+            debug.log(`Updated chat data ${key}`);
 
-        if (typeof saveMetadataDebounced !== 'undefined') {
-            saveMetadataDebounced();
+            stContext.saveChatMetadata().catch(err => {
+                debug.warn('Failed to save chat metadata:', err.message);
+            });
+        } catch (error) {
+            debug.warn('Failed to set chat metadata:', error.message);
         }
     });
 }

@@ -648,9 +648,9 @@ Failed batches: ${failedBatches}`;
             debugLog(`[BatchProcessing] Batch analysis complete: ${successfulBatches}/${batches.length} successful, ${failedBatches} failed, ${uniqueCharacters.size} characters found`);
 
             if (failedBatches > 0) {
-                notifications.warning(summary, { timeOut: 8000 });
+                notifications.warning(summary, 'Batch Analysis', { timeOut: 8000 });
             } else {
-                notifications.success(summary, { timeOut: 8000 });
+                notifications.success(summary, 'Batch Analysis', { timeOut: 8000 });
             }
 
             return;
@@ -992,9 +992,9 @@ Continue with remaining batches?`);
         const safeSummary = String(summary || 'Scan completed');
 
         if (failedBatches > 0) {
-            notifications.warning(safeSummary, { timeOut: 10000 });
+            notifications.warning(safeSummary, 'Scan Complete', { timeOut: 10000 });
         } else {
-            notifications.success(safeSummary, { timeOut: 10000 });
+            notifications.success(safeSummary, 'Scan Complete', { timeOut: 10000 });
         }
     });
 }
