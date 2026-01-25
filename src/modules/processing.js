@@ -1,26 +1,69 @@
 /**
  * Message Processing Module
  *
- * Handles message analysis workflows, batch processing, and SillyTavern event handling
- * for the Name Tracker extension.
+ * Handles two-phase character detection (lightweight name scan → focused LLM processing),
+ * batch processing with character-specific context windows, and SillyTavern event integration.
  */
 
 import { createModuleLogger } from '../core/debug.js';
-import { withErrorBoundary } from '../core/errors.js';
-import { get_settings, set_settings, getLLMConfig } from '../core/settings.js';
+import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
+import { get_settings, set_settings, getLLMConfig, getCharacters } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { NotificationManager } from '../utils/notifications.js';
 import { callLLMAnalysis, buildCharacterRoster, getMaxPromptLength, calculateMessageTokens } from './llm.js';
-import { createCharacter, updateCharacter, findExistingCharacter, findPotentialMatch, isIgnoredCharacter } from './characters.js';
+import { createCharacter, updateCharacter, findExistingCharacter, findPotentialMatch, isIgnoredCharacter, detectMergeOpportunities } from './characters.js';
 import { updateLorebookEntry } from './lorebook.js';
 
 const debug = createModuleLogger('processing');
 const notifications = new NotificationManager('Message Processing');
 
+// ============================================================================
+// DEBUG CONFIGURATION
+// ============================================================================
+const DEBUG_LOGGING = true; // Set to false in production after testing
+
+function debugLog(message, data = null) {
+    if (DEBUG_LOGGING) {
+        console.log(`[NT-Processing] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// CONFIGURATION CONSTANTS - Core processing parameters
+// ============================================================================
+// These values drive the processing pipeline. Future user-exposed settings
+// should reference these constant names for easy discovery and updates.
+
+// Context Management
+const CONTEXT_TARGET_PERCENT = 80;      // Target percentage of context window to use
+const OVERLAP_SIZE = 3;                 // Messages to overlap between batches for continuity
+const MIN_CONTEXT_TARGET = 50;          // Minimum allowed context target (floor for auto-reduction)
+
+// Name Detection
+const CAPITALIZED_WORD_REGEX = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g;  // Matches capitalized names
+const QUOTED_NAME_REGEX = /"([^"]+)"/g;  // Matches quoted names
+const POSSESSIVE_REGEX = /(\b[A-Z][a-z]+)'s\b/g;  // Matches possessive forms
+
+// Processing Control
+const BATCH_TIMEOUT_MS = 30000;         // Maximum time for a single batch to process
+const MAX_RETRY_ATTEMPTS = 3;           // Maximum retries before halting processing
+const CONTEXT_REDUCTION_STEP = 5;       // Percentage to reduce context target on each failure
+
+// Error Recovery
+const ENABLE_AUTO_RECOVERY = true;      // Enable automatic context reduction on failure
+const PRESERVE_PROCESSING_STATE = true; // Always save character state even on errors
+
 // Processing state
 let processingQueue = [];
 let isProcessing = false;
 let abortScan = false;
+let currentProcessingState = {
+    totalBatches: 0,
+    currentBatch: 0,
+    failedCharacters: [],
+    lastError: null,
+    contextTarget: CONTEXT_TARGET_PERCENT
+};
 
 /**
  * Process analysis results from LLM
@@ -97,6 +140,312 @@ async function processCharacterData(analyzedChar) {
             }
         }
     });
+}
+
+// ============================================================================
+// TWO-PHASE DETECTION SYSTEM
+// ============================================================================
+
+/**
+ * PHASE 1: Lightweight name extraction from message batch
+ * Uses regex patterns to find all potential character names without LLM
+ * @param {Array} messages - Messages to scan for names
+ * @returns {Array} Array of unique name candidates found
+ */
+export function scanForNewNames(messages) {
+    return withErrorBoundary('scanForNewNames', () => {
+        debugLog(`[PHASE 1] Starting name scan on ${messages.length} messages`);
+        
+        if (!Array.isArray(messages) || messages.length === 0) {
+            debugLog('[PHASE 1] No messages to scan');
+            return [];
+        }
+
+        const foundNames = new Set();
+        const existingCharacters = getCharacters();
+        const existingNames = new Set();
+
+        debugLog(`[PHASE 1] Existing characters in memory: ${Object.keys(existingCharacters).length}`);
+
+        // Build set of existing character names and aliases
+        for (const char of Object.values(existingCharacters)) {
+            existingNames.add(char.preferredName.toLowerCase());
+            if (char.aliases && Array.isArray(char.aliases)) {
+                char.aliases.forEach(alias => existingNames.add(alias.toLowerCase()));
+            }
+        }
+
+        const capitalizedFound = [];
+        const quotedFound = [];
+        const possessiveFound = [];
+
+        // Scan messages for potential names
+        for (const msg of messages) {
+            if (!msg.mes || typeof msg.mes !== 'string') continue;
+
+            const text = msg.mes;
+
+            // Extract capitalized words (names)
+            const capitalizedMatches = text.match(CAPITALIZED_WORD_REGEX) || [];
+            capitalizedMatches.forEach(match => {
+                const normalized = match.toLowerCase();
+                if (!existingNames.has(normalized) && match.length > 1) {
+                    foundNames.add(match);
+                    capitalizedFound.push(match);
+                }
+            });
+
+            // Extract quoted names
+            const quotedMatches = text.match(QUOTED_NAME_REGEX) || [];
+            quotedMatches.forEach(match => {
+                const name = match.slice(1, -1); // Remove quotes
+                const normalized = name.toLowerCase();
+                if (!existingNames.has(normalized) && name.length > 1) {
+                    foundNames.add(name);
+                    quotedFound.push(name);
+                }
+            });
+
+            // Extract possessive forms
+            const possessiveMatches = text.match(POSSESSIVE_REGEX) || [];
+            possessiveMatches.forEach(match => {
+                const name = match.replace(/'s$/, '');
+                const normalized = name.toLowerCase();
+                if (!existingNames.has(normalized)) {
+                    foundNames.add(name);
+                    possessiveFound.push(name);
+                }
+            });
+        }
+
+        debugLog(`[PHASE 1] Capitalized names found: ${capitalizedFound.join(', ')}`);
+        debugLog(`[PHASE 1] Quoted names found: ${quotedFound.join(', ')}`);
+        debugLog(`[PHASE 1] Possessive forms found: ${possessiveFound.join(', ')}`);
+        debugLog(`[PHASE 1] Total unique names to process: ${foundNames.size}`);
+        
+        return Array.from(foundNames);
+    }, []);
+}
+
+/**
+ * PHASE 2: Focused LLM analysis for new characters and existing character updates
+ * Processes new names individually and updates existing characters that were mentioned
+ * @param {Array} newNames - New character names to analyze
+ * @param {Array} messages - Message context for character details
+ * @param {Array} existingMentions - Names of existing characters mentioned in messages
+ * @returns {Promise<Object>} Results of processing with success/error details
+ */
+export async function processPhaseTwoAnalysis(newNames, messages, existingMentions = []) {
+    return withErrorBoundary('processPhaseTwoAnalysis', async () => {
+        debugLog(`[PHASE 2] Starting focused LLM analysis`);
+        debugLog(`[PHASE 2] New characters: ${newNames.length}, Existing mentions: ${existingMentions.length}`);
+        debugLog(`[PHASE 2] Current context target: ${currentProcessingState.contextTarget}%`);
+        
+        const results = {
+            newCharactersCreated: [],
+            existingCharactersUpdated: [],
+            failedCharacters: [],
+            mergesDetected: []
+        };
+
+        if (!Array.isArray(messages) || messages.length === 0) {
+            debugLog('[PHASE 2] No messages provided, returning empty results');
+            return results;
+        }
+
+        try {
+            // Process new characters
+            if (newNames && newNames.length > 0) {
+                debugLog(`[PHASE 2] Processing ${newNames.length} new characters`);
+                
+                for (const newName of newNames) {
+                    if (abortScan) {
+                        debugLog(`[PHASE 2] Processing aborted by user at character: ${newName}`);
+                        break;
+                    }
+
+                    try {
+                        await processNewCharacter(newName, messages, results);
+                    } catch (error) {
+                        debugLog(`[PHASE 2] Failed to process new character ${newName}: ${error.message}`);
+                        results.failedCharacters.push({ name: newName, error: error.message });
+                        currentProcessingState.failedCharacters.push(newName);
+                        currentProcessingState.lastError = error;
+
+                        // If ENABLE_AUTO_RECOVERY, attempt to reduce context and retry
+                        if (ENABLE_AUTO_RECOVERY && currentProcessingState.contextTarget > MIN_CONTEXT_TARGET) {
+                            currentProcessingState.contextTarget -= CONTEXT_REDUCTION_STEP;
+                            debugLog(`[PHASE 2] Auto-reducing context target to ${currentProcessingState.contextTarget}%`);
+                        } else if (results.failedCharacters.length >= MAX_RETRY_ATTEMPTS) {
+                            // Halt processing after max retries
+                            throw new NameTrackerError(
+                                `Processing halted: Maximum retries exceeded. Last error: ${error.message}`,
+                                'PROCESSING_MAX_RETRIES'
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Update existing characters mentioned in messages
+            if (existingMentions && existingMentions.length > 0) {
+                debug.log(`Phase 2: Updating ${existingMentions.length} existing characters`);
+
+                for (const charName of existingMentions) {
+                    if (abortScan) break;
+
+                    try {
+                        const existingChar = findExistingCharacter(charName);
+                        if (existingChar) {
+                            await processExistingCharacter(existingChar, messages, results);
+                        }
+                    } catch (error) {
+                        debug.log(`Failed to update character ${charName}: ${error.message}`);
+                        results.failedCharacters.push({ name: charName, error: error.message });
+                    }
+                }
+            }
+
+        } catch (error) {
+            debug.log(`Phase 2 analysis error: ${error.message}`);
+            throw error;
+        }
+
+        return results;
+    }, { newCharactersCreated: [], existingCharactersUpdated: [], failedCharacters: [], mergesDetected: [] });
+}
+
+/**
+ * Process a new character: LLM analysis → create entry → check for merges
+ * @private
+ */
+async function processNewCharacter(name, messages, results) {
+    debugLog(`[P2-NewChar] Processing: ${name}`);
+
+    // Build context with 3-message overlap for this character
+    const characterContext = buildCharacterContext(name, messages, OVERLAP_SIZE);
+    debugLog(`[P2-NewChar] Context window size: ${characterContext ? characterContext.length : 0} chars`);
+    
+    if (!characterContext || characterContext.length === 0) {
+        debugLog(`[P2-NewChar] FAILED: No context for ${name}`);
+        throw new NameTrackerError(`No context found for character: ${name}`, 'NO_CONTEXT');
+    }
+
+    // Analyze the character with LLM
+    debugLog(`[P2-NewChar] Calling LLM for ${name}`);
+    const characterData = await callLLMAnalysis([{ mes: characterContext }], [name], currentProcessingState.contextTarget);
+    
+    if (!characterData || characterData.length === 0) {
+        debugLog(`[P2-NewChar] FAILED: LLM returned no data for ${name}`);
+        throw new NameTrackerError(`LLM returned no data for character: ${name}`, 'LLM_EMPTY_RESPONSE');
+    }
+
+    debugLog(`[P2-NewChar] LLM returned data: ${JSON.stringify(characterData[0]).substring(0, 200)}...`);
+
+    // Check for merge opportunities before creating
+    const potentialMerges = detectMergeOpportunities(name);
+    if (potentialMerges && potentialMerges.length > 0) {
+        debugLog(`[P2-NewChar] Merge opportunities: ${potentialMerges.map(m => m.targetName).join(', ')}`);
+        results.mergesDetected.push({ source: name, targets: potentialMerges });
+    }
+
+    // Create the character
+    const newCharacter = await createCharacter(characterData[0], false);
+    await updateLorebookEntry(newCharacter, newCharacter.preferredName);
+    
+    results.newCharactersCreated.push(newCharacter.preferredName);
+    debugLog(`[P2-NewChar] Successfully created: ${newCharacter.preferredName}`);
+}
+
+/**
+ * Process existing character: build context from last processed message → update entry
+ * @private
+ */
+async function processExistingCharacter(existingChar, messages, results) {
+    debug.log(`Updating existing character: ${existingChar.preferredName}`);
+
+    // Get character's last processed message ID (from state tracking)
+    const lastProcessedId = existingChar.lastMessageProcessed || -1;
+    
+    // Build context starting from overlap before last processed message
+    const characterContext = buildCharacterContextFromPoint(
+        existingChar.preferredName,
+        messages,
+        lastProcessedId,
+        OVERLAP_SIZE
+    );
+
+    if (!characterContext || characterContext.length === 0) {
+        debug.log(`No new context for character ${existingChar.preferredName} since last processing`);
+        return;
+    }
+
+    // Analyze with LLM
+    const updates = await callLLMAnalysis([{ mes: characterContext }], [existingChar.preferredName], currentProcessingState.contextTarget);
+    
+    if (updates && updates.length > 0) {
+        await updateCharacter(existingChar, updates[0], false, existingChar.isMainChar);
+        await updateLorebookEntry(existingChar, existingChar.preferredName);
+        
+        results.existingCharactersUpdated.push(existingChar.preferredName);
+        debug.log(`Updated character: ${existingChar.preferredName}`);
+    }
+}
+
+/**
+ * Build character-specific context from all messages mentioning the character
+ * @private
+ */
+function buildCharacterContext(characterName, messages, overlapSize) {
+    const contextMessages = [];
+    
+    for (const msg of messages) {
+        if (!msg.mes) continue;
+        
+        // Check if this message mentions the character
+        if (msg.mes.includes(characterName) || msg.mes.includes(characterName.split(' ')[0])) {
+            contextMessages.push(msg);
+        }
+    }
+
+    if (contextMessages.length === 0) return '';
+
+    // Add overlap messages before and after mentions for context
+    const contextWindow = [];
+    const indices = contextMessages.map(m => messages.indexOf(m));
+    const minIdx = Math.max(0, Math.min(...indices) - overlapSize);
+    const maxIdx = Math.min(messages.length - 1, Math.max(...indices) + overlapSize);
+
+    for (let i = minIdx; i <= maxIdx; i++) {
+        if (messages[i]) {
+            contextWindow.push(messages[i].mes);
+        }
+    }
+
+    return contextWindow.join('\n\n');
+}
+
+/**
+ * Build context starting from a specific message point (for continuing character updates)
+ * @private
+ */
+function buildCharacterContextFromPoint(characterName, messages, lastProcessedId, overlapSize) {
+    const allText = [];
+    let startIdx = 0;
+
+    // Find where we left off
+    if (lastProcessedId >= 0) {
+        const lastIdx = messages.findIndex(m => m.id === lastProcessedId);
+        startIdx = Math.max(0, lastIdx - overlapSize);
+    }
+
+    for (let i = startIdx; i < messages.length; i++) {
+        if (messages[i] && messages[i].mes) {
+            allText.push(messages[i].mes);
+        }
+    }
+
+    return allText.length > 0 ? allText.join('\n\n') : '';
 }
 
 /**
@@ -229,7 +578,11 @@ export async function harvestMessages(messageCount, showProgress = true) {
                     failedBatches++;
 
                     // Ask user if they want to continue
-                    const continueOnError = confirm(`Batch ${i + 1} failed.\\n\\nError: ${error.message}\\n\\nContinue with remaining batches?`);
+                    const continueOnError = confirm(`Batch ${i + 1} failed.
+
+Error: ${error.message}
+
+Continue with remaining batches?`);
                     if (!continueOnError) {
                         break;
                     }
@@ -240,7 +593,11 @@ export async function harvestMessages(messageCount, showProgress = true) {
             hideProgressBar();
 
             // Show summary
-            const summary = `Analysis complete!\\n\\nBatches processed: ${successfulBatches}/${batches.length}\\nUnique characters found: ${uniqueCharacters.size}\\nFailed batches: ${failedBatches}`;
+            const summary = `Analysis complete!
+
+Batches processed: ${successfulBatches}/${batches.length}
+Unique characters found: ${uniqueCharacters.size}
+Failed batches: ${failedBatches}`;
             if (failedBatches > 0) {
                 notifications.warning(summary, { timeOut: 8000 });
             } else {
@@ -562,7 +919,11 @@ export async function scanEntireChat() {
                 failedBatches++;
 
                 // Auto-retry logic could be added here
-                const continueOnError = confirm(`Batch ${i + 1} failed.\\n\\nError: ${error.message}\\n\\nContinue with remaining batches?`);
+                const continueOnError = confirm(`Batch ${i + 1} failed.
+
+Error: ${error.message}
+
+Continue with remaining batches?`);
                 if (!continueOnError) {
                     break;
                 }
@@ -576,7 +937,7 @@ export async function scanEntireChat() {
         set_settings('lastScannedMessageId', totalMessages - 1);
 
         // Show summary
-        const summary = `Full chat scan complete!\\n\\nMessages: ${totalMessages}\\nBatches: ${successfulBatches}/${numBatches}\\nCharacters found: ${uniqueCharacters.size}\\nFailed: ${failedBatches}`;
+        const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
         if (failedBatches > 0) {
             notifications.warning(summary, { timeOut: 10000 });
         } else {

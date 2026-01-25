@@ -2,7 +2,8 @@
  * LLM Integration Module
  *
  * Handles LLM API calls to SillyTavern and Ollama for character analysis.
- * Includes token management, context window handling, and JSON parsing.
+ * Includes conservative parameter settings, token management, context window handling,
+ * and JSON parsing for deterministic character extraction.
  */
 
 import { createModuleLogger } from '../core/debug.js';
@@ -15,6 +16,42 @@ import { NotificationManager } from '../utils/notifications.js';
 const debug = createModuleLogger('llm');
 const notifications = new NotificationManager('LLM Integration');
 
+// ============================================================================
+// DEBUG CONFIGURATION
+// ============================================================================
+const DEBUG_LOGGING = true; // Set to false in production after testing
+
+function debugLog(message, data = null) {
+    if (DEBUG_LOGGING) {
+        console.log(`[NT-LLM] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// CONFIGURATION CONSTANTS - Conservative parameters for deterministic output
+// ============================================================================
+// These hardcoded values ensure reliable JSON extraction with minimal hallucination.
+// They override user chat settings specifically for character analysis operations.
+
+// Generation Parameters (Anti-hallucination configuration)
+const GENERATION_TEMPERATURE = 0.2;     // Very low for deterministic output
+const GENERATION_TOP_P = 0.85;          // Slightly reduced nucleus sampling
+const GENERATION_TOP_K = 25;            // Standard focused sampling
+const GENERATION_REP_PEN = 1.1;         // Slight repetition penalty
+
+// Context Window Management
+const RESPONSE_BUFFER_PERCENT = 25;     // Reserve 25% for response generation
+const SAFETY_MARGIN_PERCENT = 10;       // Reserve 10% safety margin
+const MIN_RESPONSE_TOKENS = 1000;       // Minimum tokens allowed for response
+
+// Ollama-Specific Parameters
+const OLLAMA_MIN_PREDICT = 500;         // Minimum tokens to predict
+const OLLAMA_MAX_PREDICT = 4000;        // Maximum tokens to predict
+
+// Cache Configuration
+const CACHE_MAX_ENTRIES = 50;           // Maximum cached analysis results
+const CACHE_INVALIDATION_TIME = 3600000; // 1 hour cache duration
+
 // LLM state management
 const analysisCache = new Map(); // Cache for LLM analysis results
 let ollamaModels = []; // Available Ollama models
@@ -22,44 +59,44 @@ let ollamaModels = []; // Available Ollama models
 /**
  * Default system prompt for character analysis
  */
-const DEFAULT_SYSTEM_PROMPT = `You are a character analysis assistant. Your task is to extract character information from chat messages and return it in a structured JSON format.
+const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
 
-CRITICAL: You MUST respond with ONLY valid JSON. Do not include any explanatory text, markdown formatting, or commentary. Just the raw JSON object.
+CRITICAL: Your entire response must be a single JSON object starting with { and ending with }
 
-IMPORTANT PROCESSING RULES:
-1. Process messages in CHRONOLOGICAL ORDER (oldest to newest)
-2. When there is conflicting information about a character, ALWAYS use the MOST RECENT information
-3. Be smart about name variations - "Alex" and "Alexandra" may be the same person
-4. Track physical attributes, personality traits, relationships, and interactions with {{user}}
-5. Don't create entries for generic references like "the bartender" unless given specific names
+DO NOT include:
+- Any text before the JSON
+- Any text after the JSON  
+- Code block markers
+- Explanations or commentary
 
-Required JSON structure:
+REQUIRED JSON structure (copy this exact format):
 {
   "characters": [
     {
-      "name": "Character's primary/preferred name",
-      "aliases": ["Alternative names", "Nicknames"],
-      "physicalAge": "Age or age range",
-      "mentalAge": "Mental/emotional age if different",
-      "physical": "Physical description and appearance",
-      "personality": "Personality traits and behavior", 
-      "sexuality": "Sexual orientation or preferences",
-      "raceEthnicity": "Race/ethnicity information",
-      "roleSkills": "Job, role, skills, abilities",
-      "lastInteraction": "Most recent interaction or scene with {{user}}",
-      "relationships": ["Relationship with other characters"],
-      "confidence": 85
+      "name": "Character name",
+      "aliases": ["Other names"],
+      "physicalAge": "Age if mentioned",
+      "mentalAge": "Mental age if different",
+      "physical": "Physical description",
+      "personality": "Personality traits",
+      "sexuality": "Sexual orientation if mentioned",
+      "raceEthnicity": "Race/ethnicity if mentioned",
+      "roleSkills": "Job/role/skills",
+      "lastInteraction": "Recent interaction with user",
+      "relationships": ["Relationships with other characters"],
+      "confidence": 75
     }
   ]
 }
 
-Confidence scores (0-100):
-- 90-100: Character explicitly named with detailed info
-- 70-89: Character clearly identified with some details
-- 50-69: Character mentioned but limited info
-- Below 50: Uncertain or vague reference
+Rules:
+- Only extract clearly named speaking characters
+- Skip generic references ("the waiter", "a woman")
+- Use most recent information for conflicts
+- Empty array if no clear characters: {"characters":[]}
+- Confidence: 90+ (explicit), 70-89 (clear), 50-69 (mentioned), <50 (vague)
 
-Focus on major speaking characters and those with significant interactions. Avoid analyzing every minor mention.`;
+Your response must start with { immediately.`;
 
 /**
  * Get the system prompt for analysis
@@ -76,8 +113,7 @@ function getSystemPrompt() {
 export async function loadOllamaModels() {
     return withErrorBoundary('loadOllamaModels', async () => {
         const ollamaEndpoint = get_settings('ollamaEndpoint', 'http://localhost:11434');
-
-        debug.log();
+        debugLog(`[OllamaModels] Loading models from ${ollamaEndpoint}`);
 
         try {
             const response = await fetch(`${ollamaEndpoint}/api/tags`);
@@ -88,8 +124,7 @@ export async function loadOllamaModels() {
 
             const data = await response.json();
             ollamaModels = data.models || [];
-
-            debug.log();
+            debugLog(`[OllamaModels] Found ${ollamaModels.length} models: ${ollamaModels.map(m => m.name).join(', ')}`);
 
             return ollamaModels;
         } catch (error) {
@@ -300,12 +335,12 @@ export async function callSillyTavern(prompt) {
             systemPrompt: '',  // Empty, we include instructions in prompt
             prefill: '',  // No prefill needed for analysis
             // Override generation settings for structured output
-            // These ensure consistent, deterministic JSON regardless of user's chat settings
-            temperature: 0.3,  // Low temp for focused, deterministic output (user's setting is ignored)
-            top_p: 0.9,        // Slightly reduced for more predictable results
-            top_k: 40,         // Standard focused sampling
-            min_p: 0.05,       // Prevent very low probability tokens
-            rep_pen: 1.1,      // Slight repetition penalty
+            // These hardcoded conservative settings ensure consistent, deterministic JSON
+            // regardless of user's chat settings - critical for reliable character extraction
+            temperature: GENERATION_TEMPERATURE,     // Very low for deterministic output
+            top_p: GENERATION_TOP_P,                 // Focused sampling
+            top_k: GENERATION_TOP_K,                 // Standard focused token selection
+            rep_pen: GENERATION_REP_PEN,             // Slight repetition penalty
             max_tokens: maxTokens,  // Dynamic: 25% of context, min 4000 (prevents truncation)
             stop: [],           // No custom stop sequences needed
         });
@@ -354,11 +389,12 @@ export async function callOllama(prompt) {
                 stream: false,
                 format: 'json',
                 // Ollama-specific generation parameters for structured output
+                // Using same conservative settings as SillyTavern for consistency
                 options: {
-                    temperature: 0.3,      // Low temp for deterministic output
-                    top_p: 0.9,           // Focused sampling
-                    top_k: 40,            // Standard focused sampling
-                    repeat_penalty: 1.1,  // Slight repetition penalty
+                    temperature: GENERATION_TEMPERATURE,      // Very low for deterministic output
+                    top_p: GENERATION_TOP_P,                  // Focused sampling
+                    top_k: GENERATION_TOP_K,                  // Standard focused sampling
+                    repeat_penalty: GENERATION_REP_PEN,       // Slight repetition penalty
                     num_predict: maxTokens,  // Dynamic: 25% of context, min 4000 (prevents truncation)
                 },
             }),

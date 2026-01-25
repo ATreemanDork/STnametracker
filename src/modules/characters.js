@@ -1,8 +1,8 @@
 /**
  * Character Management Module
  *
- * Handles character CRUD operations, merging, alias detection, and relationship management
- * for the Name Tracker extension.
+ * Handles character CRUD operations, merging, alias detection, relationship management,
+ * and per-character processing state tracking for the Name Tracker extension.
  */
 
 import { updateLorebookEntry } from './lorebook.js';
@@ -17,6 +17,30 @@ import { NotificationManager } from '../utils/notifications.js';
 
 const debug = createModuleLogger('characters');
 const notifications = new NotificationManager('Character Management');
+
+// ============================================================================
+// DEBUG CONFIGURATION
+// ============================================================================
+const DEBUG_LOGGING = true; // Set to false in production after testing
+
+function debugLog(message, data = null) {
+    if (DEBUG_LOGGING) {
+        console.log(`[NT-Characters] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// CONFIGURATION CONSTANTS - Merge confidence thresholds and detection parameters
+// ============================================================================
+
+// Merge Confidence Tiers (as percentages: 0-100)
+const MERGE_CONFIDENCE_HIGH = 0.9;      // 90%+ - Automatic merge (e.g., exact substring: "Jazz"/"Jasmine")
+const MERGE_CONFIDENCE_MEDIUM = 0.7;    // 70%+ - User prompt required (e.g., phonetic similarity)
+const MERGE_CONFIDENCE_LOW = 0.5;       // 50%+ - No automatic action (may indicate false positives)
+
+// Substring Matching Thresholds
+const MIN_SUBSTRING_LENGTH = 3;         // Minimum length for substring detection
+const SUBSTRING_MATCH_BONUS = 0.95;     // High confidence for substring matches
 
 // Character management state
 let undoHistory = []; // Store last 3 merge operations
@@ -40,6 +64,7 @@ let undoHistory = []; // Store last 3 merge operations
  * @property {string|null} lorebookEntryId - Associated lorebook entry ID
  * @property {number} lastUpdated - Timestamp of last update
  * @property {boolean} isMainChar - Whether this is the main character
+ * @property {number} lastMessageProcessed - ID of last message processed for this character
  */
 
 /**
@@ -64,9 +89,11 @@ export function isIgnoredCharacter(name) {
 export function findExistingCharacter(name) {
     return withErrorBoundary('findExistingCharacter', () => {
         const chars = getCharacters();
-        return Object.values(chars).find(
+        const found = Object.values(chars).find(
             char => char.preferredName === name || char.aliases.includes(name),
         ) || null;
+        debugLog(`[FindChar] Searching for '${name}': ${found ? 'FOUND as ' + found.preferredName : 'NOT FOUND'}`);
+        return found;
     });
 }
 
@@ -188,8 +215,180 @@ export function cleanAliases(aliases, characterName) {
     });
 }
 
+// ============================================================================
+// MERGE DETECTION AND CONFIDENCE SCORING
+// ============================================================================
+
+/**
+ * Detect potential merge opportunities for a new character
+ * Finds existing characters that might be the same person with different names
+ * @param {string} newCharacterName - Name of the newly discovered character
+ * @returns {Array} Array of potential merge targets with confidence scores
+ */
+export function detectMergeOpportunities(newCharacterName) {
+    return withErrorBoundary('detectMergeOpportunities', () => {
+        debugLog(`[MergeDetect] Checking merge opportunities for: ${newCharacterName}`);
+        
+        const potentialMatches = [];
+        const existingCharacters = getCharacters();
+
+        if (!newCharacterName || typeof newCharacterName !== 'string') {
+            debugLog(`[MergeDetect] Invalid name provided`);
+            return potentialMatches;
+        }
+
+        for (const [existingName, existingChar] of Object.entries(existingCharacters)) {
+            const confidence = calculateMergeConfidence(newCharacterName, existingChar);
+
+            if (confidence >= MERGE_CONFIDENCE_MEDIUM) {
+                const tier = confidence >= MERGE_CONFIDENCE_HIGH ? 'HIGH' : 'MEDIUM';
+                const reason = generateMergeReason(newCharacterName, existingChar, confidence);
+                potentialMatches.push({
+                    targetName: existingChar.preferredName,
+                    confidence: confidence,
+                    tier: tier,
+                    reason: reason
+                });
+                debugLog(`[MergeDetect] ${newCharacterName} -> ${existingChar.preferredName}: ${tier} (${Math.round(confidence * 100)}%) - ${reason}`);
+            }
+        }
+
+        // Sort by confidence descending
+        potentialMatches.sort((a, b) => b.confidence - a.confidence);
+
+        debugLog(`[MergeDetect] Total merge candidates for ${newCharacterName}: ${potentialMatches.length}`);
+
+        return potentialMatches;
+    }, []);
+}
+
+/**
+ * Calculate merge confidence between two character names
+ * Returns value 0-1 (0-100%)
+ * @private
+ */
+function calculateMergeConfidence(newName, existingChar) {
+    debugLog(`[CalcConfidence] Comparing '${newName}' vs '${existingChar.preferredName}'`);
+    
+    const existingName = existingChar.preferredName;
+    let confidence = 0;
+
+    // Check for exact substring match (e.g., "Jazz" in "Jasmine")
+    if (isSubstringMatch(newName, existingName)) {
+        confidence = SUBSTRING_MATCH_BONUS;
+        debugLog(`[CalcConfidence] Substring match detected`);
+    } 
+    // Check if new name matches any existing alias
+    else if (existingChar.aliases && existingChar.aliases.some(alias => 
+        newName.toLowerCase() === alias.toLowerCase())) {
+        confidence = 0.95;
+    }
+    // Check for phonetic similarity
+    else if (isPhoneticSimilar(newName, existingName)) {
+        confidence = 0.8;
+    }
+    // Check for partial similarity
+    else if (isPartialMatch(newName, existingName)) {
+        confidence = 0.65;
+    }
+
+    return confidence;
+}
+
+/**
+ * Check if newName is a substring of existingName (or vice versa)
+ * Used for detecting nickname relationships like "Jazz" for "Jasmine"
+ * @private
+ */
+function isSubstringMatch(newName, existingName) {
+    const newLower = newName.toLowerCase();
+    const existLower = existingName.toLowerCase();
+
+    // Check if one is a substring of the other, and long enough to be meaningful
+    if (newName.length >= MIN_SUBSTRING_LENGTH) {
+        return existLower.includes(newLower) || newLower.includes(existLower);
+    }
+
+    return false;
+}
+
+/**
+ * Basic phonetic similarity check using Levenshtein distance
+ * @private
+ */
+function isPhoneticSimilar(str1, str2) {
+    const distance = levenshteinDistance(str1.toLowerCase(), str2.toLowerCase());
+    const maxLength = Math.max(str1.length, str2.length);
+    const similarity = 1 - (distance / maxLength);
+
+    // Consider similar if >75% match
+    return similarity >= 0.75;
+}
+
+/**
+ * Check for partial name match (e.g., first/last name components)
+ * @private
+ */
+function isPartialMatch(newName, existingName) {
+    const newParts = newName.toLowerCase().split(/\s+/);
+    const existParts = existingName.toLowerCase().split(/\s+/);
+
+    // Check if any part of new name matches parts of existing
+    return newParts.some(newPart => existParts.some(existPart => 
+        newPart === existPart && newPart.length > 2
+    ));
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ * @private
+ */
+function levenshteinDistance(str1, str2) {
+    const track = Array(str2.length + 1).fill(null).map(() =>
+        Array(str1.length + 1).fill(null)
+    );
+
+    for (let i = 0; i <= str1.length; i++) {
+        track[0][i] = i;
+    }
+
+    for (let j = 0; j <= str2.length; j++) {
+        track[j][0] = j;
+    }
+
+    for (let j = 1; j <= str2.length; j++) {
+        for (let i = 1; i <= str1.length; i++) {
+            const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+            track[j][i] = Math.min(
+                track[j][i - 1] + 1,
+                track[j - 1][i] + 1,
+                track[j - 1][i - 1] + indicator
+            );
+        }
+    }
+
+    return track[str2.length][str1.length];
+}
+
+/**
+ * Generate human-readable reason for merge suggestion
+ * @private
+ */
+function generateMergeReason(newName, existingChar, confidence) {
+    if (confidence >= MERGE_CONFIDENCE_HIGH) {
+        if (newName.toLowerCase().includes(existingChar.preferredName.toLowerCase())) {
+            return `"${newName}" contains "${existingChar.preferredName}" (likely nickname)`;
+        }
+        return `Exact match confidence: ${(confidence * 100).toFixed(0)}%`;
+    }
+
+    return `Phonetic/partial match with confidence: ${(confidence * 100).toFixed(0)}%`;
+}
+
 /**
  * Create a new character entry
+antml:parameter>
+
  * @param {Object} analyzedChar - Character data from LLM analysis
  * @param {boolean} isMainChar - Whether this is the main character
  * @returns {Promise<CharacterData>} Created character data
@@ -218,6 +417,7 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
             lorebookEntryId: null,
             lastUpdated: Date.now(),
             isMainChar: isMainChar || false,
+            lastMessageProcessed: -1,  // Track processing state per character
         };
 
         debug.log();
@@ -232,6 +432,32 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
 
         return character;
     });
+}
+
+/**
+ * Update character's lastMessageProcessed tracking field
+ * Called after successful processing of a character to track progress
+ * @param {string} characterName - Name of the character
+ * @param {number} messageId - ID of the last processed message for this character
+ * @returns {boolean} True if successfully updated
+ */
+export function updateCharacterProcessingState(characterName, messageId) {
+    return withErrorBoundary('updateCharacterProcessingState', () => {
+        const character = findExistingCharacter(characterName);
+        
+        if (!character) {
+            debug.log(`Character not found for state update: ${characterName}`);
+            return false;
+        }
+
+        character.lastMessageProcessed = messageId;
+        character.lastUpdated = Date.now();
+        
+        setCharacter(character.preferredName, character);
+        
+        debug.log(`Updated processing state for ${characterName}: messageId=${messageId}`);
+        return true;
+    }, false);
 }
 
 /**
