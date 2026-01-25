@@ -163,8 +163,22 @@ const debugLogger = new DebugLogger();
 
 // Export the instance and key methods for easy access
 export { debugLogger };
-export const createModuleLogger = debugLogger.createModuleLogger.bind(debugLogger);
-export const addTrace = debugLogger.addTrace.bind(debugLogger);
-export const startTimer = debugLogger.startTimer.bind(debugLogger);
-export const endTimer = debugLogger.endTimer.bind(debugLogger);
+
+// Export functions instead of bound methods to avoid binding issues
+export function createModuleLogger(moduleName) {
+    return debugLogger.createModuleLogger(moduleName);
+}
+
+export function addTrace(moduleName, operationId, message) {
+    return debugLogger.addTrace(moduleName, operationId, message);
+}
+
+export function startTimer(operationId) {
+    return debugLogger.startTimer(operationId);
+}
+
+export function endTimer(operationId) {
+    return debugLogger.endTimer(operationId);
+}
+
 export default debugLogger;
