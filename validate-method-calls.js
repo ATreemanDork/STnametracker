@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Advanced validation script to detect method assumption errors
- * This script identifies calls to methods that don't exist in their target objects
+ * Advanced Static Method Call Validator
+ * 
+ * This script performs comprehensive static analysis to detect method assumption errors
+ * BEFORE deployment. No runtime validation needed - all checks happen at build time.
  */
 
 import fs from 'fs';
@@ -12,7 +14,10 @@ const srcDir = './src';
 
 // Simple logger for validation script
 const logger = {
-    warn: (msg, ...args) => console.warn('⚠️ ', msg, ...args)
+    info: (msg, ...args) => console.log('ℹ️ ', msg, ...args),
+    warn: (msg, ...args) => console.warn('⚠️ ', msg, ...args),
+    error: (msg, ...args) => console.error('❌', msg, ...args),
+    success: (msg, ...args) => console.log('✅', msg, ...args)
 };
 
 // Track all exported methods/classes from each module
@@ -20,7 +25,7 @@ const moduleExports = new Map();
 const methodCalls = [];
 const potentialErrors = [];
 
-console.log('🔍 Scanning for method assumption errors...\n');
+console.log('🔍 Static Method Call Analysis - Build Time Validation\n');
 
 /**
  * Extract all exports from a JavaScript file
@@ -235,18 +240,62 @@ function resolveImportPath(fromFile, importPath) {
 }
 
 /**
- * Main validation logic
+ * Main validation logic with enhanced static analysis
  */
 function validateMethodCalls() {
-    console.log('📊 Analysis Summary:');
+    logger.info('Static Analysis Summary:');
     console.log(`   📁 Modules scanned: ${moduleExports.size}`);
-    console.log(`   🔍 Method calls found: ${methodCalls.length}\n`);
+    console.log(`   🔍 Method calls found: ${methodCalls.length}`);
+    console.log(`   🎯 Build-time validation (no runtime overhead)\n`);
     
     const importMap = buildImportMap();
+    
+    // Enhanced validation with known SillyTavern patterns
+    const knownInterfaces = {
+        'stContext': {
+            methods: ['getContext', 'getChatMetadata', 'getChatId'],
+            commonErrors: {
+                'getSillyTavernContext': 'getContext',
+                'getChatData': 'getChatMetadata'
+            }
+        },
+        'debug': {
+            methods: ['log', 'warn', 'error', 'createModuleLogger']
+        },
+        'settings': {
+            methods: [
+                // Core settings methods
+                'get', 'set', 'getSettings', 'getChatData', 'getSetting', 'setSetting', 'updateSetting', 'updateChatData',
+                'saveSettings', 'saveChatData', 'onSettingsChange', 'onChatDataChange', 'onChatChanged',
+                'isEnabled', 'isDebugMode', 'getAutoAnalysisConfig', 'getLLMConfig', 'getLorebookConfig',
+                'reset', 'getStatus',
+                // Character-specific methods
+                'getCharacters', 'getCharacter', 'setCharacter', 'removeCharacter', 'clearAllCharacters'
+            ]
+        },
+        'notifications': {
+            methods: ['success', 'error', 'info', 'warning']
+        }
+    };
     
     for (const call of methodCalls) {
         const key = `${call.file}:${call.object}`;
         const importInfo = importMap.get(key);
+        
+        // Check known interfaces first
+        if (knownInterfaces[call.object]) {
+            const iface = knownInterfaces[call.object];
+            if (!iface.methods.includes(call.method)) {
+                const suggestion = iface.commonErrors?.[call.method];
+                potentialErrors.push({
+                    type: 'known-interface-error',
+                    ...call,
+                    availableMethods: iface.methods,
+                    suggestion
+                });
+                continue;
+            }
+        }
         
         if (importInfo) {
             const { module, exportName } = importInfo;
@@ -279,16 +328,21 @@ function validateMethodCalls() {
         }
     }
     
-    // Report findings
+    // Report findings with enhanced output
     if (potentialErrors.length === 0) {
-        console.log('✅ No method assumption errors detected!');
+        logger.success('No method assumption errors detected!');
+        logger.info('All method calls validated successfully');
     } else {
-        console.log('⚠️  Potential Method Assumption Errors:');
+        logger.error(`Found ${potentialErrors.length} potential method assumption errors:`);
         
         for (const error of potentialErrors) {
             console.log(`\n❌ ${error.file}:${error.line}`);
             console.log(`   Call: ${error.object}.${error.method}()`);
             console.log(`   Code: ${error.context.targetLine.trim()}`);
+            
+            if (error.suggestion) {
+                console.log(`   💡 Suggestion: Use '${error.suggestion}' instead of '${error.method}'`);
+            }
             
             if (error.type === 'method-not-found-in-class') {
                 console.log(`   Issue: Method '${error.method}' not found in class '${error.className}'`);
@@ -296,6 +350,9 @@ function validateMethodCalls() {
             } else if (error.type === 'export-not-found') {
                 console.log(`   Issue: Export '${error.expectedExport}' not found in ${error.module}`);
                 console.log(`   Available exports: ${error.availableExports.join(', ')}`);
+            } else if (error.type === 'known-interface-error') {
+                console.log(`   Issue: Method '${error.method}' not available on known interface`);
+                console.log(`   Available methods: ${error.availableMethods.join(', ')}`);
             }
         }
     }
@@ -308,8 +365,14 @@ try {
     scanDirectory(srcDir);
     const errorCount = validateMethodCalls();
     
-    console.log('\n' + '='.repeat(50));
-    console.log(errorCount === 0 ? '✅ All method calls validated successfully!' : `❌ Found ${errorCount} potential issues`);
+    console.log('\n' + '='.repeat(60));
+    if (errorCount === 0) {
+        logger.success('All method calls validated successfully!');
+        logger.info('✓ Static analysis complete - ready for deployment');
+    } else {
+        logger.error(`Build should fail - found ${errorCount} method issues`);
+        logger.warn('Fix these issues before deployment');
+    }
     
     process.exit(errorCount);
 } catch (error) {

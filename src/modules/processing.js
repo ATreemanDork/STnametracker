@@ -115,14 +115,14 @@ export async function harvestMessages(messageCount, showProgress = true) {
         // Check API connection for SillyTavern mode
         const llmConfig = settings.getLLMConfig();
         if (llmConfig.source === 'sillytavern') {
-            const context = stContext.getSillyTavernContext();
+            const context = stContext.getContext();
             if (!context.onlineStatus) {
                 notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
                 return;
             }
         }
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
         if (!context.chat || context.chat.length === 0) {
             debug('No chat messages to harvest');
             notifications.info('No messages in chat to analyze');
@@ -293,7 +293,7 @@ export async function onMessageReceived(messageId) {
             return;
         }
 
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
         const chat = context.chat;
 
         if (!chat || chat.length === 0) {
@@ -454,7 +454,7 @@ function hideProgressBar() {
  */
 export async function scanEntireChat() {
     return withErrorBoundary('scanEntireChat', async () => {
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
 
         if (!context.chat || context.chat.length === 0) {
             notifications.warning('No chat messages to scan');

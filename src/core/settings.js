@@ -251,6 +251,16 @@ class SettingsManager {
     }
 
     /**
+     * Set specific setting value (alias for updateSetting for compatibility)
+     * @param {string} key - Setting key
+     * @param {any} value - New value
+     * @returns {Promise<void>}
+     */
+    async setSetting(key, value) {
+        return this.updateSetting(key, value);
+    }
+
+    /**
      * Save global settings to SillyTavern
      * @returns {Promise<void>}
      */
@@ -391,6 +401,113 @@ class SettingsManager {
                     logger.error('Chat data callback error:', error);
                 }
             });
+        });
+    }
+
+    /**
+     * Get all characters
+     * @returns {Object} Characters object
+     */
+    getCharacters() {
+        if (!this._initialized) {
+            return {};
+        }
+        return this._chatData.characters || {};
+    }
+
+    /**
+     * Get specific character
+     * @param {string} name - Character name
+     * @returns {Object|null} Character data or null if not found
+     */
+    getCharacter(name) {
+        if (!this._initialized) {
+            return null;
+        }
+        return this._chatData.characters[name] || null;
+    }
+
+    /**
+     * Set/update character data
+     * @param {string} name - Character name
+     * @param {Object} characterData - Character data
+     * @returns {Promise<void>}
+     */
+    async setCharacter(name, characterData) {
+        return errorHandler.withErrorBoundary('Settings', async () => {
+            if (!this._initialized) {
+                throw new Error('Settings manager not initialized');
+            }
+
+            this._chatData.characters[name] = characterData;
+            logger.debug(`Updated character: ${name}`);
+
+            // Trigger callbacks
+            this._chatCallbacks.forEach(callback => {
+                try {
+                    callback(this._chatData, 'character_updated', name, characterData);
+                } catch (error) {
+                    logger.error('Chat data callback error:', error);
+                }
+            });
+
+            await this.saveChatData();
+        });
+    }
+
+    /**
+     * Remove character
+     * @param {string} name - Character name to remove
+     * @returns {Promise<void>}
+     */
+    async removeCharacter(name) {
+        return errorHandler.withErrorBoundary('Settings', async () => {
+            if (!this._initialized) {
+                throw new Error('Settings manager not initialized');
+            }
+
+            if (this._chatData.characters[name]) {
+                delete this._chatData.characters[name];
+                logger.debug(`Removed character: ${name}`);
+
+                // Trigger callbacks
+                this._chatCallbacks.forEach(callback => {
+                    try {
+                        callback(this._chatData, 'character_removed', name);
+                    } catch (error) {
+                        logger.error('Chat data callback error:', error);
+                    }
+                });
+
+                await this.saveChatData();
+            }
+        });
+    }
+
+    /**
+     * Clear all characters
+     * @returns {Promise<void>}
+     */
+    async clearAllCharacters() {
+        return errorHandler.withErrorBoundary('Settings', async () => {
+            if (!this._initialized) {
+                throw new Error('Settings manager not initialized');
+            }
+
+            const count = Object.keys(this._chatData.characters).length;
+            this._chatData.characters = {};
+            logger.debug(`Cleared all characters (${count} removed)`);
+
+            // Trigger callbacks
+            this._chatCallbacks.forEach(callback => {
+                try {
+                    callback(this._chatData, 'characters_cleared');
+                } catch (error) {
+                    logger.error('Chat data callback error:', error);
+                }
+            });
+
+            await this.saveChatData();
         });
     }
 

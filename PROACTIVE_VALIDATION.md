@@ -1,80 +1,86 @@
-# Proactive Error Detection Guide
+# Static Code Validation Guide
 
-This guide documents all the mechanisms we've put in place to catch method assumption errors **before** they cause runtime failures.
+This guide documents our **build-time validation system** that catches interface errors and method assumptions **before deployment**. No runtime overhead, maximum reliability.
+
+## 🎯 Philosophy: Static > Runtime
+
+**Static validation** runs during development and build time:
+- ✅ **Zero runtime overhead** - production code stays clean
+- ✅ **Immediate feedback** - catch issues during development  
+- ✅ **Build integration** - prevents broken deployments
+- ✅ **CI/CD compatible** - automated validation in pipelines
+
+**Runtime validation** was removed because:
+- ❌ **Browser compatibility issues** - Node.js patterns don't work in browser
+- ❌ **Performance overhead** - validation runs on every function call
+- ❌ **Complexity** - adds unnecessary code to production builds
 
 ## 🚀 Quick Start
 
-Run all validations at once:
+**Basic validation** (recommended for daily development):
 ```bash
-npm run validate:all
+npm run validate:core  # Interface + method validation + lint
 ```
 
-## 🔧 Available Tools
+**Full validation** (required before deployment):
+```bash
+npm run validate:strict  # Full validation + build test
+```
 
-### 1. Advanced Interface Validation (`validate-method-calls.js`)
-**What it catches**: Calls to methods that don't exist in their target objects
+## 🔧 Available Static Analysis Tools
+
+### 1. Advanced Method Call Validator (`validate-method-calls.js`)
+**What it catches**: Calls to non-existent methods with smart suggestions
 ```bash
 npm run validate:methods
 ```
 
-**Example Detection**:
+**Enhanced Detection**:
 ```javascript
-// ❌ This would be caught:
-stContext.getSillyTavernContext() // Method doesn't exist
+// ❌ This gets caught with suggestion:
+stContext.getSillyTavernContext() // → Suggests: getContext()
 
-// ✅ Correct:  
-stContext.getContext() // Method exists
+// ❌ Wrong interface usage:
+notifications.notify() // → Suggests: success(), error(), info(), warning()
 ```
 
-### 2. Import/Export Validation (`validate-interfaces.js`)
+### 2. Import/Export Validator (`validate-interfaces.js`) 
 **What it catches**: Mismatched imports and exports
 ```bash
 npm run validate:interfaces
 ```
 
 ### 3. ESLint Integration
-**What it catches**: Undefined variables and common patterns
+**What it catches**: Code quality, undefined variables, unused imports
 ```bash
-npm run lint
+npm run lint        # Check issues
+npm run lint:fix    # Auto-fix where possible
 ```
 
-### 4. Runtime Validation (Development)
-**What it catches**: Method calls during development with helpful errors
-
-```javascript
-// Add to any module for development validation:
-import { createSafeWrapper, validateInterface } from '../utils/runtime-validation.js';
-
-// Wrap objects with validation
-const safeContext = createSafeWrapper(stContext, 'stContext', ['getContext', 'getChatMetadata']);
-
-// Validate interfaces upfront
-validateInterface(stContext, ['getContext', 'getChatMetadata'], 'SillyTavernContext');
-```
-
-### 5. Pre-commit Hooks
-**What it prevents**: Committing code with interface errors
-```bash
-npm run precommit
-```
-
-## 🎯 Validation Workflow
+## 🎯 Static Validation Workflow
 
 ### During Development
-1. **Write code** with your IDE providing basic syntax checking
-2. **Run validation** frequently: `npm run validate`
-3. **Use runtime wrappers** for immediate feedback during development
+1. **Write code** with immediate IDE feedback  
+2. **Run validation frequently**: `npm run validate:core`
+3. **Fix issues immediately** - no runtime surprises
 
-### Before Commits
-1. **Pre-commit validation** runs automatically: `npm run precommit`
-2. **Fixes required** before commit is allowed
-3. **Clean builds** ensured
+### Before Commits  
+1. **Pre-commit validation**: `npm run precommit` (runs automatically)
+2. **Must pass validation** before commit is allowed
+3. **Clean builds ensured** at commit time
 
-### Continuous Integration
-Add to your CI pipeline:
+### CI/CD Pipeline
+Add to your CI configuration:
 ```yaml
-- name: Validate Interfaces
-  run: npm run validate:all
+- name: Static Code Validation  
+  run: npm run validate:strict
+```
+
+### Emergency Development
+Quick validation during debugging:
+```bash
+npm run validate:methods  # Just check method calls
+npm run validate:interfaces  # Just check imports/exports
 ```
 
 ## 🐛 Types of Errors Detected

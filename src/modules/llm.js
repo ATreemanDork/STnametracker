@@ -203,7 +203,7 @@ export async function getMaxPromptLength() {
             maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
         } else {
             // Use SillyTavern's context
-            const context = stContext.getSillyTavernContext();
+            const context = stContext.getContext();
             maxContext = context.maxContext || 4096;
         }
 
@@ -225,7 +225,7 @@ export async function getMaxPromptLength() {
  */
 export async function calculateMessageTokens(messages) {
     return withErrorBoundary('calculateMessageTokens', async () => {
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
         let totalTokens = 0;
 
         // Try to use pre-calculated token counts from message objects
@@ -268,7 +268,7 @@ export async function callSillyTavern(prompt) {
         debug('Calling SillyTavern LLM...');
 
         // Use SillyTavern.getContext() as recommended in official docs
-        const context = stContext.getSillyTavernContext();
+        const context = stContext.getContext();
 
         // Check if we have an active API connection
         if (!context.onlineStatus) {

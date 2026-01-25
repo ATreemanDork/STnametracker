@@ -15,6 +15,7 @@
     "validate:methods": "node validate-method-calls.js",
     "validate:core": "npm run validate && npm run lint",
     "validate:all": "npm run validate:core && npm run build",
+    "validate:strict": "npm run validate && npm run lint && npm run build",
     "precommit": "node scripts/pre-commit-validate.js",
     "test:interface": "npm run validate:core"
   },

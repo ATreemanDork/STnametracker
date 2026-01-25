@@ -11,14 +11,8 @@ import { settings } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { generateUID } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
-import { createSafeWrapper, validateInterface } from '../utils/runtime-validation.js';
 
 const debug = createModuleLogger('lorebook');
-
-// Development-time validation wrapper
-const safeContext = process?.env?.NODE_ENV === 'development'
-    ? createSafeWrapper(stContext, 'stContext', ['getContext', 'getChatMetadata', 'getChatId'])
-    : stContext;
 const notifications = new NotificationManager('Lorebook Management');
 
 // Lorebook state
@@ -30,10 +24,7 @@ let lorebookName = null;
  */
 export async function initializeLorebook() {
     return withErrorBoundary('initializeLorebook', async () => {
-        // Validate context interface at initialization
-        validateInterface(stContext, ['getContext', 'getChatMetadata', 'getChatId'], 'SillyTavernContext');
-
-        const context = safeContext.getContext();
+        const context = stContext.getContext();
 
         if (!context.chatId) {
             debug('No active chat, skipping lorebook initialization');
