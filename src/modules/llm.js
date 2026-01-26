@@ -570,12 +570,13 @@ export async function calculateMessageTokens(messages) {
 
 /**
  * Call SillyTavern's LLM with optimized parameters for JSON extraction
- * Uses low temperature and focused sampling for deterministic, structured output
- * These settings override the user's chat settings to ensure reliable parsing
- * @param {string} prompt - The complete prompt to send
+ * Uses chat completion format with structured outputs (JSON schema)
+ * Retries up to 3 times with 2s delay on parse failures
+ * @param {string} systemInstructions - System message with extraction instructions
+ * @param {string} userData - User message with data to analyze
  * @returns {Promise<Object>} Parsed JSON response
  */
-export async function callSillyTavern(prompt) {
+export async function callSillyTavern(systemInstructions, userData) {
     return withErrorBoundary('callSillyTavern', async () => {
         debug.log();
 
@@ -587,97 +588,139 @@ export async function callSillyTavern(prompt) {
             throw new NameTrackerError('No API connection available. Please connect to an API first.');
         }
 
-        console.log('[NT-ST-Call] Starting SillyTavern LLM call');
-        console.log('[NT-ST-Call] Prompt length:', prompt.length, 'characters');
-        console.log('[NT-ST-Call] Prompt preview:', prompt.substring(0, 200) + '...');
-        console.log('[NT-ST-Call] ========== FULL PROMPT START ==========');
-        console.log(prompt);
-        console.log('[NT-ST-Call] ========== FULL PROMPT END ==========');
+        // Build chat completion messages array
+        const chatMessages = [
+            { role: 'system', content: systemInstructions },
+            { role: 'user', content: userData }
+        ];
 
-        // Get token count for the prompt
+        console.log('[NT-ST-Call] Starting SillyTavern LLM call (Chat Completion)');
+        console.log('[NT-ST-Call] System message length:', systemInstructions.length, 'characters');
+        console.log('[NT-ST-Call] User message length:', userData.length, 'characters');
+        console.log('[NT-ST-Call] ========== CHAT MESSAGES START ==========');
+        console.log('SYSTEM:', systemInstructions);
+        console.log('USER:', userData);
+        console.log('[NT-ST-Call] ========== CHAT MESSAGES END ==========');
 
+        // Get token count for the messages
+        const combinedText = systemInstructions + '\n\n' + userData;
         let promptTokens;
         try {
-            promptTokens = await context.getTokenCountAsync(prompt);
+            promptTokens = await context.getTokenCountAsync(combinedText);
             console.log('[NT-ST-Call] Token count:', promptTokens);
             debug.log();
-            // eslint-disable-next-line no-unused-vars
         } catch (_error) {
             console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
             debug.log();
-            promptTokens = Math.ceil(prompt.length / 4);
+            promptTokens = Math.ceil(combinedText.length / 4);
             console.log('[NT-ST-Call] Estimated tokens:', promptTokens);
             debug.log();
         }
 
         // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
-        // This scales with the model's context window for better headroom
         const maxContext = context.maxContext || 4096;
         const calculatedMaxTokens = Math.floor(maxContext * 0.25);
         const maxTokens = Math.max(4000, calculatedMaxTokens);
         console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
         debug.log();
 
-        // Use generateRaw as documented in:
-        // https://docs.sillytavern.app/for-contributors/writing-extensions/#raw-generation
-        // With structured outputs per: https://docs.sillytavern.app/for-contributors/writing-extensions/#structured-outputs
-        console.log('[NT-ST-Call] Calling generateRaw with params:', {
-            temperature: GENERATION_TEMPERATURE,
-            top_p: GENERATION_TOP_P,
-            top_k: GENERATION_TOP_K,
-            rep_pen: GENERATION_REP_PEN,
-            max_tokens: maxTokens,
-        });
+        // Retry logic: attempt up to 3 times with 2s delay
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY_MS = 2000;
+        let lastError = null;
 
-        const result = await context.generateRaw({
-            prompt: prompt,  // Can be string (Text Completion) or array (Chat Completion)
-            systemPrompt: '',  // Empty, we include instructions in prompt
-            prefill: '',  // No prefill needed for analysis
-            // Override generation settings for structured output
-            // These hardcoded conservative settings ensure consistent, deterministic JSON
-            // regardless of user's chat settings - critical for reliable character extraction
-            temperature: GENERATION_TEMPERATURE,     // Very low for deterministic output
-            top_p: GENERATION_TOP_P,                 // Focused sampling
-            top_k: GENERATION_TOP_K,                 // Standard focused token selection
-            rep_pen: GENERATION_REP_PEN,             // Slight repetition penalty
-            max_tokens: maxTokens,  // Dynamic: 25% of context, min 4000 (prevents truncation)
-            stop: [],           // No custom stop sequences needed
-            // JSON Schema for structured output (Chat Completion APIs only)
-            // This enforces valid JSON structure - if API doesn't support it, will be ignored
-            jsonSchema: CHARACTER_EXTRACTION_SCHEMA,
-        });
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                console.log(`[NT-ST-Call] Attempt ${attempt}/${MAX_RETRIES}`);
+                console.log('[NT-ST-Call] Calling generateRaw with params:', {
+                    temperature: GENERATION_TEMPERATURE,
+                    top_p: GENERATION_TOP_P,
+                    top_k: GENERATION_TOP_K,
+                    rep_pen: GENERATION_REP_PEN,
+                    max_tokens: maxTokens,
+                    jsonSchemaAttached: true,
+                    promptType: 'chat',
+                });
 
-        console.log('[NT-ST-Call] Raw result type:', typeof result);
-        console.log('[NT-ST-Call] Raw result object:', result);
-        
-        // Extract text from vLLM response format
-        // vLLM returns: { choices: [{ text: "..." }] }
-        // SillyTavern may pass through the full response or just the text
-        let resultText = result;
-        
-        if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
-            console.log('[NT-ST-Call] Detected vLLM response format, extracting text from choices[0].text');
-            resultText = result.choices[0]?.text || '';
+                const result = await context.generateRaw({
+                    prompt: chatMessages,  // Array = Chat Completion format
+                    systemPrompt: '',  // Empty, using system role in messages
+                    prefill: '',
+                    temperature: GENERATION_TEMPERATURE,
+                    top_p: GENERATION_TOP_P,
+                    top_k: GENERATION_TOP_K,
+                    rep_pen: GENERATION_REP_PEN,
+                    max_tokens: maxTokens,
+                    stop: [],
+                    jsonSchema: CHARACTER_EXTRACTION_SCHEMA,  // Structured output
+                });
+
+                console.log('[NT-ST-Call] Raw result type:', typeof result);
+                console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
+                
+                // Extract text from chat completion response
+                // Chat format: { choices: [{ message: { content: "..." } }] }
+                // Text format: { choices: [{ text: "..." }] }
+                let resultText = result;
+                
+                if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
+                    // Try chat completion format first
+                    if (result.choices[0]?.message?.content) {
+                        console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
+                        resultText = result.choices[0].message.content;
+                    } 
+                    // Fall back to text completion format
+                    else if (result.choices[0]?.text) {
+                        console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
+                        resultText = result.choices[0].text;
+                    }
+                }
+                
+                console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
+                console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
+                if (resultText && typeof resultText === 'string') {
+                    console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
+                }
+                console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
+                console.log(resultText);
+                console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
+                debug.log();
+
+                // The result should be a string
+                if (!resultText || typeof resultText !== 'string') {
+                    throw new NameTrackerError('Empty or invalid response from SillyTavern LLM');
+                }
+
+                const parsed = parseJSONResponse(resultText);
+                console.log('[NT-ST-Call] ✅ Successfully parsed on attempt', attempt);
+                console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
+                return parsed;
+
+            } catch (error) {
+                lastError = error;
+                console.error(`[NT-ST-Call] ❌ Attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
+                console.error('[NT-ST-Call] Error details:', error);
+                
+                if (attempt < MAX_RETRIES) {
+                    console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                }
+            }
         }
-        
-        console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
-        console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
-        if (resultText) {
-            console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
-        }
-        console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
-        console.log(resultText);
-        console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
-        debug.log();
 
-        // The result should be a string
-        if (!resultText) {
-            throw new NameTrackerError('Empty response from SillyTavern LLM');
+        // All retries failed - prompt user
+        const shouldContinue = confirm(
+            `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
+            `Last error: ${lastError.message}\n\n` +
+            `Check console for detailed logs. Continue processing remaining batches?`
+        );
+
+        if (!shouldContinue) {
+            throw new NameTrackerError('User aborted after parse failures');
         }
 
-        const parsed = parseJSONResponse(resultText);
-        console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
-        return parsed;
+        // Return empty result if user wants to continue
+        return { characters: [] };
     });
 }
 
@@ -971,22 +1014,24 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
         console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
         
-        const systemInstructions = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\n${systemPrompt}${rosterStr}\n\n[DATA TO ANALYZE]`;
+        // Build system message with instructions
+        const systemMessage = systemPrompt + (rosterStr ? '\n\n' + rosterStr : '');
         
-        // Closing instructions to reinforce format (sandwich pattern)
-        const closingInstructions = `\n\n[END OF DATA - CRITICAL REMINDER]\nYour response MUST be ONLY a valid JSON object.\nFormat: {"characters": [{"name": "...", "aliases": [], "physical": {"description": "..."}, "mental": {"personality": "...", "background": "..."}, "relationships": []}]}\nDo NOT include markdown code blocks, explanations, or any text outside the JSON.\nStart your response with { and end with }`;
+        // Build user message with data and closing instructions
+        const closingInstructions = '\n\n[END OF DATA - CRITICAL REMINDER]\nYour response MUST be ONLY a valid JSON object.\nFormat: {"characters": [{"name": "...", "aliases": [], "physical": {"description": "..."}, "mental": {"personality": "...", "background": "..."}, "relationships": []}]}\nDo NOT include markdown code blocks, explanations, or any text outside the JSON.\nStart your response with { and end with }';
         
-        const fullPrompt = `${systemInstructions}\n${messagesText}${closingInstructions}`;
+        const userMessage = '[DATA TO ANALYZE]\n' + messagesText + closingInstructions;
 
-        // Calculate actual token count for the prompt
+        // Calculate actual token count for the combined messages
         let promptTokens;
+        const combinedText = systemMessage + '\n\n' + userMessage;
         try {
-            promptTokens = await calculateMessageTokens([{ mes: fullPrompt }]);
+            promptTokens = await calculateMessageTokens([{ mes: combinedText }]);
             debug.log();
         } catch (tokenError) {
             debug.log();
             // Fallback to character-based estimate
-            promptTokens = Math.ceil(fullPrompt.length / 4);
+            promptTokens = Math.ceil(combinedText.length / 4);
         }
 
         // If prompt is too long, split into sub-batches
@@ -1020,13 +1065,26 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         }
 
         // Prompt is acceptable length, proceed with analysis
+        debug.log(`Calling LLM with prompt (${promptTokens} tokens)...`);
+        console.log('[NT-Prompt] Message composition:');
+        console.log('SYSTEM MESSAGE (' + systemMessage.length + ' chars):');
+        console.log('='.repeat(80));
+        console.log(systemMessage);
+        console.log('='.repeat(80));
+        console.log('USER MESSAGE (' + userMessage.length + ' chars):');
+        console.log('='.repeat(80));
+        console.log(userMessage);
+        console.log('='.repeat(80));
+        
         let result;
 
         try {
             if (llmConfig.source === 'ollama') {
-                result = await callOllama(fullPrompt);
+                // Ollama still uses flat prompt for now
+                const flatPrompt = systemMessage + '\n\n' + userMessage;
+                result = await callOllama(flatPrompt);
             } else {
-                result = await callSillyTavern(fullPrompt);
+                result = await callSillyTavern(systemMessage, userMessage);
             }
         } catch (error) {
             // Retry on JSON parsing errors or empty responses
