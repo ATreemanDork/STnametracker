@@ -190,25 +190,25 @@ class SillyTavernContext {
     async setSelectedWorldInfo(lorebookName) {
         return errorHandler.withErrorBoundary('Context', async () => {
             const context = this.getContext();
-            
+
             // First method: Use saveSelectedWorldInfo if available
             if (context.saveSelectedWorldInfo && typeof context.saveSelectedWorldInfo === 'function') {
                 await context.saveSelectedWorldInfo(lorebookName);
                 return;
             }
-            
+
             // Second method: Set the world_info directly in chat metadata
             if (!context.chatMetadata) {
                 throw new Error('Chat metadata not available');
             }
-            
+
             context.chatMetadata.world_info = lorebookName;
-            
+
             // Save the metadata
             if (context.saveMetadata && typeof context.saveMetadata === 'function') {
                 await context.saveMetadata();
             }
-            
+
             logger.debug(`Selected world info: ${lorebookName}`);
         }, { silent: true });
     }
@@ -291,13 +291,13 @@ class SillyTavernContext {
     dumpContextToConsole() {
         try {
             const context = this.getContext();
-            
+
             // Create a formatted dump
             const dump = {
                 timestamp: new Date().toISOString(),
                 availableProperties: Object.keys(context),
                 fullContext: context,
-                detailedBreakdown: {}
+                detailedBreakdown: {},
             };
 
             // Add detailed breakdown of key properties
@@ -305,7 +305,7 @@ class SillyTavernContext {
                 'maxContext', 'maxTokens', 'amount_gen', 'token_limit',
                 'extensionSettings', 'settings', 'chat', 'chatMetadata',
                 'characters', 'world_info', 'botId', 'characterId', 'chatId',
-                'impersonate', 'groups'
+                'impersonate', 'groups',
             ];
 
             for (const prop of keyProps) {
@@ -314,7 +314,7 @@ class SillyTavernContext {
                         type: typeof context[prop],
                         value: context[prop],
                         isNull: context[prop] === null,
-                        isUndefined: context[prop] === undefined
+                        isUndefined: context[prop] === undefined,
                     };
                 }
             }

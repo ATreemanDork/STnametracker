@@ -139,12 +139,12 @@ class NameTrackerExtension {
         logger.debug('Initializing feature modules...');
         console.log('[STnametracker] initializeModules: Module initialization skipped');
         console.log('[STnametracker] initializeModules: Lorebook will be initialized when first needed');
-        
+
         // Note: We no longer initialize lorebook during extension load because
         // context.chatId is undefined at that point. Instead, lorebook initialization
         // happens automatically when scanEntireChat() or other processing functions
         // are called, at which point a chat is guaranteed to be active.
-        
+
         logger.debug('Feature modules ready (lazy initialization)');
     }
 
@@ -312,7 +312,7 @@ jQuery(async () => {
         }
         console.log('[STnametracker] Current extension_settings keys:', Object.keys(window.extension_settings));
         window.extension_settings[extensionName] = window.extension_settings[extensionName] || {};
-        
+
         // Call get_settings() to trigger default merge
         console.log('[STnametracker] Initializing defaults...');
         const initialSettings = get_settings();

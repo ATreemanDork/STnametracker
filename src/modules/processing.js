@@ -11,7 +11,7 @@ import { get_settings, set_settings, getLLMConfig, getCharacters } from '../core
 import { stContext } from '../core/context.js';
 import { NotificationManager } from '../utils/notifications.js';
 import { callLLMAnalysis, buildCharacterRoster, getMaxPromptLength, calculateMessageTokens } from './llm.js';
-import { createCharacter, updateCharacter, findExistingCharacter, findPotentialMatch, isIgnoredCharacter, detectMergeOpportunities } from './characters.js';
+import { createCharacter, updateCharacter, findExistingCharacter, findPotentialMatch, isIgnoredCharacter, detectMergeOpportunities, mergeCharacters } from './characters.js';
 import { updateLorebookEntry } from './lorebook.js';
 import { updateCharacterList } from './ui.js';
 
@@ -46,7 +46,7 @@ const QUOTED_NAME_REGEX = /"([^"]+)"/g;  // Matches quoted names
 const POSSESSIVE_REGEX = /(\b[A-Z][a-z]+)'s\b/g;  // Matches possessive forms
 
 // Processing Control
-const BATCH_TIMEOUT_MS = 30000;         // Maximum time for a single batch to process
+// const BATCH_TIMEOUT_MS = 30000;         // Maximum time for a single batch to process (reserved for future)
 const MAX_RETRY_ATTEMPTS = 3;           // Maximum retries before halting processing
 const CONTEXT_REDUCTION_STEP = 5;       // Percentage to reduce context target on each failure
 
@@ -58,7 +58,7 @@ const TARGET_MESSAGE_PERCENT = 35;      // Use 35% of max context for message da
 
 // Error Recovery
 const ENABLE_AUTO_RECOVERY = true;      // Enable automatic context reduction on failure
-const PRESERVE_PROCESSING_STATE = true; // Always save character state even on errors
+// const PRESERVE_PROCESSING_STATE = true; // Always save character state even on errors (reserved for future)
 
 // ============================================================================
 // SHARED HELPER FUNCTIONS
@@ -137,7 +137,7 @@ export async function processAnalysisResults(analyzedCharacters) {
         console.log('[NT-Processing]    Input type:', typeof analyzedCharacters);
         console.log('[NT-Processing]    Is array?:', Array.isArray(analyzedCharacters));
         console.log('[NT-Processing]    Length:', analyzedCharacters?.length);
-        
+
         if (!analyzedCharacters || !Array.isArray(analyzedCharacters)) {
             console.warn('[NT-Processing] ⚠️  Invalid input - not an array:', analyzedCharacters);
             debug.log();
@@ -158,9 +158,9 @@ export async function processAnalysisResults(analyzedCharacters) {
                 // Continue with other characters
             }
         }
-        
+
         console.log('[NT-Processing] 🎉 All characters processed');
-        
+
         // Update the character list UI after processing all characters
         console.log('[NT-Processing] 🖥️  Updating character list UI');
         updateCharacterList();
@@ -175,7 +175,7 @@ export async function processAnalysisResults(analyzedCharacters) {
 async function processCharacterData(analyzedChar) {
     return withErrorBoundary('processCharacterData', async () => {
         console.log('[NT-CharData] 🔍 Processing character data for:', analyzedChar.name);
-        
+
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
             console.warn('[NT-CharData] ⚠️  Character has no name, skipping');
             debug.log();
@@ -439,19 +439,35 @@ async function processNewCharacter(name, messages, results) {
 
     debugLog(`[P2-NewChar] LLM returned data: ${JSON.stringify(characterData[0]).substring(0, 200)}...`);
 
-    // Check for merge opportunities before creating
-    const potentialMerges = await detectMergeOpportunities(name);
-    if (potentialMerges && potentialMerges.length > 0) {
-        debugLog(`[P2-NewChar] Merge opportunities: ${potentialMerges.map(m => m.targetName).join(', ')}`);
-        results.mergesDetected.push({ source: name, targets: potentialMerges });
-    }
-
     // Create the character
     const newCharacter = await createCharacter(characterData[0], false);
     await updateLorebookEntry(newCharacter, newCharacter.preferredName);
 
     results.newCharactersCreated.push(newCharacter.preferredName);
     debugLog(`[P2-NewChar] Successfully created: ${newCharacter.preferredName}`);
+
+    // Re-check merge opportunities now that the character exists in the cache
+    const potentialMerges = await detectMergeOpportunities(newCharacter.preferredName);
+    if (potentialMerges && potentialMerges.length > 0) {
+        debugLog(`[P2-NewChar] Merge opportunities: ${potentialMerges.map(m => `${m.targetName} (${Math.round(m.confidence * 100)}%)`).join(', ')}`);
+        results.mergesDetected.push({ source: newCharacter.preferredName, targets: potentialMerges });
+
+        for (const opportunity of potentialMerges) {
+            if (opportunity.targetName === newCharacter.preferredName) {
+                continue;
+            }
+
+            if (opportunity.confidence >= 0.9) {
+                await mergeCharacters(newCharacter.preferredName, opportunity.targetName);
+                notifications.success(`Auto-merged "${newCharacter.preferredName}" into "${opportunity.targetName}" (${Math.round(opportunity.confidence * 100)}% match)`, 'Character Merged');
+                break; // stop after first high-confidence merge
+            }
+
+            if (opportunity.confidence >= 0.7) {
+                notifications.info(`Possible duplicate: "${newCharacter.preferredName}" ≈ "${opportunity.targetName}" (${Math.round(opportunity.confidence * 100)}%). Review in settings if needed.`, 'Merge Suggested');
+            }
+        }
+    }
 }
 
 /**
@@ -461,89 +477,77 @@ async function processNewCharacter(name, messages, results) {
 async function processExistingCharacter(existingChar, messages, results) {
     debug.log(`Updating existing character: ${existingChar.preferredName}`);
 
-    // Get character's last processed message ID (from state tracking)
-    const lastProcessedId = existingChar.lastMessageProcessed || -1;
-
-    // Build context starting from overlap before last processed message
-    const characterContext = buildCharacterContextFromPoint(
-        existingChar.preferredName,
-        messages,
-        lastProcessedId,
-        OVERLAP_SIZE,
-    );
+    // Build fresh context for this character from the current message window
+    const characterContext = buildCharacterContext(existingChar.preferredName, messages, OVERLAP_SIZE);
 
     if (!characterContext || characterContext.length === 0) {
         debug.log(`No new context for character ${existingChar.preferredName} since last processing`);
         return;
     }
 
-    // Analyze with LLM
-    const updates = await callLLMAnalysis([{ mes: characterContext }], [existingChar.preferredName], currentProcessingState.contextTarget);
+    // Analyze updated context for this character
+    debugLog(`[P2-Existing] Calling LLM for ${existingChar.preferredName}`);
+    const characterData = await callLLMAnalysis([{ mes: characterContext }], [existingChar.preferredName], currentProcessingState.contextTarget);
 
-    if (updates && updates.length > 0) {
-        await updateCharacter(existingChar, updates[0], false, existingChar.isMainChar);
-        await updateLorebookEntry(existingChar, existingChar.preferredName);
-
-        results.existingCharactersUpdated.push(existingChar.preferredName);
-        debug.log(`Updated character: ${existingChar.preferredName}`);
+    if (!characterData || characterData.length === 0) {
+        debugLog(`[P2-Existing] FAILED: LLM returned no data for ${existingChar.preferredName}`);
+        throw new NameTrackerError(`LLM returned no data for character: ${existingChar.preferredName}`, 'LLM_EMPTY_RESPONSE');
     }
+
+    // Update the character with new information
+    await updateCharacter(existingChar, characterData[0], true, existingChar.isMainChar);
+    await updateLorebookEntry(existingChar, existingChar.preferredName);
+
+    results.existingCharactersUpdated.push(existingChar.preferredName);
+    debugLog(`[P2-Existing] Successfully updated: ${existingChar.preferredName}`);
 }
 
 /**
- * Build character-specific context from all messages mentioning the character
- * @private
+ * Build contextual text window for a character from a set of messages.
+ * Includes an overlap of messages before and after any detected mentions.
+ * @param {string} characterName - Name of the character to search for
+ * @param {Array} messages - Array of chat message objects ({ mes: string })
+ * @param {number} overlapSize - Number of messages to include before/after mentions
+ * @returns {string} Joined context text or empty string if no mentions
  */
 function buildCharacterContext(characterName, messages, overlapSize) {
-    const contextMessages = [];
+    if (!characterName || !Array.isArray(messages) || messages.length === 0) {
+        return '';
+    }
 
-    for (const msg of messages) {
-        if (!msg.mes) continue;
+    const nameLower = String(characterName).toLowerCase();
+    const mentionIndices = [];
 
-        // Check if this message mentions the character
-        if (msg.mes.includes(characterName) || msg.mes.includes(characterName.split(' ')[0])) {
-            contextMessages.push(msg);
+    for (let i = 0; i < messages.length; i++) {
+        const text = messages[i]?.mes || '';
+        if (typeof text === 'string' && text.toLowerCase().includes(nameLower)) {
+            mentionIndices.push(i);
         }
     }
 
-    if (contextMessages.length === 0) return '';
+    if (mentionIndices.length === 0) {
+        return '';
+    }
 
-    // Add overlap messages before and after mentions for context
-    const contextWindow = [];
-    const indices = contextMessages.map(m => messages.indexOf(m));
-    const minIdx = Math.max(0, Math.min(...indices) - overlapSize);
-    const maxIdx = Math.min(messages.length - 1, Math.max(...indices) + overlapSize);
+    const minIdx = Math.max(0, Math.min(...mentionIndices) - overlapSize);
+    const maxIdx = Math.min(messages.length - 1, Math.max(...mentionIndices) + overlapSize);
 
+    const windowTexts = [];
     for (let i = minIdx; i <= maxIdx; i++) {
-        if (messages[i]) {
-            contextWindow.push(messages[i].mes);
+        const text = messages[i]?.mes;
+        if (text) {
+            windowTexts.push(text);
         }
     }
 
-    return contextWindow.join('\n\n');
+    return windowTexts.join('\n\n');
 }
 
 /**
  * Build context starting from a specific message point (for continuing character updates)
  * @private
  */
-function buildCharacterContextFromPoint(characterName, messages, lastProcessedId, overlapSize) {
-    const allText = [];
-    let startIdx = 0;
-
-    // Find where we left off
-    if (lastProcessedId >= 0) {
-        const lastIdx = messages.findIndex(m => m.id === lastProcessedId);
-        startIdx = Math.max(0, lastIdx - overlapSize);
-    }
-
-    for (let i = startIdx; i < messages.length; i++) {
-        if (messages[i] && messages[i].mes) {
-            allText.push(messages[i].mes);
-        }
-    }
-
-    return allText.length > 0 ? allText.join('\n\n') : '';
-}
+// Note: Deprecated helper removed; continuing updates now use buildCharacterContext()
 
 /**
  * Harvest and analyze messages
@@ -586,7 +590,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
         const maxPromptResult = await getMaxPromptLength();
         const maxPromptTokens = maxPromptResult.maxPrompt;
         const availableTokens = calculateAvailableTokens(maxPromptTokens);
-        
+
         debugLog(`[Batching] Token budget: maxPromptTokens=${maxPromptTokens}, targetPercent=${TARGET_MESSAGE_PERCENT}%, availableTokens=${availableTokens}`);
         debugLog(`[Batching] Context target: ${currentProcessingState.contextTarget}%`);
         debugLog(`[Batching] Estimated reserves: systemPrompt=~1000tok, response=~4000tok, messages=${availableTokens}tok`);
@@ -602,13 +606,13 @@ export async function harvestMessages(messageCount, showProgress = true) {
 
             // Create batches using shared helper
             const batches = await createMessageBatches(messagesToAnalyze, availableTokens, true);
-            
+
             // Log batch details for debugging
             const batchDetails = await Promise.all(batches.map(async (batch, i) => {
                 const tokens = await calculateMessageTokens(batch);
                 return `Batch ${i + 1}: ${batch.length}msg/${tokens}tok`;
             }));
-            
+
             debugLog(`[Batching] Created ${batches.length} total batches: ${batchDetails.join(' | ')}`);
             debugLog(`[Batching] Constraints applied: MIN=${MIN_MESSAGES_PER_BATCH}, TARGET=${TARGET_MESSAGES_PER_BATCH}, MAX=${MAX_MESSAGES_PER_BATCH}, TokenLimit=${availableTokens}`);
 
@@ -943,7 +947,7 @@ export async function scanEntireChat() {
         const { initializeLorebook } = await import('./lorebook.js');
         await initializeLorebook();
         console.log('[NT-Processing] ✅ Lorebook initialization complete');
-        
+
         const context = stContext.getContext();
 
         if (!context.chat || context.chat.length === 0) {

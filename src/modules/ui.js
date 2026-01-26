@@ -795,22 +795,16 @@ function showDebugStatus() {
         // Reusable builder: compute debug info + HTML
         const buildDebugContent = async () => {
             // Get LLM context info
-            let llmConfig = {};
             let maxPromptTokens = 4096;
             let contextDetails = {};
             let detectionMethod = 'unknown';
-            let detectionDebugLog = '';
 
             try {
                 const { getMaxPromptLength } = await import('./llm.js');
-                const { getLLMConfig } = await import('../core/settings.js');
                 const { stContext } = await import('../core/context.js');
-
-                llmConfig = getLLMConfig();
                 const maxPromptResultObj = await getMaxPromptLength();
                 maxPromptTokens = maxPromptResultObj.maxPrompt;
                 detectionMethod = maxPromptResultObj.detectionMethod;
-                detectionDebugLog = maxPromptResultObj.debugLog || '';
 
                 // Get raw context info (retry briefly if not yet ready)
                 let context = stContext.getContext();
@@ -917,10 +911,13 @@ function showDebugStatus() {
             let htmlContent = '<div style="font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">';
             for (const [section, values] of Object.entries(debugInfo)) {
                 htmlContent += '<div style="margin-bottom: 15px; border-bottom: 1px solid #666; padding-bottom: 10px;">';
-                htmlContent += `<strong style=\"color: #90EE90; font-size: 13px;\">${section}</strong><br>`;
+                htmlContent += `<strong style="color: #90EE90; font-size: 13px;">${section}</strong><br>`;
                 for (const [key, value] of Object.entries(values)) {
                     const displayValue = value === true ? '✓' : (value === false ? '✗' : value);
-                    htmlContent += `<div style=\"margin-left: 10px; padding: 2px 0;\">\n                        <span style=\"color: #87CEEB;\">${key}:</span> \n                        <span style=\"color: #FFFF99;\">${displayValue}</span>\n                    </div>`;
+                    htmlContent += `<div style="margin-left: 10px; padding: 2px 0;">
+                        <span style="color: #87CEEB;">${key}:</span>
+                        <span style="color: #FFFF99;">${displayValue}</span>
+                    </div>`;
                 }
                 htmlContent += '</div>';
             }
@@ -1031,17 +1028,17 @@ function dumpContextToConsole() {
         try {
             const dump = stContext.dumpContextToConsole();
             notifications.success('Context dumped to console - Press F12 to view', 'Context Dump');
-            
+
             // Also show a brief summary in a dialog
             const summary = {
                 'Total Properties': dump.availableProperties.length,
                 'Key Properties Found': Object.keys(dump.detailedBreakdown).filter(k => k in dump.detailedBreakdown).length,
-                'Timestamp': dump.timestamp
+                'Timestamp': dump.timestamp,
             };
-            
+
             console.log('%c[Name Tracker] QUICK SUMMARY:', 'color: #ffaa00; font-weight: bold; font-size: 12px;');
             console.table(summary);
-            
+
         } catch (error) {
             debug.log(`Failed to dump context: ${error.message}`);
             notifications.error(`Failed to dump context: ${error.message}`, 'Context Dump');

@@ -7,8 +7,12 @@
  * without await in places where it matters
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const SRC_DIR = path.join(__dirname, '..', 'src');
 const SKIP_PATTERNS = [
@@ -36,7 +40,7 @@ class AsyncAuditValidator {
             const fileName = path.relative(__dirname, file);
             
             // Find function signatures and their withErrorBoundary usage
-            const funcPattern = /export\s+(async\s+)?function\s+(\w+)\(([^)]*)\)\s*\{[^}]*?withErrorBoundary/s;
+            const funcPattern = /export\s+(async\s+)?function\s+(\w+)\(([^)]*)\)\s*\{[^}]*?withErrorBoundary/gs;
             const matches = [...content.matchAll(funcPattern)];
             
             for (const match of matches) {
@@ -74,6 +78,9 @@ class AsyncAuditValidator {
             
             // Look for function calls without await
             for (const [key, funcInfo] of this.errorBoundaryFunctions.entries()) {
+                if (!funcInfo.isAsync) {
+                    continue; // Only enforce await on async functions
+                }
                 const funcName = funcInfo.name;
                 
                 // Pattern: const/let/var = functionName( or simple functionName(

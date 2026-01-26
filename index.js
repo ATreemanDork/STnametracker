@@ -1,2 +1,7955 @@
-(()=>{"use strict";var e={56(e,t,n){e.exports=function(e){var t=n.nc;t&&e.setAttribute("nonce",t)}},72(e){var t=[];function n(e){for(var n=-1,o=0;o<t.length;o++)if(t[o].identifier===e){n=o;break}return n}function o(e,o){for(var a={},s=[],i=0;i<e.length;i++){var l=e[i],c=o.base?l[0]+o.base:l[0],d=a[c]||0,g="".concat(c," ").concat(d);a[c]=d+1;var m=n(g),h={css:l[1],media:l[2],sourceMap:l[3],supports:l[4],layer:l[5]};if(-1!==m)t[m].references++,t[m].updater(h);else{var u=r(h,o);o.byIndex=i,t.splice(i,0,{identifier:g,updater:u,references:1})}s.push(g)}return s}function r(e,t){var n=t.domAPI(t);n.update(e);return function(t){if(t){if(t.css===e.css&&t.media===e.media&&t.sourceMap===e.sourceMap&&t.supports===e.supports&&t.layer===e.layer)return;n.update(e=t)}else n.remove()}}e.exports=function(e,r){var a=o(e=e||[],r=r||{});return function(e){e=e||[];for(var s=0;s<a.length;s++){var i=n(a[s]);t[i].references--}for(var l=o(e,r),c=0;c<a.length;c++){var d=n(a[c]);0===t[d].references&&(t[d].updater(),t.splice(d,1))}a=l}}},83(e,t,n){n.d(t,{A:()=>i});var o=n(354),r=n.n(o),a=n(314),s=n.n(a)()(r());s.push([e.id,"/* Styles for the Name Tracker extension */\n\n.name-tracker-settings {\n    padding: 5px;\n}\n\n.name-tracker_block {\n    margin-bottom: 10px;\n}\n\n.name-tracker_block h4 {\n    margin-top: 10px;\n    margin-bottom: 10px;\n    font-weight: bold;\n}\n\n/* Status Display */\n.name-tracker-status-block {\n    background-color: var(--SmartThemeBlurTintColor);\n    border: 1px solid var(--SmartThemeBorderColor);\n    border-radius: 5px;\n    padding: 10px;\n}\n\n.name-tracker-status {\n    font-weight: bold;\n    color: var(--SmartThemeBodyColor);\n    padding: 5px;\n    text-align: center;\n}\n\n/* Character List */\n.name-tracker-character-list {\n    max-height: 400px;\n    overflow-y: auto;\n    border: 1px solid var(--SmartThemeBorderColor);\n    border-radius: 5px;\n    padding: 5px;\n    margin-top: 5px;\n}\n\n.name-tracker-character {\n    padding: 10px;\n    margin-bottom: 10px;\n    border: 1px solid var(--SmartThemeBorderColor);\n    border-radius: 5px;\n    background-color: var(--SmartThemeBlurTintColor);\n}\n\n.name-tracker-character:last-child {\n    margin-bottom: 0;\n}\n\n/* Active/loaded character styling (characters that are loaded in SillyTavern) */\n.name-tracker-character.main-character {\n    border-left: 3px solid #4CAF50;\n    background-color: rgba(76, 175, 80, 0.05);\n}\n\n.character-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-bottom: 5px;\n}\n\n.character-name {\n    font-weight: bold;\n    font-size: 1.1em;\n    color: var(--SmartThemeBodyColor);\n}\n\n.character-name .fa-user {\n    color: #4CAF50;\n    margin-right: 5px;\n}\n\n.character-name.ignored {\n    color: var(--SmartThemeQuoteColor);\n    text-decoration: line-through;\n}\n\n.character-badge {\n    display: inline-block;\n    padding: 2px 8px;\n    border-radius: 3px;\n    font-size: 0.75em;\n    font-weight: bold;\n    margin-left: 5px;\n}\n\n.character-badge.main-char {\n    background-color: #4CAF50;\n    color: #fff;\n}\n\n.character-badge.ignored {\n    background-color: #666;\n    color: #fff;\n}\n\n.character-badge.unresolved {\n    background-color: #ff9800;\n    color: #000;\n}\n\n/* Lorebook entry editor modal */\n.lorebook-entry-editor h3 {\n    margin-top: 0;\n    margin-bottom: 20px;\n    color: var(--SmartThemeBodyColor);\n}\n\n.editor-section {\n    margin-bottom: 15px;\n}\n\n.editor-section label {\n    display: block;\n    font-weight: bold;\n    margin-bottom: 5px;\n    color: var(--SmartThemeBodyColor);\n}\n\n.editor-section small {\n    display: block;\n    margin-top: 3px;\n    color: var(--SmartThemeQuoteColor);\n    font-size: 0.85em;\n}\n\n.editor-section input,\n.editor-section textarea {\n    width: 100%;\n    box-sizing: border-box;\n}\n\n.character-aliases {\n    font-size: 0.9em;\n    color: var(--SmartThemeQuoteColor);\n    margin-bottom: 8px;\n    font-style: italic;\n}\n\n.lorebook-entry-id {\n    display: inline-block;\n    margin-left: 10px;\n    padding: 2px 6px;\n    background: var(--SmartThemeBlurTintColor);\n    border: 1px solid var(--SmartThemeBorderColor);\n    border-radius: 3px;\n    font-family: monospace;\n    font-size: 0.85em;\n    font-style: normal;\n    color: var(--SmartThemeQuoteColor);\n}\n\n.character-details {\n    font-size: 0.85em;\n    color: var(--SmartThemeBodyColor);\n    margin: 8px 0;\n    padding: 8px;\n    background: var(--SmartThemeBlurTintColor);\n    border-left: 2px solid var(--SmartThemeBorderColor);\n    border-radius: 3px;\n    line-height: 1.4;\n}\n\n.character-actions {\n    display: flex;\n    gap: 5px;\n    flex-wrap: wrap;\n    margin-top: 8px;\n}\n\n.character-actions .menu_button {\n    flex: 1;\n    min-width: 100px;\n    padding: 5px 10px;\n    font-size: 0.9em;\n}\n\n.menu_button.compact {\n    padding: 5px 10px;\n    font-size: 0.9em;\n}\n\n.name-tracker-empty {\n    color: var(--SmartThemeQuoteColor);\n    font-style: italic;\n    text-align: center;\n    padding: 20px;\n}\n\n/* Ollama Settings */\n.ollama-settings {\n    background-color: var(--SmartThemeBlurTintColor);\n    border-left: 3px solid var(--SmartThemeBorderColor);\n    padding: 10px;\n    margin-top: 5px;\n    border-radius: 5px;\n}\n\n/* Merge Dialog */\n.merge-dialog {\n    padding: 15px;\n}\n\n.merge-dialog p {\n    margin-bottom: 10px;\n}\n\n.merge-dialog strong {\n    color: var(--SmartThemeBodyColor);\n    font-weight: bold;\n}\n\n.merge-warning {\n    color: #ff9800;\n    font-size: 0.9em;\n    margin-top: 10px;\n    padding: 10px;\n    background-color: rgba(255, 152, 0, 0.1);\n    border-left: 3px solid #ff9800;\n    border-radius: 3px;\n}\n\n/* Button states */\nbutton:disabled {\n    opacity: 0.5;\n    cursor: not-allowed;\n}\n\n/* Flex utilities */\n.flexGap5 {\n    gap: 5px;\n}\n\n.flex1 {\n    flex: 1;\n}\n\n/* Progress indicator */\n.name-tracker-progress {\n    margin: 10px 0;\n    padding: 10px;\n    background-color: var(--SmartThemeBlurTintColor);\n    border: 1px solid var(--SmartThemeBorderColor);\n    border-radius: 5px;\n    text-align: center;\n}\n\n.name-tracker-progress .progress-text {\n    margin-bottom: 5px;\n    font-weight: bold;\n}\n\n.name-tracker-progress .progress-bar {\n    width: 100%;\n    height: 20px;\n    background-color: var(--black50a);\n    border-radius: 10px;\n    overflow: hidden;\n}\n\n.name-tracker-progress .progress-fill {\n    height: 100%;\n    background-color: var(--SmartThemeQuoteColor);\n    transition: width 0.3s ease;\n}\n\n/* Character details preview (for potential future use) */\n.character-details {\n    display: none;\n    margin-top: 10px;\n    padding: 10px;\n    background-color: var(--black30a);\n    border-radius: 5px;\n    font-size: 0.9em;\n}\n\n.character-details.expanded {\n    display: block;\n}\n\n.character-details-section {\n    margin-bottom: 8px;\n}\n\n.character-details-section:last-child {\n    margin-bottom: 0;\n}\n\n.character-details-label {\n    font-weight: bold;\n    color: var(--SmartThemeQuoteColor);\n    margin-right: 5px;\n}\n\n/* Responsive adjustments */\n@media (max-width: 768px) {\n    .character-actions {\n        flex-direction: column;\n    }\n    \n    .character-actions .menu_button {\n        width: 100%;\n    }\n}\n\n/* Animation for new characters */\n@keyframes fadeIn {\n    from {\n        opacity: 0;\n        transform: translateY(-10px);\n    }\n    to {\n        opacity: 1;\n        transform: translateY(0);\n    }\n}\n\n.name-tracker-character.new {\n    animation: fadeIn 0.3s ease;\n}\n\n/* System Prompt Editor */\n.system-prompt-editor h3 {\n    margin-top: 0;\n    margin-bottom: 10px;\n    color: var(--SmartThemeBodyColor);\n}\n\n.system-prompt-editor p {\n    margin-bottom: 10px;\n    color: var(--SmartThemeQuoteColor);\n    font-size: 0.9em;\n}\n\n#system_prompt_editor {\n    background-color: var(--SmartThemeBlurTintColor);\n    color: var(--SmartThemeBodyColor);\n    border: 1px solid var(--SmartThemeBorderColor);\n    border-radius: 3px;\n    padding: 10px;\n    resize: vertical;\n}\n\n#system_prompt_editor:focus {\n    outline: none;\n    border-color: var(--SmartThemeEmColor);\n}\n\n.system-prompt-actions button {\n    min-width: 100px;\n}\n\n#system_prompt_reset {\n    margin-right: auto;\n}\n\n\n","",{version:3,sources:["webpack://./style.css"],names:[],mappings:"AAAA,0CAA0C;;AAE1C;IACI,YAAY;AAChB;;AAEA;IACI,mBAAmB;AACvB;;AAEA;IACI,gBAAgB;IAChB,mBAAmB;IACnB,iBAAiB;AACrB;;AAEA,mBAAmB;AACnB;IACI,gDAAgD;IAChD,8CAA8C;IAC9C,kBAAkB;IAClB,aAAa;AACjB;;AAEA;IACI,iBAAiB;IACjB,iCAAiC;IACjC,YAAY;IACZ,kBAAkB;AACtB;;AAEA,mBAAmB;AACnB;IACI,iBAAiB;IACjB,gBAAgB;IAChB,8CAA8C;IAC9C,kBAAkB;IAClB,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,aAAa;IACb,mBAAmB;IACnB,8CAA8C;IAC9C,kBAAkB;IAClB,gDAAgD;AACpD;;AAEA;IACI,gBAAgB;AACpB;;AAEA,gFAAgF;AAChF;IACI,8BAA8B;IAC9B,yCAAyC;AAC7C;;AAEA;IACI,aAAa;IACb,8BAA8B;IAC9B,mBAAmB;IACnB,kBAAkB;AACtB;;AAEA;IACI,iBAAiB;IACjB,gBAAgB;IAChB,iCAAiC;AACrC;;AAEA;IACI,cAAc;IACd,iBAAiB;AACrB;;AAEA;IACI,kCAAkC;IAClC,6BAA6B;AACjC;;AAEA;IACI,qBAAqB;IACrB,gBAAgB;IAChB,kBAAkB;IAClB,iBAAiB;IACjB,iBAAiB;IACjB,gBAAgB;AACpB;;AAEA;IACI,yBAAyB;IACzB,WAAW;AACf;;AAEA;IACI,sBAAsB;IACtB,WAAW;AACf;;AAEA;IACI,yBAAyB;IACzB,WAAW;AACf;;AAEA,gCAAgC;AAChC;IACI,aAAa;IACb,mBAAmB;IACnB,iCAAiC;AACrC;;AAEA;IACI,mBAAmB;AACvB;;AAEA;IACI,cAAc;IACd,iBAAiB;IACjB,kBAAkB;IAClB,iCAAiC;AACrC;;AAEA;IACI,cAAc;IACd,eAAe;IACf,kCAAkC;IAClC,iBAAiB;AACrB;;AAEA;;IAEI,WAAW;IACX,sBAAsB;AAC1B;;AAEA;IACI,gBAAgB;IAChB,kCAAkC;IAClC,kBAAkB;IAClB,kBAAkB;AACtB;;AAEA;IACI,qBAAqB;IACrB,iBAAiB;IACjB,gBAAgB;IAChB,0CAA0C;IAC1C,8CAA8C;IAC9C,kBAAkB;IAClB,sBAAsB;IACtB,iBAAiB;IACjB,kBAAkB;IAClB,kCAAkC;AACtC;;AAEA;IACI,iBAAiB;IACjB,iCAAiC;IACjC,aAAa;IACb,YAAY;IACZ,0CAA0C;IAC1C,mDAAmD;IACnD,kBAAkB;IAClB,gBAAgB;AACpB;;AAEA;IACI,aAAa;IACb,QAAQ;IACR,eAAe;IACf,eAAe;AACnB;;AAEA;IACI,OAAO;IACP,gBAAgB;IAChB,iBAAiB;IACjB,gBAAgB;AACpB;;AAEA;IACI,iBAAiB;IACjB,gBAAgB;AACpB;;AAEA;IACI,kCAAkC;IAClC,kBAAkB;IAClB,kBAAkB;IAClB,aAAa;AACjB;;AAEA,oBAAoB;AACpB;IACI,gDAAgD;IAChD,mDAAmD;IACnD,aAAa;IACb,eAAe;IACf,kBAAkB;AACtB;;AAEA,iBAAiB;AACjB;IACI,aAAa;AACjB;;AAEA;IACI,mBAAmB;AACvB;;AAEA;IACI,iCAAiC;IACjC,iBAAiB;AACrB;;AAEA;IACI,cAAc;IACd,gBAAgB;IAChB,gBAAgB;IAChB,aAAa;IACb,wCAAwC;IACxC,8BAA8B;IAC9B,kBAAkB;AACtB;;AAEA,kBAAkB;AAClB;IACI,YAAY;IACZ,mBAAmB;AACvB;;AAEA,mBAAmB;AACnB;IACI,QAAQ;AACZ;;AAEA;IACI,OAAO;AACX;;AAEA,uBAAuB;AACvB;IACI,cAAc;IACd,aAAa;IACb,gDAAgD;IAChD,8CAA8C;IAC9C,kBAAkB;IAClB,kBAAkB;AACtB;;AAEA;IACI,kBAAkB;IAClB,iBAAiB;AACrB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,iCAAiC;IACjC,mBAAmB;IACnB,gBAAgB;AACpB;;AAEA;IACI,YAAY;IACZ,6CAA6C;IAC7C,2BAA2B;AAC/B;;AAEA,yDAAyD;AACzD;IACI,aAAa;IACb,gBAAgB;IAChB,aAAa;IACb,iCAAiC;IACjC,kBAAkB;IAClB,gBAAgB;AACpB;;AAEA;IACI,cAAc;AAClB;;AAEA;IACI,kBAAkB;AACtB;;AAEA;IACI,gBAAgB;AACpB;;AAEA;IACI,iBAAiB;IACjB,kCAAkC;IAClC,iBAAiB;AACrB;;AAEA,2BAA2B;AAC3B;IACI;QACI,sBAAsB;IAC1B;;IAEA;QACI,WAAW;IACf;AACJ;;AAEA,iCAAiC;AACjC;IACI;QACI,UAAU;QACV,4BAA4B;IAChC;IACA;QACI,UAAU;QACV,wBAAwB;IAC5B;AACJ;;AAEA;IACI,2BAA2B;AAC/B;;AAEA,yBAAyB;AACzB;IACI,aAAa;IACb,mBAAmB;IACnB,iCAAiC;AACrC;;AAEA;IACI,mBAAmB;IACnB,kCAAkC;IAClC,gBAAgB;AACpB;;AAEA;IACI,gDAAgD;IAChD,iCAAiC;IACjC,8CAA8C;IAC9C,kBAAkB;IAClB,aAAa;IACb,gBAAgB;AACpB;;AAEA;IACI,aAAa;IACb,sCAAsC;AAC1C;;AAEA;IACI,gBAAgB;AACpB;;AAEA;IACI,kBAAkB;AACtB",sourcesContent:["/* Styles for the Name Tracker extension */\r\n\r\n.name-tracker-settings {\r\n    padding: 5px;\r\n}\r\n\r\n.name-tracker_block {\r\n    margin-bottom: 10px;\r\n}\r\n\r\n.name-tracker_block h4 {\r\n    margin-top: 10px;\r\n    margin-bottom: 10px;\r\n    font-weight: bold;\r\n}\r\n\r\n/* Status Display */\r\n.name-tracker-status-block {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    padding: 10px;\r\n}\r\n\r\n.name-tracker-status {\r\n    font-weight: bold;\r\n    color: var(--SmartThemeBodyColor);\r\n    padding: 5px;\r\n    text-align: center;\r\n}\r\n\r\n/* Character List */\r\n.name-tracker-character-list {\r\n    max-height: 400px;\r\n    overflow-y: auto;\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    padding: 5px;\r\n    margin-top: 5px;\r\n}\r\n\r\n.name-tracker-character {\r\n    padding: 10px;\r\n    margin-bottom: 10px;\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n}\r\n\r\n.name-tracker-character:last-child {\r\n    margin-bottom: 0;\r\n}\r\n\r\n/* Active/loaded character styling (characters that are loaded in SillyTavern) */\r\n.name-tracker-character.main-character {\r\n    border-left: 3px solid #4CAF50;\r\n    background-color: rgba(76, 175, 80, 0.05);\r\n}\r\n\r\n.character-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-bottom: 5px;\r\n}\r\n\r\n.character-name {\r\n    font-weight: bold;\r\n    font-size: 1.1em;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.character-name .fa-user {\r\n    color: #4CAF50;\r\n    margin-right: 5px;\r\n}\r\n\r\n.character-name.ignored {\r\n    color: var(--SmartThemeQuoteColor);\r\n    text-decoration: line-through;\r\n}\r\n\r\n.character-badge {\r\n    display: inline-block;\r\n    padding: 2px 8px;\r\n    border-radius: 3px;\r\n    font-size: 0.75em;\r\n    font-weight: bold;\r\n    margin-left: 5px;\r\n}\r\n\r\n.character-badge.main-char {\r\n    background-color: #4CAF50;\r\n    color: #fff;\r\n}\r\n\r\n.character-badge.ignored {\r\n    background-color: #666;\r\n    color: #fff;\r\n}\r\n\r\n.character-badge.unresolved {\r\n    background-color: #ff9800;\r\n    color: #000;\r\n}\r\n\r\n/* Lorebook entry editor modal */\r\n.lorebook-entry-editor h3 {\r\n    margin-top: 0;\r\n    margin-bottom: 20px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.editor-section {\r\n    margin-bottom: 15px;\r\n}\r\n\r\n.editor-section label {\r\n    display: block;\r\n    font-weight: bold;\r\n    margin-bottom: 5px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.editor-section small {\r\n    display: block;\r\n    margin-top: 3px;\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-size: 0.85em;\r\n}\r\n\r\n.editor-section input,\r\n.editor-section textarea {\r\n    width: 100%;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.character-aliases {\r\n    font-size: 0.9em;\r\n    color: var(--SmartThemeQuoteColor);\r\n    margin-bottom: 8px;\r\n    font-style: italic;\r\n}\r\n\r\n.lorebook-entry-id {\r\n    display: inline-block;\r\n    margin-left: 10px;\r\n    padding: 2px 6px;\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    font-family: monospace;\r\n    font-size: 0.85em;\r\n    font-style: normal;\r\n    color: var(--SmartThemeQuoteColor);\r\n}\r\n\r\n.character-details {\r\n    font-size: 0.85em;\r\n    color: var(--SmartThemeBodyColor);\r\n    margin: 8px 0;\r\n    padding: 8px;\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border-left: 2px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    line-height: 1.4;\r\n}\r\n\r\n.character-actions {\r\n    display: flex;\r\n    gap: 5px;\r\n    flex-wrap: wrap;\r\n    margin-top: 8px;\r\n}\r\n\r\n.character-actions .menu_button {\r\n    flex: 1;\r\n    min-width: 100px;\r\n    padding: 5px 10px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.menu_button.compact {\r\n    padding: 5px 10px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.name-tracker-empty {\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-style: italic;\r\n    text-align: center;\r\n    padding: 20px;\r\n}\r\n\r\n/* Ollama Settings */\r\n.ollama-settings {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border-left: 3px solid var(--SmartThemeBorderColor);\r\n    padding: 10px;\r\n    margin-top: 5px;\r\n    border-radius: 5px;\r\n}\r\n\r\n/* Merge Dialog */\r\n.merge-dialog {\r\n    padding: 15px;\r\n}\r\n\r\n.merge-dialog p {\r\n    margin-bottom: 10px;\r\n}\r\n\r\n.merge-dialog strong {\r\n    color: var(--SmartThemeBodyColor);\r\n    font-weight: bold;\r\n}\r\n\r\n.merge-warning {\r\n    color: #ff9800;\r\n    font-size: 0.9em;\r\n    margin-top: 10px;\r\n    padding: 10px;\r\n    background-color: rgba(255, 152, 0, 0.1);\r\n    border-left: 3px solid #ff9800;\r\n    border-radius: 3px;\r\n}\r\n\r\n/* Button states */\r\nbutton:disabled {\r\n    opacity: 0.5;\r\n    cursor: not-allowed;\r\n}\r\n\r\n/* Flex utilities */\r\n.flexGap5 {\r\n    gap: 5px;\r\n}\r\n\r\n.flex1 {\r\n    flex: 1;\r\n}\r\n\r\n/* Progress indicator */\r\n.name-tracker-progress {\r\n    margin: 10px 0;\r\n    padding: 10px;\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    text-align: center;\r\n}\r\n\r\n.name-tracker-progress .progress-text {\r\n    margin-bottom: 5px;\r\n    font-weight: bold;\r\n}\r\n\r\n.name-tracker-progress .progress-bar {\r\n    width: 100%;\r\n    height: 20px;\r\n    background-color: var(--black50a);\r\n    border-radius: 10px;\r\n    overflow: hidden;\r\n}\r\n\r\n.name-tracker-progress .progress-fill {\r\n    height: 100%;\r\n    background-color: var(--SmartThemeQuoteColor);\r\n    transition: width 0.3s ease;\r\n}\r\n\r\n/* Character details preview (for potential future use) */\r\n.character-details {\r\n    display: none;\r\n    margin-top: 10px;\r\n    padding: 10px;\r\n    background-color: var(--black30a);\r\n    border-radius: 5px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.character-details.expanded {\r\n    display: block;\r\n}\r\n\r\n.character-details-section {\r\n    margin-bottom: 8px;\r\n}\r\n\r\n.character-details-section:last-child {\r\n    margin-bottom: 0;\r\n}\r\n\r\n.character-details-label {\r\n    font-weight: bold;\r\n    color: var(--SmartThemeQuoteColor);\r\n    margin-right: 5px;\r\n}\r\n\r\n/* Responsive adjustments */\r\n@media (max-width: 768px) {\r\n    .character-actions {\r\n        flex-direction: column;\r\n    }\r\n    \r\n    .character-actions .menu_button {\r\n        width: 100%;\r\n    }\r\n}\r\n\r\n/* Animation for new characters */\r\n@keyframes fadeIn {\r\n    from {\r\n        opacity: 0;\r\n        transform: translateY(-10px);\r\n    }\r\n    to {\r\n        opacity: 1;\r\n        transform: translateY(0);\r\n    }\r\n}\r\n\r\n.name-tracker-character.new {\r\n    animation: fadeIn 0.3s ease;\r\n}\r\n\r\n/* System Prompt Editor */\r\n.system-prompt-editor h3 {\r\n    margin-top: 0;\r\n    margin-bottom: 10px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.system-prompt-editor p {\r\n    margin-bottom: 10px;\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-size: 0.9em;\r\n}\r\n\r\n#system_prompt_editor {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    color: var(--SmartThemeBodyColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    padding: 10px;\r\n    resize: vertical;\r\n}\r\n\r\n#system_prompt_editor:focus {\r\n    outline: none;\r\n    border-color: var(--SmartThemeEmColor);\r\n}\r\n\r\n.system-prompt-actions button {\r\n    min-width: 100px;\r\n}\r\n\r\n#system_prompt_reset {\r\n    margin-right: auto;\r\n}\r\n\r\n\r\n"],sourceRoot:""}]);const i=s},102(e,t,n){n.d(t,{A:()=>i,stContext:()=>s});var o=n(806),r=n(462);const a=o.Ay.createModuleLogger("Context");const s=new class{constructor(){this._context=null,this._lastUpdate=0,this._updateInterval=1e3}getContext(){const e=Date.now();if(!this._context||e-this._lastUpdate>this._updateInterval)try{this._context=SillyTavern.getContext(),this._lastUpdate=e}catch(e){throw a.error("Failed to get SillyTavern context:",e),new Error("SillyTavern context not available")}return this._context}getChat(){return this.getContext().chat||[]}getChatMetadata(){return this.getContext().chatMetadata||{}}getChatId(){return this.getContext().chatId||null}getCharacterId(){return this.getContext().characterId}getCharacters(){return this.getContext().characters||[]}getUserName(){return this.getContext().name1||"User"}getExtensionSettings(){return this.getContext().extensionSettings||{}}async saveExtensionSettings(){return r.r_.withErrorBoundary("Context",async()=>{const e=this.getContext();e.saveSettingsDebounced?e.saveSettingsDebounced():a.warn("saveSettingsDebounced not available")},{silent:!0})}async saveChatMetadata(){return r.r_.withErrorBoundary("Context",async()=>{const e=this.getContext();e.saveMetadata?await e.saveMetadata():a.warn("saveMetadata not available")},{silent:!0})}async generateQuietPrompt(e){return r.r_.withErrorBoundary("Context",async()=>{const t=this.getContext();if(!t.generateQuietPrompt)throw new Error("generateQuietPrompt not available");return await t.generateQuietPrompt(e)},{retries:1})}async loadWorldInfo(e){return r.r_.withErrorBoundary("Context",async()=>{const t=this.getContext();if(!t.loadWorldInfo)throw new Error("loadWorldInfo not available");return await t.loadWorldInfo(e)})}async saveWorldInfo(e,t,n=!1){return r.r_.withErrorBoundary("Context",async()=>{const o=this.getContext();if(!o.saveWorldInfo)throw new Error("saveWorldInfo not available");return await o.saveWorldInfo(e,t,n)})}async saveWorldInfoEntry(e,t){return r.r_.withErrorBoundary("Context",async()=>{const n=this.getContext();if(!n.saveWorldInfoEntry)throw new Error("saveWorldInfoEntry not available");return await n.saveWorldInfoEntry(e,t)})}async setSelectedWorldInfo(e){return r.r_.withErrorBoundary("Context",async()=>{const t=this.getContext();if(t.saveSelectedWorldInfo&&"function"==typeof t.saveSelectedWorldInfo)await t.saveSelectedWorldInfo(e);else{if(!t.chatMetadata)throw new Error("Chat metadata not available");t.chatMetadata.world_info=e,t.saveMetadata&&"function"==typeof t.saveMetadata&&await t.saveMetadata(),a.debug(`Selected world info: ${e}`)}},{silent:!0})}getEventSource(){return this.getContext().eventSource}getEventTypes(){return this.getContext().event_types}async callGenericPopup(e,t,n="",o={}){return r.r_.withErrorBoundary("Context",async()=>{const r=this.getContext();if(!r.callGenericPopup)throw new Error("callGenericPopup not available");return await r.callGenericPopup(e,t,n,o)})}isContextAvailable(){try{return!!this.getContext()}catch{return!1}}clearCache(){this._context=null,this._lastUpdate=0,a.debug("Cleared context cache")}getStatus(){return{available:this.isContextAvailable(),cached:!!this._context,lastUpdate:this._lastUpdate,chatId:this.getChatId(),characterId:this.getCharacterId()}}dumpContextToConsole(){try{const e=this.getContext(),t={timestamp:(new Date).toISOString(),availableProperties:Object.keys(e),fullContext:e,detailedBreakdown:{}},n=["maxContext","maxTokens","amount_gen","token_limit","extensionSettings","settings","chat","chatMetadata","characters","world_info","botId","characterId","chatId","impersonate","groups"];for(const o of n)o in e&&(t.detailedBreakdown[o]={type:typeof e[o],value:e[o],isNull:null===e[o],isUndefined:void 0===e[o]});return console.group("%c[Name Tracker] COMPLETE CONTEXT DUMP","color: #00ff00; font-weight: bold; font-size: 14px;"),console.log("%cTimestamp:","color: #ffaa00; font-weight: bold;",t.timestamp),console.log("%cTotal Properties:","color: #ffaa00; font-weight: bold;",t.availableProperties.length),console.log("%cAll Property Names:","color: #00aaff; font-weight: bold;",t.availableProperties.join(", ")),console.log("%cDetailed Property Breakdown:","color: #ff00ff; font-weight: bold;",t.detailedBreakdown),console.log("%cFull Context Object:","color: #00ff00; font-weight: bold;",e),console.log("%cJSON Dump (for copying):","color: #ffff00; font-weight: bold;",JSON.stringify(t,null,2)),console.groupEnd(),t}catch(e){throw console.error("[Name Tracker] ERROR dumping context:",e),e}}},i=s},113(e){e.exports=function(e,t){if(t.styleSheet)t.styleSheet.cssText=e;else{for(;t.firstChild;)t.removeChild(t.firstChild);t.appendChild(document.createTextNode(e))}}},134(e,t,n){n.d(t,{TQ:()=>h,_Z:()=>u,initializeLorebook:()=>m});var o=n(806),r=n(462),a=n(548),s=n(102),i=n(854),l=n(695);let c;console.log("[LOREBOOK] Starting module load..."),console.log("[LOREBOOK] Imports completed. Types:"),console.log("[LOREBOOK] createModuleLogger:",typeof o.Xv),console.log("[LOREBOOK] withErrorBoundary:",typeof r.Xc),console.log("[LOREBOOK] NameTrackerError:",typeof r.S_);try{console.log("[LOREBOOK] About to call createModuleLogger..."),c=(0,o.Xv)("lorebook"),console.log("[LOREBOOK] Debug logger created successfully:",c)}catch(e){console.error("[LOREBOOK] Failed to create debug logger:",e),console.error("[LOREBOOK] Error stack:",e.stack),c={log:console.log.bind(console,"[LOREBOOK]"),error:console.error.bind(console,"[LOREBOOK]"),warn:console.warn.bind(console,"[LOREBOOK]"),debug:console.debug.bind(console,"[LOREBOOK]")}}const d=new l.h("Lorebook Management");let g=null;async function m(){return console.log("╔═══════════════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] initializeLorebook() CALLED"),console.log("╚═══════════════════════════════════════════════════════════════════════════"),(0,r.Xc)("initializeLorebook",async()=>{console.log("║ [NT-Lorebook] Inside withErrorBoundary, getting context...");const e=s.stContext.getContext();if(console.log("║ [NT-Lorebook] Got context:",!!e),console.log("║ [NT-Lorebook] context.chatId:",e?.chatId),!e.chatId)return console.warn("║ [NT-Lorebook] ⚠️  NO ACTIVE CHAT - Aborting initialization"),c.log("No active chat, skipping lorebook initialization"),g=null,null;console.log("║ [NT-Lorebook] Active chat detected, proceeding...");const t="world_info",n=e.chatMetadata;if(console.log("║ [NT-Lorebook] chatMetadata exists?:",!!n),!n)return console.warn("║ [NT-Lorebook] ⚠️  NO CHAT METADATA - Aborting initialization"),c.log("No chat metadata available, skipping lorebook initialization"),g=null,null;if(console.log("║ [NT-Lorebook] Checking for existing bound lorebook..."),console.log("║ [NT-Lorebook] chatMetadata[world_info]:",n[t]),n[t])return g=n[t],console.log("╔═══════════════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] ✅ EXISTING LOREBOOK FOUND"),console.log("╠═══════════════════════════════════════════════════════════════════════════"),console.log("║ Lorebook Name:",g),console.log("║ Module Variable Set: YES"),console.log("╚═══════════════════════════════════════════════════════════════════════════"),c.log(`Using existing chat lorebook: ${g}`),g;const o=`NameTracker_${e.chatId}`.replace(/[^a-z0-9 -]/gi,"_").replace(/_{2,}/g,"_").substring(0,64);console.log("╔═══════════════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] 🆕 CREATING NEW LOREBOOK"),console.log("╠═══════════════════════════════════════════════════════════════════════════"),console.log("║ Generated Name:",o),console.log("║ Chat ID:",e.chatId),console.log("╚═══════════════════════════════════════════════════════════════════════════"),c.log(`Creating new chat lorebook: ${o}`),g=o,console.log("║ [NT-Lorebook] Module variable lorebookName SET TO:",g),n[t]=g;try{await e.saveMetadata(),console.log(`[NT-Lorebook] ✅ Bound lorebook to chat metadata: ${g}`),c.log(`Bound lorebook to chat: ${g}`),await e.setSelectedWorldInfo(g),console.log(`[NT-Lorebook] ✅ Selected lorebook as active for this chat: ${g}`);const t=await e.loadWorldInfo(g);t?console.log(`[NT-Lorebook] ℹ️  Lorebook file already exists with ${Object.keys(t.entries||{}).length} entries`):(console.log(`[NT-Lorebook] 📝 Creating empty lorebook file: ${g}`),c.log(),await e.saveWorldInfo(g,{entries:{}},!0),console.log("[NT-Lorebook] ✅ Lorebook file created successfully")),d.info(`Chat lorebook "${g}" created and bound to this chat`,{timeOut:5e3}),console.log("[NT-Lorebook] 🎉 Chat lorebook initialization complete")}catch(e){throw console.error("Failed to initialize lorebook:",e),g=null,new r.S_(`Failed to initialize lorebook: ${e.message}`)}return g})}async function h(e,t){return(0,r.Xc)("updateLorebookEntry",async()=>{if(console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] updateLorebookEntry CALLED"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ CRITICAL: Checking lorebookName variable"),console.log("║ lorebookName value:",g),console.log("║ lorebookName type:",typeof g),console.log("║ lorebookName is null?:",null===g),console.log("║ lorebookName is undefined?:",void 0===g),console.log("║ lorebookName is falsy?:",!g),console.log("╚════════════════════════════════════════════════════════════════"),!g)return console.error("╔════════════════════════════════════════════════════════════════"),console.error("║ [NT-Lorebook] ❌ CRITICAL ERROR: NO LOREBOOK INITIALIZED!"),console.error("╠════════════════════════════════════════════════════════════════"),console.error("║ lorebookName is:",g),console.error("║ Character:",t),console.error("║ SKIPPING LOREBOOK ENTRY UPDATE"),console.error("╚════════════════════════════════════════════════════════════════"),void c.log("No lorebook initialized, skipping entry update");console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] ✅ Lorebook IS initialized"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ Character Name:",t),console.log("║ Character Object:",JSON.stringify(e,null,2)),console.log("║ Has lorebookEntryId?:",!!e.lorebookEntryId),console.log("║ Existing Entry ID:",e.lorebookEntryId||"NONE"),console.log("╚════════════════════════════════════════════════════════════════"),c.log(`updateLorebookEntry called for: ${t}`),c.log("  Character data:",e);const n=s.stContext.getContext(),o=(0,a.gf)(),r=[];if(e.physicalAge||e.mentalAge){const t=[];e.physicalAge&&t.push(`Physical: ${e.physicalAge}`),e.mentalAge&&t.push(`Mental: ${e.mentalAge}`),r.push(`**Age:** ${t.join(", ")}`)}e.physical&&r.push(`\n**Physical Description:**\n${e.physical}`),e.personality&&r.push(`\n**Personality:**\n${e.personality}`),e.sexuality&&r.push(`\n**Sexuality:**\n${e.sexuality}`),e.raceEthnicity&&r.push(`**Race/Ethnicity:** ${e.raceEthnicity}`),e.roleSkills&&r.push(`\n**Role & Skills:**\n${e.roleSkills}`),e.lastInteraction&&r.push(`\n**Last Interaction with {{user}}:**\n${e.lastInteraction}`),e.relationships&&e.relationships.length>0&&(r.push("\n**Relationships:**"),e.relationships.forEach(e=>{r.push(`- ${e}`)}));const l=r.join("\n"),d=[e.preferredName];e.aliases&&d.push(...e.aliases);let m=await n.loadWorldInfo(g);m||(c.log(),m={entries:{}}),console.log(`[NT-Lorebook] 🧹 Cleaning up orphaned entries for: ${t}`);const h=[];for(const[n,o]of Object.entries(m.entries)){if(!o.key||!Array.isArray(o.key))continue;o.key.some(n=>n.toLowerCase()===t.toLowerCase()||e.aliases&&e.aliases.some(e=>n.toLowerCase()===e.toLowerCase()))&&n!==e.lorebookEntryId&&(console.log(`[NT-Lorebook]    Removing orphaned entry: ${n} (keys: ${o.key.join(", ")})`),h.push(n))}for(const e of h)delete m.entries[e];h.length>0&&console.log(`[NT-Lorebook] ✅ Removed ${h.length} orphaned entries`);const u=(0,a.TJ)("messageFrequency",10),p=Math.max(1,Math.floor(.75*u));let A=null;if(e.lorebookEntryId&&m.entries&&m.entries[e.lorebookEntryId]){A=e.lorebookEntryId;const n=m.entries[A];console.log(`[NT-Lorebook] 🔄 Updating existing entry for: ${t}`),console.log(`[NT-Lorebook]    Entry UID: ${A}`),console.log(`[NT-Lorebook]    Keys: ${d.join(", ")}`),console.log(`[NT-Lorebook]    Content length: ${l.length} chars`),n.key=d,n.content=l,n.enabled=o.enabled,n.position=o.position,n.probability=o.probability,n.depth=o.depth,n.scanDepth=o.scanDepth,n.cooldown=p,c.log()}else{const n=(0,i.cv)();console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] CREATING NEW ENTRY"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ Character Name:",t),console.log("║ Generated UID:",n),console.log("║ Keys Array:",JSON.stringify(d)),console.log("║ Content Preview:",l.substring(0,200)+"..."),console.log("║ Content Length:",l.length,"characters"),console.log("╚════════════════════════════════════════════════════════════════");const r={uid:n,key:d,keysecondary:[],comment:`Auto-generated entry for ${e.preferredName}`,content:l,constant:!1,selective:!0,contextConfig:{prefix:"",suffix:"",tokenBudget:0,reservedTokens:0,budgetPriority:400,trimDirection:"doNotTrim",insertionOrder:0,maximumTrimType:"sentence",insertionPosition:"before"},enabled:o.enabled,position:o.position,excludeRecursion:!1,preventRecursion:!1,delayUntilRecursion:!1,probability:o.probability,useProbability:!0,depth:o.depth,selectiveLogic:0,group:"",scanDepth:o.scanDepth,caseSensitive:null,matchWholeWords:null,useGroupScoring:null,automationId:"",role:0,vectorized:!1,sticky:0,cooldown:p,delay:0};m.entries[n]=r,e.lorebookEntryId=n,console.log(`[NT-Lorebook] 🆕 Creating new entry for: ${t}`),console.log(`[NT-Lorebook]    Entry UID: ${n}`),console.log(`[NT-Lorebook]    Keys: ${d.join(", ")}`),console.log(`[NT-Lorebook]    Content length: ${l.length} chars`),console.log(`[NT-Lorebook]    Enabled: ${o.enabled}`),console.log(`[NT-Lorebook]    Position: ${o.position}`),console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] SAVING CHARACTER WITH ENTRY ID"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ Character Name:",t),console.log("║ Character Object BEFORE save:",JSON.stringify(e,null,2)),console.log("║ Lorebook Entry ID:",n),console.log("╚════════════════════════════════════════════════════════════════"),await(0,a.e7)(t,e),console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] CHARACTER SAVE COMPLETE"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ Character Name:",t),console.log("║ Entry ID Saved:",e.lorebookEntryId),console.log("╚════════════════════════════════════════════════════════════════"),c.log()}try{console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] SAVING LOREBOOK TO DISK"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ Lorebook Name:",g),console.log("║ Total Entries:",Object.keys(m.entries).length),console.log("║ Entry UIDs:",Object.keys(m.entries)),console.log("║ WorldInfo Structure:",JSON.stringify({entryCount:Object.keys(m.entries).length,entryKeys:Object.keys(m.entries),sampleEntry:Object.values(m.entries)[0]?{uid:Object.values(m.entries)[0].uid,key:Object.values(m.entries)[0].key,contentLength:Object.values(m.entries)[0].content.length}:"NONE"},null,2)),console.log("╚════════════════════════════════════════════════════════════════"),await n.saveWorldInfo(g,m,!0),console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] LOREBOOK SAVE COMPLETE"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ Lorebook Name:",g),console.log("║ Save Successful: YES"),console.log("╚════════════════════════════════════════════════════════════════"),console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] VERIFYING LOREBOOK SAVE"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ Reloading:",g),console.log("╚════════════════════════════════════════════════════════════════");const t=await n.loadWorldInfo(g),o=A||e.lorebookEntryId;console.log("╔════════════════════════════════════════════════════════════════"),console.log("║ [NT-Lorebook] VERIFICATION RESULTS"),console.log("╠════════════════════════════════════════════════════════════════"),console.log("║ Target UID:",o),console.log("║ Verification Data Loaded?:",!!t),console.log("║ Has Entries Object?:",!!t?.entries),console.log("║ Available Entry UIDs:",Object.keys(t?.entries||{})),console.log("║ Target Entry Found?:",!!t?.entries?.[o]),t&&t.entries&&t.entries[o]?(console.log("║ ✅ VERIFICATION: SUCCESS"),console.log("║ Entry Data:",JSON.stringify({uid:t.entries[o].uid,key:t.entries[o].key,enabled:t.entries[o].enabled,contentLength:t.entries[o].content.length},null,2)),console.log("╚════════════════════════════════════════════════════════════════"),c.log()):(console.log("║ ❌ VERIFICATION: FAILED"),console.log("║ Entry NOT found in reloaded lorebook!"),console.log("╚════════════════════════════════════════════════════════════════"),console.error("[NT-Lorebook] ❌ WARNING: Lorebook verification failed - entries may not have been saved!"),console.error("[NT-Lorebook]    Target UID:",o),console.error("[NT-Lorebook]    Available entries:",Object.keys(t?.entries||{})),console.error("[Name Tracker] WARNING: Lorebook verification failed - entries may not have been saved!")),c.log()}catch(e){throw console.error("[NT-Lorebook] ❌ Error saving lorebook:",e),console.error("[NT-Lorebook]    Lorebook name:",g),console.error("[NT-Lorebook]    Error details:",e.message),console.error("[Name Tracker] Error saving lorebook:",e),c.log(),e}})}async function u(e){return(0,r.Xc)("viewInLorebook",async()=>{if(!(0,a.qN)(e))throw new r.S_("Character not found");if(!g)return void d.warning("No active chat or lorebook");const t=s.stContext.getContext();"function"==typeof t.openWorldInfoEditor?(await t.openWorldInfoEditor(g),d.success(`Opened lorebook for ${e}`)):($("#WorldInfo").click(),d.info(`Please select "${g}" from the World Info panel`))})}},314(e){e.exports=function(e){var t=[];return t.toString=function(){return this.map(function(t){var n="",o=void 0!==t[5];return t[4]&&(n+="@supports (".concat(t[4],") {")),t[2]&&(n+="@media ".concat(t[2]," {")),o&&(n+="@layer".concat(t[5].length>0?" ".concat(t[5]):""," {")),n+=e(t),o&&(n+="}"),t[2]&&(n+="}"),t[4]&&(n+="}"),n}).join("")},t.i=function(e,n,o,r,a){"string"==typeof e&&(e=[[null,e,void 0]]);var s={};if(o)for(var i=0;i<this.length;i++){var l=this[i][0];null!=l&&(s[l]=!0)}for(var c=0;c<e.length;c++){var d=[].concat(e[c]);o&&s[d[0]]||(void 0!==a&&(void 0===d[5]||(d[1]="@layer".concat(d[5].length>0?" ".concat(d[5]):""," {").concat(d[1],"}")),d[5]=a),n&&(d[2]?(d[1]="@media ".concat(d[2]," {").concat(d[1],"}"),d[2]=n):d[2]=n),r&&(d[4]?(d[1]="@supports (".concat(d[4],") {").concat(d[1],"}"),d[4]=r):d[4]="".concat(r)),t.push(d))}},t}},354(e){e.exports=function(e){var t=e[1],n=e[3];if(!n)return t;if("function"==typeof btoa){var o=btoa(unescape(encodeURIComponent(JSON.stringify(n)))),r="sourceMappingURL=data:application/json;charset=utf-8;base64,".concat(o),a="/*# ".concat(r," */");return[t].concat([a]).join("\n")}return[t].join("\n")}},462(e,t,n){n.d(t,{S_:()=>r,Xc:()=>s,r_:()=>a});const o=n(806).Ay.createModuleLogger("ErrorHandler");class r extends Error{constructor(e,t,n,o=!0){super(e),this.name="NameTrackerError",this.code=t,this.module=n,this.recoverable=o,this.timestamp=Date.now()}}const a=new class{constructor(){this.errorHistory=[],this.transactionStack=[],this.recoveryStrategies=new Map,this.criticalErrorCallbacks=[]}async withErrorBoundary(e,t,n={}){const{fallback:r=null,retries:a=0,silent:s=!1,operationId:i=null}=n;let l=null;const c=Date.now();i&&o.trace(i,`Starting operation in ${e}`);for(let n=0;n<=a;n++)try{const n=await t();return i&&o.trace(i,`Operation completed successfully in ${e}`),n}catch(t){if(console.log(`[STnametracker] Error caught in ${e}:`,t),l=t,n<a){console.log(`[STnametracker] Retrying operation in ${e}, attempt ${n+1}/${a+1}:`,t.message),o.warn(`Retrying operation in ${e}, attempt ${n+1}/${a+1}:`,t.message),await this.delay(100*Math.pow(2,n));continue}}console.log(`[STnametracker] All retries failed in ${e}, tracking error:`,l);const d=this.trackError(l,e,{operation:t.name||"anonymous",duration:Date.now()-c,retries:a,operationId:i});if(s||(console.log(`[STnametracker] Notifying user of error in ${e}`),this.notifyUser(d)),r)try{return o.debug(`Attempting fallback for ${e}:`,d.code),await r(d)}catch(t){o.error(`Fallback failed for ${e}:`,t)}const g=this.recoveryStrategies.get(d.code);if(g)try{return await g(d)}catch(e){o.error(`Recovery strategy failed for ${d.code}:`,e)}throw d}trackError(e,t,n={}){let a;if(e instanceof r)a=e;else{const n=this.categorizeError(e,t);a=new r(e.message,n,t,this.isRecoverable(e,n))}return a.context=n,this.errorHistory.push(a),this.errorHistory.length>100&&this.errorHistory.shift(),o.error(`Error in ${t}:`,{code:a.code,message:a.message,context:n}),a}categorizeError(e,t){return e.message.includes("fetch")||e.message.includes("network")?"NETWORK_ERROR":e.message.includes("JSON")||e.message.includes("parse")?"DATA_FORMAT_ERROR":e.message.includes("context")||e.message.includes("SillyTavern")?"CONTEXT_ERROR":"TypeError"===e.name?"TYPE_ERROR":"LLM"===t&&(e.message.includes("quota")||e.message.includes("rate"))?"API_LIMIT_ERROR":"UNKNOWN_ERROR"}isRecoverable(e,t){return!["CONTEXT_ERROR","TYPE_ERROR"].includes(t)}startTransaction(e,t){this.transactionStack.push({id:e,state:JSON.stringify(t),timestamp:Date.now()}),o.debug(`Started transaction: ${e}`)}commitTransaction(e){const t=this.transactionStack.findIndex(t=>t.id===e);-1!==t&&(this.transactionStack.splice(t,1),o.debug(`Committed transaction: ${e}`))}rollbackTransaction(e){const t=this.transactionStack.findIndex(t=>t.id===e);if(-1!==t){const n=this.transactionStack.splice(t,1)[0];return o.debug(`Rolled back transaction: ${e}`),JSON.parse(n.state)}return null}registerRecoveryStrategy(e,t){this.recoveryStrategies.set(e,t),o.debug(`Registered recovery strategy for: ${e}`)}onCriticalError(e){this.criticalErrorCallbacks.push(e)}notifyUser(e){const t=`Name Tracker: ${e.message}`;e.recoverable?toastr.warning(t,"Warning",{timeOut:5e3}):(toastr.error(t,"Error",{timeOut:8e3}),this.criticalErrorCallbacks.forEach(t=>{try{t(e)}catch(e){o.error("Critical error callback failed:",e)}}))}getRecentErrors(e=10){return this.errorHistory.slice(-e)}clearHistory(){this.errorHistory=[],o.debug("Cleared error history")}delay(e){return new Promise(t=>setTimeout(t,e))}},s=a.withErrorBoundary.bind(a)},540(e){e.exports=function(e){var t=document.createElement("style");return e.setAttributes(t,e.attributes),e.insert(t,e.options),t}},548(e,t,n){n.d(t,{PL:()=>f,TJ:()=>d,ZC:()=>y,bg:()=>m,e7:()=>b,getLLMConfig:()=>x,gf:()=>k,nF:()=>p,nT:()=>g,qN:()=>C,sr:()=>A,yb:()=>T,zB:()=>u});var o=n(462),r=n(806),a=n(102);const s="STnametracker",i=(0,r.Xv)("Settings"),l=Object.freeze({enabled:!0,autoAnalyze:!0,messageFrequency:10,llmSource:"sillytavern",ollamaEndpoint:"http://localhost:11434",ollamaModel:"",confidenceThreshold:70,lorebookPosition:0,lorebookDepth:1,lorebookCooldown:5,lorebookScanDepth:1,lorebookProbability:100,lorebookEnabled:!0,debugMode:!1,systemPrompt:null,lastScannedMessageId:-1,totalCharactersDetected:0,lastAnalysisTime:null,analysisCache:new Map}),c=Object.freeze({characters:{},lastScannedMessageId:-1,analysisHistory:[],lorebookEntries:{},processingStats:{totalProcessed:0,charactersFound:0,lastProcessedTime:null}});function d(){return o.r_.withErrorBoundary("Settings",()=>{if("undefined"==typeof extension_settings)return console.warn("[STnametracker] extension_settings not available"),{...l};extension_settings[s]||(extension_settings[s]={...l});return{...l,...extension_settings[s]}},{...l})}function g(e){return o.r_.withErrorBoundary("Settings",()=>{"undefined"!=typeof extension_settings?(extension_settings[s]||(extension_settings[s]={...l}),Object.assign(extension_settings[s],e),"undefined"!=typeof saveSettingsDebounced&&saveSettingsDebounced()):console.warn("[STnametracker] extension_settings not available for saving")})}function m(){return o.r_.withErrorBoundary("Settings",()=>{try{const e=a.stContext.getChatMetadata();return e[s]||(e[s]={...c}),e[s].characters||{}}catch(e){return i.warn("Failed to get characters:",e.message),{}}},{})}async function h(e){return o.r_.withErrorBoundary("Settings",async()=>{try{const t=a.stContext.getChatMetadata();t[s]||(t[s]={...c}),t[s].characters=e,await a.stContext.saveChatMetadata()}catch(e){throw i.warn("Failed to set characters:",e.message),e}})}function u(){return o.r_.withErrorBoundary("Settings",()=>{try{const e=a.stContext.getChatMetadata();return e[s]||(e[s]={...c}),e[s]}catch(e){return i.warn("Failed to get chat data:",e.message),{...c}}},{...c})}async function p(e){return o.r_.withErrorBoundary("Settings",async()=>{try{const t=a.stContext.getChatMetadata();t[s]||(t[s]={...c}),Object.assign(t[s],e),await a.stContext.saveChatMetadata()}catch(e){throw i.warn("Failed to set chat data:",e.message),e}})}async function A(e){return o.r_.withErrorBoundary("Settings",async()=>{const t=m();delete t[e],await h(t)})}function f(e,t){const n=d();return void 0!==n[e]?n[e]:t}function y(e,t){const n={};n[e]=t,g(n)}function C(e){return o.r_.withErrorBoundary("Settings",()=>{if(!e||"string"!=typeof e)return console.warn("[STnametracker] Invalid character name:",e),null;return m()[e]||null},null)}async function b(e,t){return o.r_.withErrorBoundary("Settings",async()=>{if(!e||"string"!=typeof e)throw new Error("Character name must be a non-empty string");if(!t||"object"!=typeof t)throw new Error("Character data must be an object");const n={...m()};n[e]=t,await h(n),i.log(`Set character: ${e}`)})}function x(){return o.r_.withErrorBoundary("Settings",()=>{const e=f("llmSource");return console.log("[NT-LLMConfig] llmSource setting:",e),console.log("[NT-LLMConfig] All extension_settings keys:",Object.keys(extension_settings.sillytavern_nametracker||{})),{source:e,ollamaEndpoint:f("ollamaEndpoint"),ollamaModel:f("ollamaModel"),systemPrompt:f("systemPrompt")}},{source:"sillytavern",ollamaEndpoint:"http://localhost:11434",ollamaModel:"",systemPrompt:null})}function k(){return o.r_.withErrorBoundary("Settings",()=>({position:f("lorebookPosition"),depth:f("lorebookDepth"),cooldown:f("lorebookCooldown"),scanDepth:f("lorebookScanDepth"),probability:f("lorebookProbability"),enabled:f("lorebookEnabled")}),{position:0,depth:1,cooldown:5,scanDepth:1,probability:100,enabled:!0})}function T(e,t){return o.r_.withErrorBoundary("Settings",()=>{try{const n=a.stContext.getChatMetadata();n[s]||(n[s]={...c}),n[s][e]=t,i.log(`Updated chat data ${e}`),a.stContext.saveChatMetadata().catch(e=>{i.warn("Failed to save chat metadata:",e.message)})}catch(e){i.warn("Failed to set chat metadata:",e.message)}})}},551(e,t,n){n.d(t,{OW:()=>f,_$:()=>h,eY:()=>m,el:()=>x,g9:()=>k,lF:()=>C,pp:()=>w,rL:()=>u,t9:()=>y,undoLastMerge:()=>b,vu:()=>T});var o=n(134),r=n(806),a=n(462),s=n(548),i=n(695);const l=(0,r.Xv)("characters"),c=new i.h("Character Management");function d(e,t=null){console.log(`[NT-Characters] ${e}`,t||"")}let g=[];function m(e){return(0,a.Xc)("isIgnoredCharacter",()=>{const t=(0,s.bg)();return Object.values(t).some(t=>t.ignored&&(t.preferredName===e||t.aliases.includes(e)))})}function h(e){return(0,a.Xc)("findExistingCharacter",()=>{const t=(0,s.bg)(),n=Object.values(t).find(t=>t.preferredName===e||t.aliases.includes(e))||null;return d(`[FindChar] Searching for '${e}': ${n?"FOUND as "+n.preferredName:"NOT FOUND"}`),n})}async function u(e){return(0,a.Xc)("findPotentialMatch",async()=>{const t=(0,s.bg)(),n=(0,s.TJ)("confidenceThreshold",70);l.log();for(const o of Object.values(t)){if(p(e.name,o.preferredName)>=n)return l.log(),o;for(const t of o.aliases){if(p(e.name,t)>=n)return l.log(),o}}return null})}function p(e,t){return(0,a.Xc)("calculateNameSimilarity",()=>{if(e=e.toLowerCase(),t=t.toLowerCase(),e===t)return 100;if(e.includes(t)||t.includes(e))return 85;const n=e.split(/\s+/),o=t.split(/\s+/);return n.filter(e=>o.includes(e)).length>0?70:0})}function A(e,t){return(0,a.Xc)("cleanAliases",()=>{if(!e||!Array.isArray(e))return[];const n=["son","daughter","mother","father","mom","dad","parent","brother","sister","sibling","cousin","uncle","aunt","friend","boyfriend","girlfriend","husband","wife","spouse","boss","employee","coworker","colleague","partner","neighbor","roommate","child","kid","baby","man","woman","person","guy","girl","boy","user","{{user}}","char","{{char}}"],o=t.toLowerCase();return e.filter(e=>{if(!e||"string"!=typeof e)return!1;const t=e.trim().toLowerCase();return t!==o&&(!n.includes(t)&&!(t.length<2))}).map(e=>e.trim()).filter((e,t,n)=>n.indexOf(e)===t)})}async function f(e,t=!1){return(0,a.Xc)("createCharacter",async()=>{l.log();const n=await A(e.aliases||[],e.name),r={preferredName:e.name,aliases:n,physicalAge:e.physicalAge||"",mentalAge:e.mentalAge||"",physical:e.physical||"",personality:e.personality||"",sexuality:e.sexuality||"",raceEthnicity:e.raceEthnicity||"",roleSkills:e.roleSkills||"",lastInteraction:e.lastInteraction||"",relationships:e.relationships||[],ignored:!1,confidence:e.confidence||50,lorebookEntryId:null,lastUpdated:Date.now(),isMainChar:t||!1,lastMessageProcessed:-1};return l.log(),await(0,s.e7)(r.preferredName,r),await(0,o.TQ)(r,r.preferredName),l.log(),r})}async function y(e,t,n=!1,o=!1){return(0,a.Xc)("updateCharacter",async()=>{if(l.log(),o&&(e.isMainChar=!0),n&&t.name!==e.preferredName&&(e.aliases||(e.aliases=[]),e.aliases.includes(t.name)||t.name.toLowerCase()===e.preferredName.toLowerCase()||e.aliases.push(t.name)),e.aliases=A(e.aliases||[],e.preferredName),t.physicalAge&&(e.physicalAge=t.physicalAge),t.mentalAge&&(e.mentalAge=t.mentalAge),t.physical&&(e.physical=t.physical),t.personality&&(e.personality=t.personality),t.sexuality&&(e.sexuality=t.sexuality),t.raceEthnicity&&(e.raceEthnicity=t.raceEthnicity),t.roleSkills&&(e.roleSkills=t.roleSkills),t.lastInteraction&&(e.lastInteraction=t.lastInteraction),t.relationships&&Array.isArray(t.relationships)){e.relationships||(e.relationships=[]);for(const n of t.relationships)e.relationships.includes(n)||e.relationships.push(n)}return t.confidence&&(e.confidence=Math.round((e.confidence+t.confidence)/2)),e.lastUpdated=Date.now(),await(0,s.e7)(e.preferredName,e),l.log(),e})}async function C(e,t){return(0,a.Xc)("mergeCharacters",async()=>{const n=(0,s.bg)(),o=n[e],r=n[t];if(!o||!r)throw new a.S_("One or both characters not found");const i={operation:"merge",timestamp:Date.now(),sourceName:e,targetName:t,sourceData:JSON.parse(JSON.stringify(o)),targetDataBefore:JSON.parse(JSON.stringify(r))};g.push(i),g.length>3&&g.shift();for(const e of o.aliases)r.aliases.includes(e)||r.aliases.push(e);o.preferredName===r.preferredName||r.aliases.includes(o.preferredName)||r.aliases.push(o.preferredName),o.physicalAge&&!r.physicalAge&&(r.physicalAge=o.physicalAge),o.mentalAge&&!r.mentalAge&&(r.mentalAge=o.mentalAge),o.physical&&!r.physical&&(r.physical=o.physical),o.personality&&!r.personality&&(r.personality=o.personality),o.sexuality&&!r.sexuality&&(r.sexuality=o.sexuality),o.raceEthnicity&&!r.raceEthnicity&&(r.raceEthnicity=o.raceEthnicity),o.roleSkills&&!r.roleSkills&&(r.roleSkills=o.roleSkills),o.lastInteraction&&!r.lastInteraction&&(r.lastInteraction=o.lastInteraction);for(const e of o.relationships)r.relationships.includes(e)||r.relationships.push(e);return r.lastUpdated=Date.now(),await(0,s.e7)(r.preferredName,r),await(0,s.sr)(e),l.log(),c.success(`Merged ${e} into ${t}`),i})}async function b(){return(0,a.Xc)("undoLastMerge",async()=>{if(0===g.length)return c.warning("No merge operations to undo"),!1;const e=g.pop();return"merge"!==e.operation?(c.error("Last operation was not a merge"),!1):(await(0,s.e7)(e.sourceName,e.sourceData),await(0,s.e7)(e.targetName,e.targetDataBefore),l.log(),c.success("Merge undone successfully"),!0)})}async function x(e){return(0,a.Xc)("toggleIgnoreCharacter",async()=>{const t=(0,s.qN)(e);if(!t)throw new a.S_("Character not found");t.ignored=!t.ignored,await(0,s.e7)(e,t);const n=t.ignored?"ignored":"unignored";return c.info(`${e} ${n}`),l.log(),t.ignored})}async function k(e){return(0,a.Xc)("createNewCharacter",async()=>{if(!e||!e.trim())throw new a.S_("Character name is required");const t=e.trim();if((0,s.qN)(t))throw new a.S_(`Character "${t}" already exists`);const n={name:t,aliases:[],physicalAge:"",mentalAge:"",physical:"",personality:"",sexuality:"",raceEthnicity:"",roleSkills:"",lastInteraction:"",relationships:[],confidence:100},o=await f(n,!1);return l.log(),c.success(`Created character: ${t}`),o})}async function T(){return(0,a.Xc)("purgeAllCharacters",async()=>{const e=(0,s.bg)(),t=Object.keys(e).length;return 0===t?(c.info("No characters to purge"),0):((0,s.yb)("characters",{}),g=[],l.log(),c.success(`Purged ${t} characters`),t)})}function w(e){return(0,a.Xc)("hasUnresolvedRelationships",()=>{if(!e.relationships||0===e.relationships.length)return!1;const t=(0,s.bg)(),n=Object.values(t).reduce((e,t)=>(e.add(t.preferredName.toLowerCase()),t.aliases.forEach(t=>e.add(t.toLowerCase())),e),new Set);return e.relationships.some(e=>e.toLowerCase().split(/\s+/).some(e=>e.length>2&&!n.has(e)))})}},659(e){var t={};e.exports=function(e,n){var o=function(e){if(void 0===t[e]){var n=document.querySelector(e);if(window.HTMLIFrameElement&&n instanceof window.HTMLIFrameElement)try{n=n.contentDocument.head}catch(e){n=null}t[e]=n}return t[e]}(e);if(!o)throw new Error("Couldn't find a style target. This probably means that the value for the 'insert' parameter is invalid.");o.appendChild(n)}},695(e,t,n){n.d(t,{A:()=>s,h:()=>r});const o=n(806).Ay.createModuleLogger("Notifications");class r{constructor(){this.defaultOptions={timeOut:5e3,extendedTimeOut:2e3,closeButton:!0,progressBar:!0,preventDuplicates:!0},this.prefix="Name Tracker: "}success(e,t="Success",n={}){const r={...this.defaultOptions,...n};toastr.success(this.prefix+e,t,r),o.debug("Success notification:",e)}info(e,t="Info",n={}){const r={...this.defaultOptions,...n};toastr.info(this.prefix+e,t,r),o.debug("Info notification:",e)}warning(e,t="Warning",n={}){const r={...this.defaultOptions,timeOut:8e3,...n};toastr.warning(this.prefix+e,t,r),o.debug("Warning notification:",e)}error(e,t="Error",n={}){const r={...this.defaultOptions,timeOut:1e4,extendedTimeOut:5e3,...n};toastr.error(this.prefix+e,t,r),o.error("Error notification:",e)}persistent(e,t="Notice",n="info"){const r={...this.defaultOptions,timeOut:0,extendedTimeOut:0};switch(n){case"success":toastr.success(this.prefix+e,t,r);break;case"warning":toastr.warning(this.prefix+e,t,r);break;case"error":toastr.error(this.prefix+e,t,r);break;default:toastr.info(this.prefix+e,t,r)}o.debug("Persistent notification:",e)}progress(e,t=0,n=null){const r=n||`progress_${Date.now()}`,a=`\n            <div style="margin-bottom: 8px;">${this.prefix}${e}</div>\n            <div style="background: #333; border-radius: 3px; overflow: hidden;">\n                <div style="background: #007acc; height: 6px; width: ${t}%; transition: width 0.3s ease;"></div>\n            </div>\n            <div style="text-align: center; font-size: 11px; margin-top: 4px;">${t}%</div>\n        `,s={timeOut:0,extendedTimeOut:0,closeButton:!1,progressBar:!1,preventDuplicates:!1,toastId:r};return toastr.remove(),toastr.info(a,"",s),o.debug("Progress notification:",e,`${t}%`),r}clear(){toastr.clear(),o.debug("Cleared all notifications")}confirm(e,t,n=null,r="Confirm"){const a=`confirm_${Date.now()}`,s=`\n            <div style="margin-bottom: 12px;">${e}</div>\n            <div style="text-align: right;">\n                <button class="btn btn-sm btn-secondary me-2" onclick="nameTrackerNotifications.handleConfirmCancel('${a}')">Cancel</button>\n                <button class="btn btn-sm btn-primary" onclick="nameTrackerNotifications.handleConfirmOk('${a}')">Confirm</button>\n            </div>\n        `;window.nameTrackerNotifications=window.nameTrackerNotifications||{},window.nameTrackerNotifications.confirmCallbacks=window.nameTrackerNotifications.confirmCallbacks||{},window.nameTrackerNotifications.confirmCallbacks[a]={onConfirm:t,onCancel:n},window.nameTrackerNotifications.handleConfirmOk=e=>{const t=window.nameTrackerNotifications.confirmCallbacks[e];t&&t.onConfirm&&t.onConfirm(),delete window.nameTrackerNotifications.confirmCallbacks[e],toastr.clear()},window.nameTrackerNotifications.handleConfirmCancel=e=>{const t=window.nameTrackerNotifications.confirmCallbacks[e];t&&t.onCancel&&t.onCancel(),delete window.nameTrackerNotifications.confirmCallbacks[e],toastr.clear()};const i={timeOut:0,extendedTimeOut:0,closeButton:!1,progressBar:!1,preventDuplicates:!1,toastId:a};return toastr.info(s,this.prefix+r,i),o.debug("Confirmation notification:",e),a}getStatus(){return{defaultOptions:this.defaultOptions,prefix:this.prefix,activeConfirms:Object.keys(window.nameTrackerNotifications?.confirmCallbacks||{}).length}}}const a=new r;o.debug("Notifications module loaded");const s=a},744(e,t,n){n.d(t,{Bw:()=>A,Kr:()=>k,au:()=>b,fR:()=>y,getMaxPromptLength:()=>C});var o=n(806),r=n(462),a=n(548),s=n(102),i=n(854),l=n(695);const c=(0,o.Xv)("llm"),d=new l.h("LLM Integration");function g(e,t=null){console.log(`[NT-LLM] ${e}`,t||"")}const m=.85,h=new Map;let u=[];const p='Extract character information from messages and return ONLY a JSON object.\n\nCRITICAL: Your entire response must be a single JSON object starting with { and ending with }\n\nDO NOT include:\n- Any text before the JSON\n- Any text after the JSON  \n- Code block markers\n- Explanations or commentary\n\nREQUIRED JSON structure (copy this exact format):\n{\n  "characters": [\n    {\n      "name": "Character name",\n      "aliases": ["Other names"],\n      "physicalAge": "Age if mentioned",\n      "mentalAge": "Mental age if different",\n      "physical": "Physical description",\n      "personality": "Personality traits",\n      "sexuality": "Sexual orientation if mentioned",\n      "raceEthnicity": "Race/ethnicity if mentioned",\n      "roleSkills": "Job/role/skills",\n      "lastInteraction": "Recent interaction with user",\n      "relationships": ["Relationships with other characters"],\n      "confidence": 75\n    }\n  ]\n}\n\nRules:\n- Only extract clearly named speaking characters\n- Skip generic references ("the waiter", "a woman")\n- Use most recent information for conflicts\n- Empty array if no clear characters: {"characters":[]}\n- Confidence: 90+ (explicit), 70-89 (clear), 50-69 (mentioned), <50 (vague)\n\nYour response must start with { immediately.';async function A(){return(0,r.Xc)("loadOllamaModels",async()=>{const e=(0,a.TJ)("ollamaEndpoint","http://localhost:11434");g(`[OllamaModels] Loading models from ${e}`);try{const t=await fetch(`${e}/api/tags`);if(!t.ok)throw new Error(`Failed to connect to Ollama: ${t.statusText}`);const n=await t.json();return u=n.models||[],g(`[OllamaModels] Found ${u.length} models: ${u.map(e=>e.name).join(", ")}`),u}catch(e){throw console.error("Error loading Ollama models:",e),d.error("Failed to load Ollama models. Check endpoint and try again."),e}})}async function f(e){return(0,r.Xc)("getOllamaModelContext",async()=>{const t=(0,a.TJ)("ollamaEndpoint","http://localhost:11434");if(!e)return c.log(),4096;try{const n=await fetch(`${t}/api/show`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:e})});if(!n.ok)throw new Error(`Failed to fetch model info: ${n.statusText}`);const o=await n.json();if(o.parameters&&Array.isArray(o.parameters))for(const e of o.parameters){const t=e.match(/num_ctx\\s+(\\d+)/);if(t){const e=parseInt(t[1]);return c.log(),e}}if(o.model_info&&o.model_info.num_ctx){const e=parseInt(o.model_info.num_ctx);return c.log(),e}return c.log(),4096}catch(e){return console.error("Error fetching Ollama model context:",e),c.log(),4096}})}function y(){return(0,r.Xc)("buildCharacterRoster",()=>{const e=(0,a.bg)(),t=Object.keys(e);if(0===t.length)return"";return`\\n\\n[KNOWN CHARACTERS]\\nThe following characters have already been identified. If you encounter them again, use the same name and add any new details:\\n${t.map(t=>{const n=e[t];return`  - ${t}${n.aliases&&n.aliases.length>0?` (also known as: ${n.aliases.join(", ")})`:""}${n.relationships&&n.relationships.length>0?`\\n    Relationships: ${n.relationships.join("; ")}`:""}`}).join("\\n")}\\n`})}async function C(){return(0,r.Xc)("getMaxPromptLength",async()=>{const e=[],t=t=>{e.push(t),console.log(`[NT-MaxContext] ${t}`)};try{const n=(0,a.getLLMConfig)();let o=4096,r=2048,i="fallback";if(t(`Starting context detection for LLM source: ${n.source}`),"ollama"===n.source&&n.ollamaModel)t(`Using Ollama model: ${n.ollamaModel}`),o=await f(n.ollamaModel),i="ollama";else{t("Using SillyTavern context");let e=null;try{e=s.stContext.getContext(),t("Successfully retrieved SillyTavern context")}catch(n){t(`ERROR: Failed to get context: ${n.message}`),e=null}if(e)try{const n=Object.keys(e);t(`Available context properties: ${n.filter(e=>e.toLowerCase().includes("max")||e.toLowerCase().includes("context")||e.toLowerCase().includes("token")||e.toLowerCase().includes("prompt")).join(", ")}`)}catch(e){t(`Error analyzing context keys: ${e.message}`)}let n=null;if(t("Method 1: Checking context.maxContext..."),e&&"number"==typeof e.maxContext&&e.maxContext>0)n=e.maxContext,t(`✓ Method 1 SUCCESS: context.maxContext = ${n}`),i="context.maxContext";else{t(`✗ Method 1 FAILED: ${e?"number"!=typeof e.maxContext?"type is "+typeof e.maxContext:e.maxContext<=0?`value is ${e.maxContext}`:"unknown":"context is null"}`)}if(n||(t("Method 2: Checking context.extensionSettings.common.maxContext..."),e?.extensionSettings?.common?"number"==typeof e.extensionSettings.common.maxContext&&e.extensionSettings.common.maxContext>0?(n=e.extensionSettings.common.maxContext,t(`✓ Method 2 SUCCESS: extensionSettings.common.maxContext = ${n}`),i="extensionSettings.common.maxContext"):t("✗ Method 2 FAILED: extensionSettings.common exists but maxContext is invalid"):t("✗ Method 2 FAILED: extensionSettings.common path does not exist")),n||(t("Method 3: Checking context.chat.maxContextSize..."),e?.chat&&"object"==typeof e.chat&&!Array.isArray(e.chat)?"number"==typeof e.chat.maxContextSize&&e.chat.maxContextSize>0?(n=e.chat.maxContextSize,t(`✓ Method 3 SUCCESS: chat.maxContextSize = ${n}`),i="chat.maxContextSize"):t("✗ Method 3 FAILED: chat exists but maxContextSize is invalid"):t("✗ Method 3 FAILED: chat path does not exist or is an array")),n||(t("Method 4: Checking context.token_limit..."),e&&"number"==typeof e.token_limit&&e.token_limit>0?(n=e.token_limit,t(`✓ Method 4 SUCCESS: token_limit = ${n}`),i="token_limit"):t("✗ Method 4 FAILED: token_limit is not valid")),n||(t("Method 5: Checking context.amount_gen (fallback)..."),e&&"number"==typeof e.amount_gen&&e.amount_gen>0?(n=4*e.amount_gen,t(`✓ Method 5 FALLBACK: amount_gen = ${e.amount_gen}, estimated context = ${n}`),i="amount_gen_estimate"):t("✗ Method 5 FAILED: amount_gen is not valid")),n||(t("Method 6: Checking context.settings.max_context..."),e&&"object"==typeof e.settings?"number"==typeof e.settings.max_context&&e.settings.max_context>0?(n=e.settings.max_context,t(`✓ Method 6 SUCCESS: settings.max_context = ${n}`),i="settings.max_context"):t("✗ Method 6 FAILED: settings exists but max_context is invalid"):t("✗ Method 6 FAILED: settings path does not exist")),n&&("number"!=typeof n||n<100)&&(t(`WARNING: Detected maxContext is not valid: ${n}, type: ${typeof n}`),n=null),e&&n)o=Math.floor(n),t(`Detected maxContext: ${o} (type: ${typeof o})`),r=Math.min(4096,Math.floor(.15*o)),t(`Extension will request max ${r} tokens for analysis responses (15% of context, capped at 4096)`);else{if(t("WARNING: Could not detect maxContext from any path, using fallback (4096)"),t(`Context exists: ${!!e}, detectedMaxContext: ${n}`),e)try{const n=Object.keys(e).sort();t(`Full context object keys (first 20): ${n.slice(0,20).join(", ")}${n.length>20?`... (${n.length-20} more)`:""}`)}catch(e){t(`Could not enumerate context keys: ${e.message}`)}o=4096,r=1024,i="fallback"}}const l=500+r+500,c=Math.max(1e3,o-l);t(`Token allocation: maxContext=${o}, reserved=${l}, available=${c}`),t(`Final detection method: ${i}`);const d=Math.max(1e3,Math.min(c,5e4));return t(`Returning maxPromptLength: ${d}`),{maxPrompt:d,detectionMethod:i,maxContext:o,debugLog:e.join("\n")}}catch(n){return t(`ERROR in getMaxPromptLength: ${n.message}`),console.error("[NT-MaxContext] Stack:",n.stack),{maxPrompt:3276,detectionMethod:"error",maxContext:4096,debugLog:e.join("\n")+"\nFATAL ERROR: "+n.message}}})}async function b(e){return(0,r.Xc)("calculateMessageTokens",async()=>{const t=s.stContext.getContext();let n=0;for(const o of e)if(o&&"object"==typeof o&&o.extra&&"number"==typeof o.extra.token_count)n+=o.extra.token_count;else{const e=o?.mes||o?.message||String(o);if(e&&t.getTokenCountAsync)try{n+=await t.getTokenCountAsync(e)}catch(t){c.log(),n+=Math.ceil(e.length/4)}else n+=Math.ceil(e.length/4)}return n})}function x(e){return(0,r.Xc)("parseJSONResponse",()=>{if(console.log("[NT-Parse] ========== PARSE START =========="),console.log("[NT-Parse] Input type:",typeof e),console.log("[NT-Parse] Input is null?:",null===e),console.log("[NT-Parse] Input is undefined?:",void 0===e),"object"==typeof e&&null!==e&&(console.log("[NT-Parse] Input is an OBJECT (not string). Keys:",Object.keys(e)),console.log("[NT-Parse] Full object:",JSON.stringify(e).substring(0,500)),e.characters&&Array.isArray(e.characters)))return console.log("[NT-Parse] Object already has characters array, returning as-is"),e;if(console.log("[NT-Parse] Input length:",e?e.length:"null"),e&&"string"==typeof e&&(console.log("[NT-Parse] First 300 chars:",e.substring(0,300)),console.log("[NT-Parse] Last 100 chars:",e.substring(Math.max(0,e.length-100)))),!e||"string"!=typeof e)throw console.error("[NT-Parse] ❌ INVALID: Response is not a string:",typeof e),console.error("[NT-Parse] ❌ Response value:",e),new r.S_("LLM returned empty or invalid response");if(e=e.trim(),console.log("[NT-Parse] After trim, length:",e.length),0===e.length)throw console.error("[NT-Parse] ❌ Text is empty after trim"),new r.S_("LLM returned empty response");const t=e.match(/```(?:json)?\s*([\s\S]*?)```/);t&&(console.log("[NT-Parse] Found markdown code block, extracting JSON"),e=t[1].trim(),console.log("[NT-Parse] After markdown extraction, length:",e.length));const n=e.indexOf("{"),o=e.lastIndexOf("}");if(console.log("[NT-Parse] Brace search: first={"+n+", last="+o+"}"),-1!==n&&-1!==o&&o>n){const t=e.substring(0,n),r=e.substring(n,o+1),a=e.substring(o+1);console.log("[NT-Parse] Text before JSON:",t.substring(0,100)),console.log("[NT-Parse] Extracted JSON length:",r.length),console.log("[NT-Parse] Text after JSON:",a.substring(0,100)),e=r}e=(e=e.replace(/^(?:Here's the analysis:|Here is the JSON:|Result:|Output:)\s*/i,"")).trim(),console.log("[NT-Parse] Before JSON.parse, length:",e.length),console.log("[NT-Parse] First 200 chars:",e.substring(0,200)),console.log("[NT-Parse] Last 100 chars:",e.substring(Math.max(0,e.length-100)));try{console.log("[NT-Parse] Attempting JSON.parse...");const t=JSON.parse(e);return console.log("[NT-Parse] ✅ Successfully parsed JSON"),console.log("[NT-Parse] Parsed type:",typeof t),console.log("[NT-Parse] Parsed keys:",Object.keys(t)),console.log("[NT-Parse] Full parsed object:",JSON.stringify(t).substring(0,500)),t.characters?Array.isArray(t.characters)||(console.warn("[NT-Parse] ⚠️  parsed.characters exists but is NOT an array. Type:",typeof t.characters),console.warn("[NT-Parse] Value:",t.characters)):(console.warn("[NT-Parse] ⚠️  parsed.characters is undefined or null"),console.warn("[NT-Parse] Available keys in object:",Object.keys(t))),t.characters&&Array.isArray(t.characters)?(console.log("[NT-Parse] ✅ Valid response with",t.characters.length,"characters"),console.log("[NT-Parse] ========== PARSE END (SUCCESS) =========="),t):(console.warn("[NT-Parse] ❌ Response missing characters array, returning empty"),console.warn("[NT-Parse] Full parsed object:",t),{characters:[]})}catch(t){if(console.error("[NT-Parse] ❌ JSON.parse failed:",t.message),console.error("[NT-Parse] ❌ Error at position:",t.name),console.log("[NT-Parse] Text being parsed (first 500 chars):",e.substring(0,500)),console.log("[NT-Parse] Text being parsed (last 200 chars):",e.substring(Math.max(0,e.length-200))),e.includes('"characters"')&&!e.trim().endsWith("}")){console.log("[NT-Parse] Detected truncated response, attempting recovery...");let t=e;const n=(e.match(/\{/g)||[]).length,o=(e.match(/\}/g)||[]).length,r=(e.match(/\[/g)||[]).length,a=(e.match(/\]/g)||[]).length;console.log("[NT-Parse] Recovery attempt - braces: open="+n+" close="+o+", brackets: open="+r+" close="+a),t.match(/"[^"]*$/)&&(console.log("[NT-Parse] Adding closing quote"),t+='"');for(let e=0;e<r-a;e++)t+="]";for(let e=0;e<n-o;e++)t+="}";console.log("[NT-Parse] Salvaged text length:",t.length),console.log("[NT-Parse] Attempting to parse salvaged content...");try{const e=JSON.parse(t);return console.log("[NT-Parse] ✅ Successfully recovered JSON with",e.characters?.length||0,"characters"),console.log("[NT-Parse] ========== PARSE END (RECOVERED) =========="),e}catch(e){console.error("[NT-Parse] ❌ Recovery failed:",e.message),console.error("[NT-Parse] Salvaged text (first 500):",t.substring(0,500))}}throw console.log("[NT-Parse] ========== PARSE END (FAILED) =========="),new r.S_("Failed to parse LLM response as JSON. The response may be too long or truncated. Try analyzing fewer messages at once.")}})}async function k(e,t="",n=0,o=0){return(0,r.Xc)("callLLMAnalysis",async()=>{const l=(0,a.getLLMConfig)(),d=(await C()).maxPrompt;c.log();const g=e.map(e=>"string"==typeof e?e:e.mes?e.mes:e.message?e.message:JSON.stringify(e)),u=(0,i.tx)(g.join("\\n")+l.source+l.ollamaModel);if(h.has(u))return c.log(),h.get(u);const A=g.map((e,t)=>`Message ${t+1}:\\n${e}`).join("\\n\\n");let y=function(){const e=(0,a.TJ)(),t=e?.systemPrompt||p;return"string"==typeof t?t:p}();console.log("[NT-Prompt] getSystemPrompt() returned type:",typeof y),y&&"object"==typeof y&&"function"==typeof y.then&&(console.warn("[NT-Prompt] getSystemPrompt returned Promise, awaiting..."),y=await y,console.log("[NT-Prompt] After await, type:",typeof y)),"string"!=typeof y&&(console.warn("[NT-Prompt] systemPrompt is not a string, using default. Type:",typeof y,"Value:",y),y=p);let T=t||"";console.log("[NT-Prompt] knownCharacters type:",typeof T),T&&"object"==typeof T&&"function"==typeof T.then&&(console.warn("[NT-Prompt] knownCharacters is Promise, awaiting..."),T=await T,console.log("[NT-Prompt] After await, type:",typeof T)),T=String(T||""),console.log("[NT-Prompt] Final systemPrompt length:",y.length),console.log("[NT-Prompt] Final rosterStr length:",T.length),console.log("[NT-Prompt] systemPrompt preview:",y.substring(0,100));const w=y+(T?"\n\n"+T:""),v="[DATA TO ANALYZE]\n"+A;let S;const I=w+"\n\n"+v;try{S=await b([{mes:I}]),c.log()}catch(e){c.log(),S=Math.ceil(I.length/4)}if(S>d&&e.length>1){"  ".repeat(n);c.log();const o=Math.floor(e.length/2),r=e.slice(0,o),a=e.slice(o);c.log();const[s,i]=await Promise.all([k(r,t,n+1),k(a,t,n+1)]),l={characters:[...s.characters||[],...i.characters||[]]};return c.log(),l}let B;c.log(`Calling LLM with prompt (${S} tokens)...`),console.log("[NT-Prompt] Prompt composition:"),console.log("SYSTEM ("+w.length+" chars):"),console.log("=".repeat(80)),console.log(w),console.log("=".repeat(80)),console.log("USER ("+v.length+" chars):"),console.log("=".repeat(80)),console.log(v),console.log("=".repeat(80)),console.log("PREFILL:",""),console.log("=".repeat(80));try{if("ollama"===l.source){const e=w+"\n\n"+v+"\n";B=await async function(e){return(0,r.Xc)("callOllama",async()=>{const t=(0,a.getLLMConfig)();if(!t.ollamaModel)throw new r.S_("No Ollama model selected");c.log();const n=await f(t.ollamaModel),o=Math.floor(.25*n),s=Math.max(4e3,o);c.log();const i=await fetch(`${t.ollamaEndpoint}/api/generate`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:t.ollamaModel,prompt:e,stream:!1,format:"json",options:{temperature:.2,top_p:m,top_k:25,repeat_penalty:1.1,num_predict:s}})});if(!i.ok)throw new r.S_(`Ollama API error: ${i.statusText}`);const l=await i.json();return c.log(),c.log(),x(l.response)})}(e)}else B=await async function(e,t,n=""){return(0,r.Xc)("callSillyTavern",async()=>{c.log();const o=s.stContext.getContext();if(!o.onlineStatus)throw new r.S_("No API connection available. Please connect to an API first.");console.log("[NT-ST-Call] Starting SillyTavern LLM call"),console.log("[NT-ST-Call] System prompt length:",e.length,"characters"),console.log("[NT-ST-Call] User prompt length:",t.length,"characters"),n&&console.log("[NT-ST-Call] Prefill:",n),console.log("[NT-ST-Call] ========== PROMPT STRUCTURE START =========="),console.log("SYSTEM:",e),console.log("USER:",t),n&&console.log("PREFILL:",n),console.log("[NT-ST-Call] ========== PROMPT STRUCTURE END ==========");const a=e+"\n\n"+t+(n?"\n"+n:"");let i;try{i=await o.getTokenCountAsync(a),console.log("[NT-ST-Call] Token count:",i),c.log()}catch(e){console.log("[NT-ST-Call] Token count failed, estimating:",e.message),c.log(),i=Math.ceil(a.length/4),console.log("[NT-ST-Call] Estimated tokens:",i),c.log()}const l=o.maxContext||4096,d=Math.floor(.25*l),g=Math.max(4e3,d);console.log("[NT-ST-Call] Max context:",l,"Calculated maxTokens:",g),c.log();let h=null;for(let a=1;a<=3;a++)try{console.log(`[NT-ST-Call] Attempt ${a}/3`),console.log("[NT-ST-Call] Calling generateRaw with params:",{temperature:.2,top_p:m,top_k:25,rep_pen:1.1,responseLength:g});const s=await o.generateRaw({systemPrompt:e,prompt:t,prefill:n,temperature:.2,top_p:m,top_k:25,rep_pen:1.1,responseLength:g});console.log("[NT-ST-Call] ========== RAW API RESPONSE START =========="),console.log("[NT-ST-Call] Response type:",typeof s),console.log(JSON.stringify(s,null,2)),console.log("[NT-ST-Call] ========== RAW API RESPONSE END =========="),console.log("[NT-ST-Call] Raw result type:",typeof s),console.log("[NT-ST-Call] Raw result object:",JSON.stringify(s).substring(0,500));let i=s;if("object"==typeof s&&s.choices&&Array.isArray(s.choices)&&(s.choices[0]?.message?.content?(console.log("[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content"),i=s.choices[0].message.content):s.choices[0]?.text&&(console.log("[NT-ST-Call] Detected text completion format, extracting from choices[0].text"),i=s.choices[0].text)),console.log("[NT-ST-Call] Extracted text type:",typeof i),console.log("[NT-ST-Call] Extracted text length:",i?i.length:"null"),i&&"string"==typeof i&&console.log("[NT-ST-Call] Extracted text preview:",i.substring(0,300)),console.log("[NT-ST-Call] ========== EXTRACTED TEXT START =========="),console.log(i),console.log("[NT-ST-Call] ========== EXTRACTED TEXT END =========="),c.log(),!i||"string"!=typeof i)throw new r.S_("Empty or invalid response from SillyTavern LLM");if(n){console.log("[NT-ST-Call] Prepending prefill to complete JSON:",n),i=n+i;const e=(i.match(/{/g)||[]).length,t=(i.match(/}/g)||[]).length;if(e>t){const n=e-t;console.log(`[NT-ST-Call] Adding ${n} closing brace(s) to complete JSON`),i+="}".repeat(n)}console.log("[NT-ST-Call] Combined text preview:",i.substring(0,300))}const l=await x(i);console.log("[NT-ST-Call] parseJSONResponse returned type:",typeof l),console.log("[NT-ST-Call] parseJSONResponse returned value:",l),console.log("[NT-ST-Call] parsed.characters exists?:",l&&"characters"in l),console.log("[NT-ST-Call] parsed.characters type:",typeof l?.characters),console.log("[NT-ST-Call] parsed.characters is Array?:",Array.isArray(l?.characters));const d=Array.isArray(l?.characters)?l.characters.length:0;return console.log("[NT-ST-Call] ✅ Successfully parsed on attempt",a,"characters:",d),console.log("[NT-ST-Call] Parsed result:",JSON.stringify(l).substring(0,300)),l}catch(e){h=e,console.error(`[NT-ST-Call] ❌ Attempt ${a}/3 failed:`,e.message),console.error("[NT-ST-Call] Error details:",e),a<3&&(console.log("[NT-ST-Call] Waiting 2000ms before retry..."),await new Promise(e=>setTimeout(e,2e3)))}if(!confirm(`Failed to parse LLM response after 3 attempts.\n\nLast error: ${h.message}\n\nCheck console for detailed logs. Continue processing remaining batches?`))throw new r.S_("User aborted after parse failures");return{characters:[]}})}(w,v,"")}catch(r){if(o<3&&(r.message.includes("JSON")||r.message.includes("empty")||r.message.includes("truncated"))){c.log();const r=1e3*Math.pow(2,o);return await new Promise(e=>setTimeout(e,r)),await k(e,t,n,o+1)}throw r}if(B&&Array.isArray(B.characters)&&B.characters.length>0){if(h.size>50){const e=h.keys().next().value;h.delete(e)}h.set(u,B)}else console.warn("[NT-Cache] Skipping cache because result is empty or has no characters");return c.log(),B})}},806(e,t,n){n.d(t,{Ay:()=>a,Xv:()=>r});const o=new class{constructor(){this.modules=new Map,this.performanceMarks=new Map,this.operationTraces=new Map}createModuleLogger(e){if(this.modules.has(e))return this.modules.get(e);const t={log:(...t)=>this.log(e,"log",...t),warn:(...t)=>this.log(e,"warn",...t),error:(...t)=>this.log(e,"error",...t),debug:(...t)=>this.log(e,"debug",...t),trace:(t,n)=>this.addTrace(e,t,n),startTimer:t=>this.startTimer(e,t),endTimer:t=>this.endTimer(e,t)};return this.modules.set(e,t),t}log(e,t,...n){if(!this.isDebugEnabled())return;const o=`[STnametracker:${e}] ${(new Date).toLocaleTimeString()}`;switch(t){case"error":console.error(o,...n);break;case"warn":console.warn(o,...n);break;case"debug":console.debug(o,...n);break;default:console.log(o,...n)}}addTrace(e,t,n){this.isDebugEnabled()&&(this.operationTraces.has(t)||this.operationTraces.set(t,[]),this.operationTraces.get(t).push({module:e,timestamp:Date.now(),message:n}))}getTrace(e){return this.operationTraces.get(e)||[]}startTimer(e,t){const n=`${e}:${t}`;this.performanceMarks.set(n,performance.now())}endTimer(e,t){const n=`${e}:${t}`,o=this.performanceMarks.get(n);if(void 0===o)return this.log(e,"warn",`Timer '${t}' was not started`),0;const r=performance.now()-o;return this.performanceMarks.delete(n),this.log(e,"debug",`Timer '${t}': ${r.toFixed(2)}ms`),r}isDebugEnabled(){return!0}clear(){this.operationTraces.clear(),this.performanceMarks.clear()}getPerformanceSummary(){return{activeTimers:this.performanceMarks.size,activeTraces:this.operationTraces.size,modules:Array.from(this.modules.keys())}}};function r(e){return o.createModuleLogger(e)}const a=o},825(e){e.exports=function(e){if("undefined"==typeof document)return{update:function(){},remove:function(){}};var t=e.insertStyleElement(e);return{update:function(n){!function(e,t,n){var o="";n.supports&&(o+="@supports (".concat(n.supports,") {")),n.media&&(o+="@media ".concat(n.media," {"));var r=void 0!==n.layer;r&&(o+="@layer".concat(n.layer.length>0?" ".concat(n.layer):""," {")),o+=n.css,r&&(o+="}"),n.media&&(o+="}"),n.supports&&(o+="}");var a=n.sourceMap;a&&"undefined"!=typeof btoa&&(o+="\n/*# sourceMappingURL=data:application/json;base64,".concat(btoa(unescape(encodeURIComponent(JSON.stringify(a))))," */")),t.styleTagTransform(o,e,t.options)}(t,e,n)},remove:function(){!function(e){if(null===e.parentNode)return!1;e.parentNode.removeChild(e)}(t)}}}},854(e,t,n){n.d(t,{ZD:()=>r,cv:()=>a,tx:()=>o});function o(e){let t=0;for(let n=0;n<e.length;n++){t=(t<<5)-t+e.charCodeAt(n),t&=t}return t.toString(36)}function r(e){if("string"!=typeof e)return"";const t=document.createElement("div");return t.textContent=e,t.innerHTML}function a(){return Date.now().toString(36)+Math.random().toString(36).substr(2,9)}n(806).Ay.createModuleLogger("Utils").debug("Utils module loaded")}},t={};function n(o){var r=t[o];if(void 0!==r)return r.exports;var a=t[o]={id:o,exports:{}};return e[o](a,a.exports,n),a.exports}n.n=e=>{var t=e&&e.__esModule?()=>e.default:()=>e;return n.d(t,{a:t}),t},n.d=(e,t)=>{for(var o in t)n.o(t,o)&&!n.o(e,o)&&Object.defineProperty(e,o,{enumerable:!0,get:t[o]})},n.o=(e,t)=>Object.prototype.hasOwnProperty.call(e,t),n.nc=void 0;var o=n(72),r=n.n(o),a=n(825),s=n.n(a),i=n(659),l=n.n(i),c=n(56),d=n.n(c),g=n(540),m=n.n(g),h=n(113),u=n.n(h),p=n(83),A={};A.styleTagTransform=u(),A.setAttributes=d(),A.insert=l().bind(null,"head"),A.domAPI=s(),A.insertStyleElement=m();r()(p.A,A);p.A&&p.A.locals&&p.A.locals;var f=n(806),y=n(462),C=n(102),b=n(548),x=n(695),k=n(854),T=n(551),w=n(744),v=n(134);const S=(0,f.Xv)("ui"),I=new x.h("UI Management");function B(){return(0,y.Xc)("updateCharacterList",()=>{const e=$("#name_tracker_character_list");if(0===e.length)return void S.log();const t=(0,b.bg)();if(0===Object.keys(t).length)return void e.html('\n                <div class="name_tracker_no_characters">\n                    <p style="text-align: center; color: var(--SmartThemeQuoteColor);">\n                        No characters tracked yet. Start a conversation and character information will be extracted automatically!\n                    </p>\n                </div>\n            ');const n=Object.values(t).sort((e,t)=>e.isMainChar&&!t.isMainChar?-1:!e.isMainChar&&t.isMainChar?1:e.preferredName.localeCompare(t.preferredName));let o='<div class="name_tracker_character_list">';for(const e of n){const t=e.isMainChar?'<i class="fa-solid fa-user"></i>':"",n=e.ignored?'<span class="char-ignored-badge">IGNORED</span>':"",r=(0,T.pp)(e)?'<span class="char-review-badge">NEEDS REVIEW</span>':"",a=e.aliases&&e.aliases.length>0?`<div class="char-aliases">Aliases: ${(0,k.ZD)(e.aliases.join(", "))}</div>`:"",s=e.relationships&&e.relationships.length>0?`<div class="char-relationships">Relationships: ${(0,k.ZD)(e.relationships.join("; "))}</div>`:"",i=e.lastUpdated?new Date(e.lastUpdated).toLocaleString():"Never";o+=`\n                <div class="name_tracker_character_item" data-character="${(0,k.ZD)(e.preferredName)}">\n                    <div class="char-header">\n                        <span class="char-name">\n                            ${t}\n                            ${(0,k.ZD)(e.preferredName)}\n                            ${n}\n                            ${r}\n                        </span>\n                        <div class="char-actions">\n                            <button class="char-action-btn char-action-edit" data-name="${(0,k.ZD)(e.preferredName)}" title="Edit lorebook entry">\n                                <i class="fa-solid fa-edit"></i>\n                            </button>\n                            <button class="char-action-btn char-action-view" data-name="${(0,k.ZD)(e.preferredName)}" title="View in lorebook">\n                                <i class="fa-solid fa-book"></i>\n                            </button>\n                            <button class="char-action-btn char-action-merge" data-name="${(0,k.ZD)(e.preferredName)}" title="Merge with another character">\n                                <i class="fa-solid fa-code-merge"></i>\n                            </button>\n                            <button class="char-action-btn char-action-ignore" data-name="${(0,k.ZD)(e.preferredName)}" title="${e.ignored?"Unignore":"Ignore"} character">\n                                <i class="fa-solid ${e.ignored?"fa-eye":"fa-eye-slash"}"></i>\n                            </button>\n                        </div>\n                    </div>\n                    ${a}\n                    ${s}\n                    <div class="char-metadata">\n                        <span>Confidence: ${e.confidence}%</span>\n                        <span>Updated: ${i}</span>\n                    </div>\n                </div>\n            `}o+="</div>",e.html(o)})}function E(){return(0,y.Xc)("updateStatusDisplay",()=>{const e=$("#name_tracker_status_display");if(0===e.length)return;const t=(0,b.bg)(),n=Object.keys(t).length,o=(0,b.PL)("messageCounter",0),r=(0,b.PL)("lastScannedMessageId",-1),a=(0,b.PL)("messageFrequency",10),s=C.stContext.getContext(),i=s?.chat?.length||0,l=Math.max(0,i-r),c=o>0?` (${o} analyzed)`:"",d=s.chat?s.chat.length:0,g=`\n            <div class="name_tracker_status">\n                <div class="status-item">\n                    <strong>Characters tracked:</strong> ${n}${c}\n                </div>\n                <div class="status-item">\n                    <strong>Messages in chat:</strong> ${d}\n                </div>\n                <div class="status-item">\n                    <strong>Last scanned message:</strong> ${r>=0?r+1:"None"}\n                </div>\n                <div class="status-item">\n                    <strong>Pending messages:</strong> ${l}\n                </div>\n                <div class="status-item">\n                    <strong>Messages until next scan:</strong> ${Math.max(0,a-(d-r))}\n                </div>\n            </div>\n        `;e.html(g)})}function N(){return(0,y.Xc)("showCharacterListModal",()=>{const e=Object.values((0,b.bg)()||{});let t="";if(0===e.length)t='<p style="text-align: center; color: var(--SmartThemeQuoteColor);">No characters tracked yet</p>';else{e.sort((e,t)=>e.isMainChar&&!t.isMainChar?-1:!e.isMainChar&&t.isMainChar?1:e.preferredName.localeCompare(t.preferredName)),t='<div style="max-height: 400px; overflow-y: auto;">';for(const n of e){const e=[];n.isMainChar&&e.push('<span style="background: var(--SmartThemeBodyColor); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">MAIN</span>'),n.ignored&&e.push('<span style="background: var(--black70a); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">IGNORED</span>'),(0,T.pp)(n)&&e.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');const o=n.aliases&&n.aliases.length>0?`<div style="font-size: 0.9em; color: var(--SmartThemeQuoteColor); margin-top: 3px;">Aliases: ${(0,k.ZD)(n.aliases.join(", "))}</div>`:"";t+=`\n                    <div style="padding: 10px; margin: 5px 0; background: var(--SmartThemeBlurTintColor); border: 1px solid var(--SmartThemeBorderColor); border-radius: 5px;">\n                        <div style="font-weight: bold;">\n                            ${n.isMainChar?'<i class="fa-solid fa-user" style="margin-right: 5px;"></i>':""}\n                            ${(0,k.ZD)(n.preferredName)}\n                            ${e.join("")}\n                        </div>\n                        ${o}\n                    </div>\n                `}t+="</div>"}const n=`\n            <div class="name-tracker-character-modal">\n                <h3 style="margin-top: 0;">Tracked Characters (${e.length})</h3>\n                ${t}\n                <div style="margin-top: 15px; text-align: center;">\n                    <button class="menu_button" onclick="$('#name_tracker_settings').find('.inline-drawer-toggle').click(); $(this).closest('.popup').remove();">\n                        <i class="fa-solid fa-gear"></i> Open Settings\n                    </button>\n                </div>\n            </div>\n        `,o=C.stContext.getContext();o.callGenericPopup(n,o.POPUP_TYPE.TEXT,"",{wider:!0,okButton:"Close"})})}function _(){return(0,y.Xc)("initializeUIHandlers",()=>{$(document).on("click",".char-action-merge",async function(){const e=$(this).data("name");await async function(e){return(0,y.Xc)("showMergeDialog",async()=>{const t=(0,b.bg)(),n=Object.keys(t).filter(t=>t!==e);if(0===n.length)return void I.warning("No other characters to merge with");const o=prompt(`Merge "${e}" into which character? Available: ${n.join(", ")}`);o&&t[o]?(await(0,T.lF)(e,o),B(),E()):o&&I.error("Invalid target character name")})}(e)}),$(document).on("click",".char-action-ignore",async function(){const e=$(this).data("name");await(0,T.el)(e),B(),E()}),$(document).on("click",".char-action-view",async function(){const e=$(this).data("name");await(0,v._Z)(e)}),$(document).on("click",".char-action-edit",async function(){const e=$(this).data("name");await async function(e){return(0,y.Xc)("showEditLorebookModal",async()=>{const t=(0,b.qN)(e);if(!t)return void I.error("Character not found");const n=[e,...t.aliases||[]].join(", "),o=`\n            <div class="lorebook-entry-editor">\n                <h3>Edit Lorebook Entry: ${(0,k.ZD)(e)}</h3>\n                \n                <div class="editor-section">\n                    <label for="entry-keys">Keys (comma-separated):</label>\n                    <input type="text" id="entry-keys" class="text_pole" value="${(0,k.ZD)(n)}" \n                           placeholder="${(0,k.ZD)(e)}, aliases, nicknames">\n                    <small>These words trigger this entry in the chat context</small>\n                </div>\n                \n                <div class="editor-section">\n                    <label for="entry-content">Entry Content:</label>\n                    <textarea id="entry-content" rows="10" class="text_pole" \n                              placeholder="Description, personality, background, relationships...">${(0,k.ZD)(t.notes||"")}</textarea>\n                    <small>This will be injected into context when keys are mentioned</small>\n                </div>\n                \n                <div class="editor-section">\n                    <label for="entry-relationships">Relationships:</label>\n                    <textarea id="entry-relationships" rows="3" class="text_pole" \n                              placeholder="Friend of Alice; Enemy of Bob; Works for XYZ Corp">${(0,k.ZD)((t.relationships||[]).join("; "))}</textarea>\n                    <small>One relationship per line or semicolon-separated</small>\n                </div>\n            </div>\n        `,r=$(`\n            <div class="nametracker-modal" style="\n                position: fixed;\n                top: 50%;\n                left: 50%;\n                transform: translate(-50%, -50%);\n                background: var(--SmartThemeBlurTintColor);\n                border: 1px solid var(--SmartThemeBorderColor);\n                border-radius: 10px;\n                padding: 20px;\n                max-width: 600px;\n                width: 90%;\n                max-height: 80vh;\n                overflow-y: auto;\n                z-index: 9999;\n                box-shadow: 0 4px 20px rgba(0,0,0,0.5);\n            ">\n                ${o}\n                <div style="margin-top: 20px; text-align: right;">\n                    <button class="menu_button" id="entry-save">Save</button>\n                    <button class="menu_button" id="entry-cancel">Cancel</button>\n                </div>\n            </div>\n        `),a=$('\n            <div class="nametracker-overlay" style="\n                position: fixed;\n                top: 0;\n                left: 0;\n                width: 100%;\n                height: 100%;\n                background: rgba(0,0,0,0.7);\n                z-index: 9998;\n            "></div>\n        ');$("body").append(a).append(r);const s=()=>{r.remove(),a.remove()};r.find("#entry-save").on("click",async()=>{const n=r.find("#entry-keys").val().split(",").map(e=>e.trim()).filter(e=>e),o=r.find("#entry-content").val(),a=r.find("#entry-relationships").val().split(/[;\\n]/).map(e=>e.trim()).filter(e=>e),i=n[0]||e,l=n.slice(1);t.preferredName=i,t.aliases=l,t.notes=o,t.relationships=a,i!==e&&(0,b.sr)(e),(0,b.e7)(i,t),B(),E(),I.success(`Updated lorebook entry for ${i}`),s()}),r.find("#entry-cancel").on("click",s),a.on("click",s)})}(e)}),S.log()})}function M(e,t,n,o=null,r=""){return(0,y.Xc)("addMenuButton",()=>{const a=$(`\n            <div class="list-group-item flex-container flexGap5 interactable ${r}" title="${o||e}" tabindex="0">\n                <i class="${t}"></i>\n                <span>${e}</span>\n            </div>\n        `),s=$("#extensionsMenu");s.length?(a.appendTo(s),a.on("click",()=>n())):console.error("[Name Tracker] Could not find the extensions menu")})}function O(){return(0,y.Xc)("toggleAutoHarvest",()=>{const e=(0,b.PL)("autoAnalyze",!0);(0,b.ZC)("autoAnalyze",!e),$("#name_tracker_auto_analyze").prop("checked",!e);const t=$("#extensionsMenu .name-tracker-toggle-harvest");e?t.find("i").removeClass("fa-toggle-on").addClass("fa-toggle-off"):t.find("i").removeClass("fa-toggle-off").addClass("fa-toggle-on"),E(),I.success("Auto-harvest "+(e?"disabled":"enabled"))})}async function P(){return(0,y.Xc)("openChatLorebook",async()=>{const e=C.stContext.getContext(),t=e.chatMetadata?.world_info;t?"function"==typeof e.openWorldInfoEditor?await e.openWorldInfoEditor(t):($("#WorldInfo").click(),I.info(`Please select "${t}" from the World Info panel`)):I.warning("No active chat or lorebook")})}function L(){return(0,y.Xc)("initializeMenuButtons",()=>{M("Toggle Auto-Harvest",(0,b.PL)("autoAnalyze",!0)?"fa-solid fa-toggle-on":"fa-solid fa-toggle-off",O,"Toggle automatic character harvesting on/off","name-tracker-toggle-harvest"),M("View Characters","fa-solid fa-users",N,"View all tracked characters"),M("Open Chat Lorebook","fa-solid fa-book",P,"Open the Name Tracker chat lorebook in the World Info editor"),S.log()})}function R(){return(0,y.Xc)("bindSettingsHandlers",()=>{$("#name_tracker_enabled").on("input",e=>{(0,b.ZC)("enabled",e.target.checked),E()}),$("#name_tracker_auto_analyze").on("input",e=>{(0,b.ZC)("autoAnalyze",e.target.checked),E()}),$("#name_tracker_message_frequency").on("input",e=>{(0,b.ZC)("messageFrequency",parseInt(e.target.value)||10),E()}),$("#name_tracker_llm_source").on("change",e=>{(0,b.ZC)("llmSource",e.target.value)}),$("#name_tracker_ollama_endpoint").on("input",e=>{(0,b.ZC)("ollamaEndpoint",e.target.value)}),$("#name_tracker_ollama_model").on("change",e=>{(0,b.ZC)("ollamaModel",e.target.value)}),$("#name_tracker_load_models").on("click",async()=>{try{await(0,w.Bw)(),I.success("Ollama models loaded")}catch(e){S.log(),I.error("Failed to load Ollama models")}}),$("#name_tracker_confidence_threshold").on("input",e=>{(0,b.ZC)("confidenceThreshold",parseInt(e.target.value)||70)}),$("#name_tracker_lorebook_position").on("change",e=>{(0,b.ZC)("lorebookPosition",parseInt(e.target.value)||0)}),$("#name_tracker_lorebook_depth").on("input",e=>{(0,b.ZC)("lorebookDepth",parseInt(e.target.value)||1)}),$("#name_tracker_lorebook_cooldown").on("input",e=>{(0,b.ZC)("lorebookCooldown",parseInt(e.target.value)||5)}),$("#name_tracker_lorebook_probability").on("input",e=>{(0,b.ZC)("lorebookProbability",parseInt(e.target.value)||100)}),$("#name_tracker_lorebook_enabled").on("input",e=>{(0,b.ZC)("lorebookEnabled",e.target.checked)}),$("#name_tracker_debug_mode").on("input",e=>{(0,b.ZC)("debugMode",e.target.checked)}),$("#name_tracker_manual_analyze").on("click",async()=>{const e=(0,b.PL)("messageFrequency",10);await te(e,!0),B(),E()}),$("#name_tracker_scan_all").on("click",async()=>{await async function(){return(0,y.Xc)("scanEntireChat",async()=>{console.log("[NT-Processing] 🔧 Ensuring lorebook is initialized before scan...");const{initializeLorebook:e}=await Promise.resolve().then(n.bind(n,134));await e(),console.log("[NT-Processing] ✅ Lorebook initialization complete");const t=C.stContext.getContext();if(!t.chat||0===t.chat.length)return void j.warning("No chat messages to scan");if("sillytavern"===(0,b.getLLMConfig)().source&&!t.onlineStatus)return void j.warning("Please connect to an API (OpenAI, Claude, etc.) before analyzing messages");const o=t.chat.length,r=Z((await(0,w.getMaxPromptLength)()).maxPrompt),a=await Q(t.chat,r,!1),s=a.length;if(!confirm(`This will analyze all ${o} messages in ${s} batches. This may take a while. Continue?`))return;Y=!1,oe(0,s,"Starting batch scan...");let i=0,l=0;const c=new Set;for(let e=0;e<s;e++){if(Y){z.log();break}const t=a[e],n=a.slice(0,e).reduce((e,t)=>e+t.length,0),o=n+t.length;try{oe(e+1,s,`Processing messages ${n+1}-${o}...`);const r=(0,w.fR)(),a=await(0,w.Kr)(t,r);a.characters&&Array.isArray(a.characters)&&(await V(a.characters),a.characters.forEach(e=>c.add(e.name))),i++,e<s-1&&await new Promise(e=>setTimeout(e,1e3))}catch(t){console.error(`Error processing batch ${e+1}:`,t),l++;if(!confirm(`Batch ${e+1} failed.\n\nError: ${t.message}\n\nContinue with remaining batches?`))break}}re(),(0,b.nT)("lastScannedMessageId",o-1);const d=`Full chat scan complete!\n\nMessages: ${o}\nBatches: ${i}/${s}\nCharacters found: ${c.size}\nFailed: ${l}`,g=String(d||"Scan completed");l>0?j.warning(g,"Scan Complete",{timeOut:1e4}):j.success(g,"Scan Complete",{timeOut:1e4})})}(),B(),E()}),$("#name_tracker_create_character").on("click",async()=>{await async function(){return(0,y.Xc)("showCreateCharacterModal",async()=>{const e=prompt("Enter character name:");if(e&&e.trim())try{await(0,T.g9)(e.trim()),B(),E()}catch(e){I.error(e.message)}})}()}),$("#name_tracker_clear_cache").on("click",()=>{H=[],K=!1,z.log(),I.info("Cache and processing queue cleared")}),$("#name_tracker_undo_merge").on("click",async()=>{const{undoLastMerge:e}=await Promise.resolve().then(n.bind(n,551));await e()&&(B(),E())}),$("#name_tracker_purge_entries").on("click",async()=>{await async function(){return(0,y.Xc)("showPurgeConfirmation",async()=>{const e=(0,b.bg)(),t=Object.keys(e).length;if(0!==t){if(confirm(`This will delete all ${t} tracked characters and their lorebook entries.\\n\\nThis action cannot be undone!\\n\\nContinue?`))try{const e=await(0,T.vu)();B(),E(),I.success(`Purged ${e} characters`)}catch(e){I.error(`Failed to purge characters: ${e.message}`)}}else I.info("No characters to purge")})}()}),$("#name_tracker_edit_prompt").on("click",async()=>{await async function(){return(0,y.Xc)("showSystemPromptEditor",async()=>{const e=(0,b.PL)("systemPrompt")||"",t=$(`\n            <div class="nametracker-modal" style="\n                position: fixed;\n                top: 50%;\n                left: 50%;\n                transform: translate(-50%, -50%);\n                background: var(--SmartThemeBlurTintColor);\n                border: 1px solid var(--SmartThemeBorderColor);\n                border-radius: 10px;\n                padding: 20px;\n                max-width: 700px;\n                width: 90%;\n                max-height: 80vh;\n                overflow-y: auto;\n                z-index: 9999;\n                box-shadow: 0 4px 20px rgba(0,0,0,0.5);\n            ">\n                <h3 style="margin-top: 0;">Edit System Prompt</h3>\n                <p>Customize the system prompt used for character analysis. Leave blank to use default.</p>\n                <textarea id="system_prompt_editor" rows="20" style="width: 100%; margin: 10px 0;" \n                          placeholder="Enter custom system prompt or leave blank for default...">${(0,k.ZD)(e)}</textarea>\n                <div style="margin-top: 20px; text-align: right;">\n                    <button class="menu_button" id="system_prompt_save">Save</button>\n                    <button class="menu_button" id="system_prompt_reset">Reset to Default</button>\n                    <button class="menu_button" id="system_prompt_cancel">Cancel</button>\n                </div>\n            </div>\n        `),n=$('\n            <div class="nametracker-overlay" style="\n                position: fixed;\n                top: 0;\n                left: 0;\n                width: 100%;\n                height: 100%;\n                background: rgba(0,0,0,0.7);\n                z-index: 9998;\n            "></div>\n        ');$("body").append(n).append(t);const o=()=>{t.remove(),n.remove()};t.find("#system_prompt_save").on("click",()=>{const e=t.find("#system_prompt_editor").val().trim();(0,b.ZC)("systemPrompt",e||null),I.success("System prompt updated"),o()}),t.find("#system_prompt_reset").on("click",()=>{t.find("#system_prompt_editor").val(""),(0,b.ZC)("systemPrompt",null),I.success("Reset to default system prompt"),o()}),t.find("#system_prompt_cancel").on("click",o),n.on("click",o)})}()}),$("#name_tracker_debug_status").on("click",async()=>{await(0,y.Xc)("showDebugStatus",async()=>{const e=(0,b.TJ)(),t=(0,b.bg)(),o=async()=>{let o={},r=4096,a={},s="unknown",i="";try{const{getMaxPromptLength:e}=await Promise.resolve().then(n.bind(n,744)),{getLLMConfig:t}=await Promise.resolve().then(n.bind(n,548)),{stContext:l}=await Promise.resolve().then(n.bind(n,102));o=t();const c=await e();r=c.maxPrompt,s=c.detectionMethod,i=c.debugLog||"";let d=l.getContext();if(!d||void 0===d.maxContext)for(let e=0;e<3&&(await new Promise(e=>setTimeout(e,200)),d=l.getContext(),!d||void 0===d.maxContext);e++);if(d&&void 0!==d.maxContext){const e=d.maxContext;a={totalContext:e,maxGeneration:Math.min(4096,Math.floor(.15*e)),maxGenerationNote:"Extension-controlled (15% of context, max 4096)",modelName:d.main_api||"unknown"}}else a={totalContext:"Not loaded yet (no chat active)",maxGeneration:"N/A",maxGenerationNote:"Context will be available after chat loads",modelName:d?.main_api||"unknown"}}catch(e){console.error("[NT-Debug] Error in buildDebugContent:",e),S.log("Could not load LLM config:",e),a={totalContext:"Error loading",maxGeneration:"Error",maxGenerationNote:"Check console for details",modelName:"unknown"},s="error"}const l={MIN_MESSAGES_PER_BATCH:5,TARGET_MESSAGES_PER_BATCH:30,MAX_MESSAGES_PER_BATCH:50,CONTEXT_TARGET_PERCENT:80,MIN_CONTEXT_TARGET:50},c=500,d=500,g=c+("number"==typeof a.maxGeneration?a.maxGeneration:2048)+d,m=r,h={"Extension Status":{Enabled:!1!==e.enabled,"Debug Mode":!1!==e.debugMode,"LLM Source":e.llmSource||"sillytavern","Model API":a.modelName,"Tracked Characters":Object.keys(t).length},"SillyTavern Context":{"Total Context Window":a.totalContext,"Extension Max Tokens":`${a.maxGeneration} (${a.maxGenerationNote})`,"System Prompt Reserve":c,"Safety Margin":d,"Total Reserved":g},"Max Context Detection":{"Detection Method":s||"unknown","Detected Max Context":a.totalContext,"Final Max Prompt":r},"Usable Token Budget":{"Max Prompt Tokens":r,"Context Target %":l.CONTEXT_TARGET_PERCENT,"Tokens to Use":Math.floor(m*(l.CONTEXT_TARGET_PERCENT/100))},"Batch Configuration":{"Min Messages/Batch":l.MIN_MESSAGES_PER_BATCH,"Target Messages/Batch":l.TARGET_MESSAGES_PER_BATCH,"Max Messages/Batch":l.MAX_MESSAGES_PER_BATCH,"Min Context Target":l.MIN_CONTEXT_TARGET},"Analysis Settings":{"Message Frequency":e.messageFrequency||10,"Auto-Analyze":!1!==e.autoAnalyze,"Confidence Threshold":e.confidenceThreshold||70},"Lorebook Settings":{Position:["After Char","Before Char","Top","Bottom"][e.lorebookPosition||0],Depth:e.lorebookDepth||1,Cooldown:e.lorebookCooldown||5,"Probability %":e.lorebookProbability||100,Enabled:!1!==e.lorebookEnabled}};let u='<div style="font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">';for(const[e,t]of Object.entries(h)){u+='<div style="margin-bottom: 15px; border-bottom: 1px solid #666; padding-bottom: 10px;">',u+=`<strong style="color: #90EE90; font-size: 13px;">${e}</strong><br>`;for(const[e,n]of Object.entries(t))u+=`<div style="margin-left: 10px; padding: 2px 0;">\n                        <span style="color: #87CEEB;">${e}:</span> \n                        <span style="color: #FFFF99;">${!0===n?"✓":!1===n?"✗":n}</span>\n                    </div>`;u+="</div>"}return u+="</div>",{debugInfo:h,htmlContent:u}},r=await o(),a=$(`\n            <div class="nametracker-modal" style="\n                position: fixed;\n                top: 50%;\n                left: 50%;\n                transform: translate(-50%, -50%);\n                background: #1a1a1a;\n                border: 2px solid #90EE90;\n                border-radius: 10px;\n                padding: 20px;\n                max-width: 550px;\n                width: 90%;\n                max-height: 75vh;\n                overflow-y: auto;\n                z-index: 9999;\n                box-shadow: 0 4px 20px rgba(0,0,0,0.8);\n            ">\n                <h3 style="margin-top: 0; color: #90EE90; border-bottom: 2px solid #90EE90; padding-bottom: 10px;">\n                    <i class="fa-solid fa-bug"></i> Debug Status\n                </h3>\n                <div id="nt-debug-content">${r.htmlContent}</div>\n                <div style="margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #666; padding-top: 10px;">\n                    <button class="menu_button" id="debug-refresh" style="background: #2a2a2a; color: #FFFF99; border: 1px solid #90EE90;">Refresh</button>\n                    <button class="menu_button" id="debug-close" style="background: #2a2a2a; color: #90EE90; border: 1px solid #90EE90;">Close</button>\n                </div>\n            </div>\n        `),s=$('\n            <div class="nametracker-overlay" style="\n                position: fixed;\n                top: 0;\n                left: 0;\n                width: 100%;\n                height: 100%;\n                background: rgba(0,0,0,0.7);\n                z-index: 9998;\n            "></div>\n        ');$("body").append(s).append(a);const i=()=>{a.remove(),s.remove()};a.find("#debug-close").on("click",i),s.on("click",i),console.log("[NT-Debug]",r.debugInfo),a.find("#debug-refresh").on("click",async()=>{try{const e=await o();a.find("#nt-debug-content").html(e.htmlContent),console.log("[NT-Debug]",e.debugInfo)}catch(e){console.error("[NT-Debug] Refresh failed:",e)}})})}),$("#name_tracker_dump_context").on("click",()=>{(0,y.Xc)("dumpContextToConsole",()=>{try{const e=C.stContext.dumpContextToConsole();I.success("Context dumped to console - Press F12 to view","Context Dump");const t={"Total Properties":e.availableProperties.length,"Key Properties Found":Object.keys(e.detailedBreakdown).filter(t=>t in e.detailedBreakdown).length,Timestamp:e.timestamp};console.log("%c[Name Tracker] QUICK SUMMARY:","color: #ffaa00; font-weight: bold; font-size: 12px;"),console.table(t)}catch(e){S.log(`Failed to dump context: ${e.message}`),I.error(`Failed to dump context: ${e.message}`,"Context Dump")}})}),S.log()})}function D(){return(0,y.Xc)("updateUI",()=>{$("#name_tracker_enabled").prop("checked",(0,b.PL)("enabled",!0)),$("#name_tracker_auto_analyze").prop("checked",(0,b.PL)("autoAnalyze",!0)),$("#name_tracker_message_frequency").val((0,b.PL)("messageFrequency",10)),$("#name_tracker_llm_source").val((0,b.PL)("llmSource","sillytavern")),$("#name_tracker_ollama_endpoint").val((0,b.PL)("ollamaEndpoint","http://localhost:11434")),$("#name_tracker_ollama_model").val((0,b.PL)("ollamaModel","")),$("#name_tracker_confidence_threshold").val((0,b.PL)("confidenceThreshold",70)),$("#name_tracker_lorebook_position").val((0,b.PL)("lorebookPosition",0)),$("#name_tracker_lorebook_depth").val((0,b.PL)("lorebookDepth",1)),$("#name_tracker_lorebook_cooldown").val((0,b.PL)("lorebookCooldown",5)),$("#name_tracker_lorebook_probability").val((0,b.PL)("lorebookProbability",100)),$("#name_tracker_lorebook_enabled").prop("checked",(0,b.PL)("lorebookEnabled",!0)),$("#name_tracker_debug_mode").prop("checked",(0,b.PL)("debugMode",!1)),B(),E(),S.log()})}const z=(0,f.Xv)("processing"),j=new x.h("Message Processing"),U=!0;function F(e,t=null){U&&console.log(`[NT-Processing] ${e}`,t||"")}const X=5,W=50,J=30,G=35;function Z(e){return Math.floor(e*(G/100))}async function Q(e,t,n=!0){const o=[];let r=[],a=0;for(const s of e){const e=await(0,w.au)([s]),i=a+e>t,l=n&&r.length>=W;(i||l)&&r.length>0?(o.push(r),r=[s],a=e):(r.push(s),a+=e)}return r.length>0&&o.push(r),o}let H=[],K=!1,Y=!1;const q={totalBatches:0,currentBatch:0,failedCharacters:[],lastError:null,contextTarget:80};async function V(e){return(0,y.Xc)("processAnalysisResults",async()=>{if(console.log("[NT-Processing] 🔄 processAnalysisResults called"),console.log("[NT-Processing]    Input type:",typeof e),console.log("[NT-Processing]    Is array?:",Array.isArray(e)),console.log("[NT-Processing]    Length:",e?.length),!e||!Array.isArray(e))return console.warn("[NT-Processing] ⚠️  Invalid input - not an array:",e),void z.log();console.log("[NT-Processing] ✅ Processing",e.length,"characters"),z.log();for(const t of e)try{console.log("[NT-Processing] 📝 Processing character:",t.name),await ee(t),console.log("[NT-Processing] ✅ Character processed:",t.name)}catch(e){console.error(`[NT-Processing] ❌ Error processing character ${t.name}:`,e),console.error("[NT-Processing] Error stack:",e.stack)}console.log("[NT-Processing] 🎉 All characters processed"),console.log("[NT-Processing] 🖥️  Updating character list UI"),B()})}async function ee(e){return(0,y.Xc)("processCharacterData",async()=>{if(console.log("[NT-CharData] 🔍 Processing character data for:",e.name),!e.name||""===e.name.trim())return console.warn("[NT-CharData] ⚠️  Character has no name, skipping"),void z.log();const t=e.name.trim();console.log("[NT-CharData]    Character name:",t);if(await(0,T.eY)(t))return console.log("[NT-CharData] ⏭️  Character is ignored, skipping:",t),void z.log();const n=t.toLowerCase().includes("{{char}}")||!0===e.isMainCharacter||"main"===e.role;console.log("[NT-CharData]    Is main char?:",n);const o=await(0,T._$)(t);if(console.log("[NT-CharData]    Existing character found?:",!!o),o)console.log("[NT-CharData] 🔄 Updating existing character:",o.preferredName),await(0,T.t9)(o,e,!1,n),console.log("[NT-CharData] 📚 Updating lorebook entry..."),await(0,v.TQ)(o,o.preferredName),console.log("[NT-CharData] ✅ Existing character updated"),z.log();else{console.log("[NT-CharData] 🔍 Checking for potential matches...");const o=await(0,T.rL)(e);if(console.log("[NT-CharData]    Potential match found?:",!!o),o)console.log("[NT-CharData] 🔄 Updating potential match:",o.preferredName),await(0,T.t9)(o,e,!0,n),console.log("[NT-CharData] 📚 Updating lorebook entry..."),await(0,v.TQ)(o,o.preferredName),console.log("[NT-CharData] ✅ Potential match updated"),z.log();else{console.log("[NT-CharData] 🆕 Creating new character:",t);const o=await(0,T.OW)(e,n);console.log("[NT-CharData] ✅ Character created:",o.preferredName),console.log("[NT-CharData] 📚 Creating lorebook entry..."),await(0,v.TQ)(o,o.preferredName),console.log("[NT-CharData] ✅ New character complete"),z.log()}}})}async function te(e,t=!0){return(0,y.Xc)("harvestMessages",async()=>{if(!(0,b.TJ)("enabled",!0))return void z.log();if("sillytavern"===(0,b.getLLMConfig)().source){if(!C.stContext.getContext().onlineStatus)return void j.warning("Please connect to an API (OpenAI, Claude, etc.) before analyzing messages")}const n=C.stContext.getContext();if(!n.chat||0===n.chat.length)return z.log(),void j.info("No messages in chat to analyze");const o=n.chat.length,r=Math.max(0,o-e),a=n.chat.slice(r,o);F(`[Batching] Message selection: startIdx=${r}, endIdx=${o}, requesting ${e} messages, got ${a.length} messages`);const s=(await(0,w.getMaxPromptLength)()).maxPrompt,i=Z(s);F(`[Batching] Token budget: maxPromptTokens=${s}, targetPercent=${G}%, availableTokens=${i}`),F(`[Batching] Context target: ${q.contextTarget}%`),F(`[Batching] Estimated reserves: systemPrompt=~1000tok, response=~4000tok, messages=${i}tok`);const l=await(0,w.au)(a);if(F(`[Batching] Total tokens for ${a.length} messages: ${l} tokens`),l>i){F(`[Batching] Messages exceed token limit (${l} > ${i}), creating batches`);const e=await Q(a,i,!0),n=await Promise.all(e.map(async(e,t)=>{const n=await(0,w.au)(e);return`Batch ${t+1}: ${e.length}msg/${n}tok`}));F(`[Batching] Created ${e.length} total batches: ${n.join(" | ")}`),F(`[Batching] Constraints applied: MIN=${X}, TARGET=${J}, MAX=${W}, TokenLimit=${i}`),Y=!1;const o=Math.round(a.length/e.length),s=`Analyzing ${a.length} messages in ${e.length} batches (~${o} messages each). This may take a while. Continue?`;if(t){if(!confirm(s))return F("[Batching] User cancelled batch processing"),void(Y=!0)}oe(0,e.length,"Starting analysis...");let c=0,d=0;const g=new Set;F(`[Batching] Starting batch processing loop: ${e.length} batches`);for(let t=0;t<e.length;t++){if(Y)return F(`[BatchProcessing] User aborted at batch ${t+1}/${e.length}`),re(),void j.warning("Analysis aborted");const n=e[t],o=r+e.slice(0,t).reduce((e,t)=>e+t.length,0),a=o+n.length;F(`[BatchProcessing] Processing batch ${t+1}/${e.length}: messages ${o}-${a-1} (${n.length} messages)`);try{oe(t+1,e.length,`Analyzing messages ${o+1}-${a}...`);const r=(0,w.fR)(),s=await(0,w.Kr)(n,r);console.log("[NT-Batch] 📊 LLM analysis returned"),console.log("[NT-Batch]    Type:",typeof s),console.log("[NT-Batch]    Value:",s),console.log("[NT-Batch]    Has characters?:",s&&"characters"in s),console.log("[NT-Batch]    Characters type:",typeof s?.characters),console.log("[NT-Batch]    Characters is Array?:",Array.isArray(s?.characters)),console.log("[NT-Batch]    Characters length:",s?.characters?.length),s.characters&&Array.isArray(s.characters)?(console.log("[NT-Batch] ✅ Calling processAnalysisResults with",s.characters.length,"characters"),await V(s.characters),s.characters.forEach(e=>g.add(e.name))):(console.warn("[NT-Batch] ⚠️  Condition failed - not processing results"),console.warn("[NT-Batch]    analysis:",s),console.warn("[NT-Batch]    analysis.characters:",s?.characters)),c++,t<e.length-1&&await new Promise(e=>setTimeout(e,500))}catch(r){F(`[BatchProcessing] ERROR in batch ${t+1}: ${r.message}`),F(`[BatchProcessing] Context: messages ${o}-${a-1}, batch size ${n.length}, token count calc error`),console.error(`Error processing batch ${t+1}:`,r),d++;if(!confirm(`Batch ${t+1} failed.\n\nError: ${r.message}\n\nContinue with remaining batches?`)){F(`[BatchProcessing] User chose not to continue after error on batch ${t+1}/${e.length}`);break}F(`[BatchProcessing] User chose to continue despite error on batch ${t+1}/${e.length}`)}}re();const m=`Analysis complete!\n\nBatches processed: ${c}/${e.length}\nUnique characters found: ${g.size}\nFailed batches: ${d}`;return F(`[BatchProcessing] Batch analysis complete: ${c}/${e.length} successful, ${d} failed, ${g.size} characters found`),void(d>0?j.warning(m,"Batch Analysis",{timeOut:8e3}):j.success(m,"Batch Analysis",{timeOut:8e3}))}t&&j.info(`Analyzing ${a.length} messages for character information...`);try{const e=(0,w.fR)(),n=await(0,w.Kr)(a,e);z.log(),n.characters&&Array.isArray(n.characters)?(await V(n.characters),t&&j.success(`Found ${n.characters.length} character(s) in messages`)):z.log()}catch(e){console.error("Error during harvest:",e),j.error(`Analysis failed: ${e.message}`)}})}async function ne(e){return(0,y.Xc)("onMessageReceived",async()=>{if(!(0,b.TJ)("enabled",!0)||!(0,b.TJ)("autoAnalyze",!0))return;const e=C.stContext.getContext().chat;if(!e||0===e.length)return;const t=e.length-1,n=(0,b.TJ)("lastScannedMessageId",-1);if(t<=n)return void z.log();if(n>=0&&t<n){z.log();const e=await async function(e,t){return new Promise(n=>{const o=$(`\n            <div class="name-tracker-rescan-modal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--SmartThemeBodyColor); border: 2px solid var(--SmartThemeBorderColor); padding: 20px; border-radius: 10px; z-index: 9999; max-width: 500px;">\n                <h3>Message History Changed</h3>\n                <p>Messages have been deleted or edited. Would you like to rescan the chat?</p>\n                <p>Current last scanned message: ${t}<br>\n                Current message index: ${e}</p>\n                <div style="margin-top: 15px;">\n                    <label>Rescan from message: <input type="number" id="rescan-from" value="0" min="0" max="${e}" style="width: 80px; margin-left: 10px;"></label>\n                </div>\n                <div style="margin-top: 15px; text-align: right;">\n                    <button id="rescan-yes" class="menu_button">Rescan</button>\n                    <button id="rescan-no" class="menu_button">Skip</button>\n                </div>\n            </div>\n        `);$("body").append(o),o.find("#rescan-yes").on("click",()=>{const e=parseInt(o.find("#rescan-from").val())||0;o.remove(),n({rescan:!0,fromMessage:e})}),o.find("#rescan-no").on("click",()=>{o.remove(),n({rescan:!1})})})}(t,n);return e.rescan?((0,b.nT)("lastScannedMessageId",e.fromMessage-1),void ae(async()=>{await te(t-e.fromMessage+1,!0)})):void(0,b.nT)("lastScannedMessageId",t)}const o=(0,b.TJ)("messageFrequency",10);t-n>=o&&(z.log(),ae(async()=>{await te(o,!0),(0,b.nT)("lastScannedMessageId",t)}))})}function oe(e,t,n=""){const o="name_tracker_progress",r=$(`.${o}`);if(r.length>0)return n&&r.find(".title").text(n),r.find(".progress").text(e),r.find(".total").text(t),void r.find("progress").val(e).attr("max",t);const a=$(`\n        <div class="${o} name_tracker_progress_bar flex-container justifyspacebetween alignitemscenter" style="\n            padding: 10px;\n            margin: 5px 0;\n            background: var(--SmartThemeBlurTintColor);\n            border: 1px solid var(--SmartThemeBorderColor);\n            border-radius: 5px;\n        ">\n            <div class="title" style="flex: 1; font-weight: bold;">${n||"Name Tracker Scan"}</div>\n            <div style="margin: 0 10px;">(<span class="progress">${e}</span> / <span class="total">${t}</span>)</div>\n            <progress value="${e}" max="${t}" style="flex: 2; margin: 0 10px;"></progress>\n            <button class="menu_button fa-solid fa-stop" title="Abort scan" style="padding: 5px 10px;"></button>\n        </div>\n    `);a.find("button").on("click",function(){Y=!0,re(),j.warning("Scan aborted by user")}),$("#sheld").append(a)}function re(){const e=$(".name_tracker_progress");e.length>0&&e.fadeOut(300,function(){$(this).remove()})}async function ae(e){return(0,y.Xc)("addToQueue",async()=>{H.push(e),K||await async function(){return(0,y.Xc)("processQueue",async()=>{if(!K&&0!==H.length){for(K=!0;H.length>0;){const e=H.shift();try{await e()}catch(e){console.error("Error processing queue task:",e)}}K=!1}})}()})}console.log("[STnametracker] Main index.js: Import validation"),console.log("[STnametracker] Main index.js: initializeUIHandlers import =",typeof _,_),console.log("[STnametracker] Main index.js: initializeMenuButtons import =",typeof L,L),console.log("[STnametracker] Main index.js: bindSettingsHandlers import =",typeof R,R),console.log("[STnametracker] Main index.js: updateUI import =",typeof D,D);const se="STnametracker",ie=`scripts/extensions/third-party/${se}`;const le=f.Ay.createModuleLogger("Main");const ce=new class{constructor(){this.initialized=!1,this.modules=new Map}async initialize(){return console.log("[STnametracker] Enter initialize() method"),y.r_.withErrorBoundary("Main",async()=>{console.log("[STnametracker] Inside error boundary"),this.initialized?console.log("[STnametracker] Already initialized, skipping"):(console.log("[STnametracker] Starting initialization sequence"),le.log("Starting Name Tracker Extension v2.1.0"),console.log("[STnametracker] Step 1: Initializing core systems..."),await this.initializeCore(),console.log("[STnametracker] Step 1: Core systems completed"),console.log("[STnametracker] Step 2: Initializing feature modules..."),await this.initializeModules(),console.log("[STnametracker] Step 2: Feature modules completed"),console.log("[STnametracker] Step 3: Initializing UI..."),await this.initializeUI(),console.log("[STnametracker] Step 3: UI completed"),console.log("[STnametracker] Step 4: Registering event listeners..."),this.registerEventListeners(),console.log("[STnametracker] Step 4: Event listeners completed"),this.initialized=!0,console.log("[STnametracker] Marking as initialized"),le.log("Name Tracker Extension initialized successfully"),console.log("[STnametracker] Full initialization sequence completed successfully"))},{retries:2,fallback:async e=>(le.error("Failed to initialize extension:",e),x.A.error("Failed to initialize","Extension Error"),!1)})}async initializeCore(){console.log("[STnametracker] initializeCore: Starting..."),le.debug("Initializing core systems..."),console.log("[STnametracker] initializeCore: Connecting debug system..."),f.Ay.isDebugEnabled=()=>(0,b.PL)("debugMode",!1),console.log("[STnametracker] initializeCore: Debug system connected"),console.log("[STnametracker] initializeCore: Settings ready"),this.setupErrorRecovery(),le.debug("Core systems initialized")}async initializeModules(){le.debug("Initializing feature modules..."),console.log("[STnametracker] initializeModules: Module initialization skipped"),console.log("[STnametracker] initializeModules: Lorebook will be initialized when first needed"),le.debug("Feature modules ready (lazy initialization)")}async initializeUI(){console.log("[STnametracker] initializeUI: Starting UI initialization..."),le.debug("Initializing UI...");try{console.log("[STnametracker] initializeUI: Loading settings HTML from:",`${ie}/settings.html`);const e=await $.get(`${ie}/settings.html`);console.log("[STnametracker] initializeUI: Settings HTML loaded, length:",e.length),console.log("[STnametracker] initializeUI: Finding #extensions_settings element...");const t=$("#extensions_settings");console.log("[STnametracker] initializeUI: Target element found:",t.length>0),t.append(e),console.log("[STnametracker] initializeUI: Settings HTML appended"),console.log("[STnametracker] initializeUI: Initializing UI handlers..."),_(),console.log("[STnametracker] initializeUI: UI handlers initialized"),console.log("[STnametracker] initializeUI: Initializing menu buttons..."),L(),console.log("[STnametracker] initializeUI: Menu buttons initialized"),console.log("[STnametracker] initializeUI: Binding settings handlers..."),R(),console.log("[STnametracker] initializeUI: Settings handlers bound"),console.log("[STnametracker] initializeUI: Updating UI..."),D(),console.log("[STnametracker] initializeUI: UI updated"),le.debug("UI initialized")}catch(e){throw le.error("Failed to initialize UI:",e),e}}registerEventListeners(){le.debug("Registering event listeners...");try{const e=C.A.getContext(),t=e.eventSource,n=e.event_types;if(!t||!n)return void le.warn("SillyTavern event system not available");t.on(n.MESSAGE_RECEIVED,async e=>{le.debug("Message received event:",e),await ne()}),t.on(n.MESSAGE_SENT,async e=>{le.debug("Message sent event:",e),await ne()}),t.on(n.CHAT_CHANGED,async()=>{le.debug("Chat changed event received"),await(0,b.nF)({characters:{},lastScannedMessageId:-1})}),le.debug("Event listeners registered")}catch(e){le.error("Failed to register event listeners:",e)}}setupErrorRecovery(){y.r_.registerRecoveryStrategy("NETWORK_ERROR",async e=>(le.warn("Attempting network error recovery"),await y.r_.delay(2e3),x.A.info("Retrying network operation..."),null)),y.r_.registerRecoveryStrategy("DATA_FORMAT_ERROR",async e=>(le.warn("Data format error, clearing cache"),null)),y.r_.onCriticalError(e=>{le.error("Critical error occurred:",e)})}getStatus(){return{initialized:this.initialized,context:C.A.getStatus(),settings:{initialized:!0,moduleCount:Object.keys((0,b.TJ)()).length},debug:f.Ay.getPerformanceSummary(),errors:y.r_.getRecentErrors(5).length}}async shutdown(){return y.r_.withErrorBoundary("Main",async()=>{le.log("Shutting down Name Tracker Extension"),this.initialized=!1,f.Ay.clear(),le.log("Extension shutdown complete")},{silent:!0})}};jQuery(async()=>{console.log("[STnametracker] jQuery ready, starting extension load...");try{console.log("[STnametracker] Logger available, initializing..."),le.log("Name Tracker Extension loading..."),console.log("[STnametracker] Setting up extension_settings..."),window.extension_settings||(console.log("[STnametracker] Creating window.extension_settings"),window.extension_settings={}),console.log("[STnametracker] Current extension_settings keys:",Object.keys(window.extension_settings)),window.extension_settings[se]=window.extension_settings[se]||{},console.log("[STnametracker] Initializing defaults...");const e=(0,b.TJ)();console.log("[STnametracker] Settings initialized with defaults. llmSource:",e.llmSource),console.log("[STnametracker] Extension settings keys after init:",Object.keys(window.extension_settings[se])),console.log("[STnametracker] Starting main initialization..."),await ce.initialize(),console.log("[STnametracker] Main initialization completed"),window.nameTrackerExtension=ce,window.ntDebug={status:()=>ce.getStatus(),errors:()=>y.r_.getRecentErrors(),settings:()=>(0,b.TJ)(),chatData:()=>(0,b.zB)(),clear:()=>f.Ay.clear()},le.log("Name Tracker Extension loaded successfully"),console.log("[STnametracker] Extension loaded. Use ntDebug.status() for diagnostics.")}catch(e){console.error("[STnametracker] Failed to initialize:",e),x.A.error("Extension failed to load","Critical Error")}})})();
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ 56
+(module, __unused_webpack_exports, __webpack_require__) {
+
+
+
+/* istanbul ignore next  */
+function setAttributesWithoutAttributes(styleElement) {
+  var nonce =  true ? __webpack_require__.nc : 0;
+  if (nonce) {
+    styleElement.setAttribute("nonce", nonce);
+  }
+}
+module.exports = setAttributesWithoutAttributes;
+
+/***/ },
+
+/***/ 72
+(module) {
+
+
+
+var stylesInDOM = [];
+function getIndexByIdentifier(identifier) {
+  var result = -1;
+  for (var i = 0; i < stylesInDOM.length; i++) {
+    if (stylesInDOM[i].identifier === identifier) {
+      result = i;
+      break;
+    }
+  }
+  return result;
+}
+function modulesToDom(list, options) {
+  var idCountMap = {};
+  var identifiers = [];
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i];
+    var id = options.base ? item[0] + options.base : item[0];
+    var count = idCountMap[id] || 0;
+    var identifier = "".concat(id, " ").concat(count);
+    idCountMap[id] = count + 1;
+    var indexByIdentifier = getIndexByIdentifier(identifier);
+    var obj = {
+      css: item[1],
+      media: item[2],
+      sourceMap: item[3],
+      supports: item[4],
+      layer: item[5]
+    };
+    if (indexByIdentifier !== -1) {
+      stylesInDOM[indexByIdentifier].references++;
+      stylesInDOM[indexByIdentifier].updater(obj);
+    } else {
+      var updater = addElementStyle(obj, options);
+      options.byIndex = i;
+      stylesInDOM.splice(i, 0, {
+        identifier: identifier,
+        updater: updater,
+        references: 1
+      });
+    }
+    identifiers.push(identifier);
+  }
+  return identifiers;
+}
+function addElementStyle(obj, options) {
+  var api = options.domAPI(options);
+  api.update(obj);
+  var updater = function updater(newObj) {
+    if (newObj) {
+      if (newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap && newObj.supports === obj.supports && newObj.layer === obj.layer) {
+        return;
+      }
+      api.update(obj = newObj);
+    } else {
+      api.remove();
+    }
+  };
+  return updater;
+}
+module.exports = function (list, options) {
+  options = options || {};
+  list = list || [];
+  var lastIdentifiers = modulesToDom(list, options);
+  return function update(newList) {
+    newList = newList || [];
+    for (var i = 0; i < lastIdentifiers.length; i++) {
+      var identifier = lastIdentifiers[i];
+      var index = getIndexByIdentifier(identifier);
+      stylesInDOM[index].references--;
+    }
+    var newLastIdentifiers = modulesToDom(newList, options);
+    for (var _i = 0; _i < lastIdentifiers.length; _i++) {
+      var _identifier = lastIdentifiers[_i];
+      var _index = getIndexByIdentifier(_identifier);
+      if (stylesInDOM[_index].references === 0) {
+        stylesInDOM[_index].updater();
+        stylesInDOM.splice(_index, 1);
+      }
+    }
+    lastIdentifiers = newLastIdentifiers;
+  };
+};
+
+/***/ },
+
+/***/ 83
+(module, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   A: () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(354);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(314);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
+// Imports
+
+
+var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_css_loader_dist_runtime_sourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default()));
+// Module
+___CSS_LOADER_EXPORT___.push([module.id, `/* Styles for the Name Tracker extension */
+
+.name-tracker-settings {
+    padding: 5px;
+}
+
+.name-tracker_block {
+    margin-bottom: 10px;
+}
+
+.name-tracker_block h4 {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+/* Status Display */
+.name-tracker-status-block {
+    background-color: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.name-tracker-status {
+    font-weight: bold;
+    color: var(--SmartThemeBodyColor);
+    padding: 5px;
+    text-align: center;
+}
+
+/* Character List */
+.name-tracker-character-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    padding: 5px;
+    margin-top: 5px;
+}
+
+.name-tracker-character {
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    background-color: var(--SmartThemeBlurTintColor);
+}
+
+.name-tracker-character:last-child {
+    margin-bottom: 0;
+}
+
+/* Active/loaded character styling (characters that are loaded in SillyTavern) */
+.name-tracker-character.main-character {
+    border-left: 3px solid #4CAF50;
+    background-color: rgba(76, 175, 80, 0.05);
+}
+
+.character-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.character-name {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: var(--SmartThemeBodyColor);
+}
+
+.character-name .fa-user {
+    color: #4CAF50;
+    margin-right: 5px;
+}
+
+.character-name.ignored {
+    color: var(--SmartThemeQuoteColor);
+    text-decoration: line-through;
+}
+
+.character-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.75em;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.character-badge.main-char {
+    background-color: #4CAF50;
+    color: #fff;
+}
+
+.character-badge.ignored {
+    background-color: #666;
+    color: #fff;
+}
+
+.character-badge.unresolved {
+    background-color: #ff9800;
+    color: #000;
+}
+
+/* Lorebook entry editor modal */
+.lorebook-entry-editor h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: var(--SmartThemeBodyColor);
+}
+
+.editor-section {
+    margin-bottom: 15px;
+}
+
+.editor-section label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: var(--SmartThemeBodyColor);
+}
+
+.editor-section small {
+    display: block;
+    margin-top: 3px;
+    color: var(--SmartThemeQuoteColor);
+    font-size: 0.85em;
+}
+
+.editor-section input,
+.editor-section textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.character-aliases {
+    font-size: 0.9em;
+    color: var(--SmartThemeQuoteColor);
+    margin-bottom: 8px;
+    font-style: italic;
+}
+
+.lorebook-entry-id {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 2px 6px;
+    background: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.85em;
+    font-style: normal;
+    color: var(--SmartThemeQuoteColor);
+}
+
+.character-details {
+    font-size: 0.85em;
+    color: var(--SmartThemeBodyColor);
+    margin: 8px 0;
+    padding: 8px;
+    background: var(--SmartThemeBlurTintColor);
+    border-left: 2px solid var(--SmartThemeBorderColor);
+    border-radius: 3px;
+    line-height: 1.4;
+}
+
+.character-actions {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.character-actions .menu_button {
+    flex: 1;
+    min-width: 100px;
+    padding: 5px 10px;
+    font-size: 0.9em;
+}
+
+.menu_button.compact {
+    padding: 5px 10px;
+    font-size: 0.9em;
+}
+
+.name-tracker-empty {
+    color: var(--SmartThemeQuoteColor);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Ollama Settings */
+.ollama-settings {
+    background-color: var(--SmartThemeBlurTintColor);
+    border-left: 3px solid var(--SmartThemeBorderColor);
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 5px;
+}
+
+/* Merge Dialog */
+.merge-dialog {
+    padding: 15px;
+}
+
+.merge-dialog p {
+    margin-bottom: 10px;
+}
+
+.merge-dialog strong {
+    color: var(--SmartThemeBodyColor);
+    font-weight: bold;
+}
+
+.merge-warning {
+    color: #ff9800;
+    font-size: 0.9em;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: rgba(255, 152, 0, 0.1);
+    border-left: 3px solid #ff9800;
+    border-radius: 3px;
+}
+
+/* Button states */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Flex utilities */
+.flexGap5 {
+    gap: 5px;
+}
+
+.flex1 {
+    flex: 1;
+}
+
+/* Progress indicator */
+.name-tracker-progress {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    text-align: center;
+}
+
+.name-tracker-progress .progress-text {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.name-tracker-progress .progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: var(--black50a);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.name-tracker-progress .progress-fill {
+    height: 100%;
+    background-color: var(--SmartThemeQuoteColor);
+    transition: width 0.3s ease;
+}
+
+/* Character details preview (for potential future use) */
+.character-details {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--black30a);
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
+.character-details.expanded {
+    display: block;
+}
+
+.character-details-section {
+    margin-bottom: 8px;
+}
+
+.character-details-section:last-child {
+    margin-bottom: 0;
+}
+
+.character-details-label {
+    font-weight: bold;
+    color: var(--SmartThemeQuoteColor);
+    margin-right: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .character-actions {
+        flex-direction: column;
+    }
+    
+    .character-actions .menu_button {
+        width: 100%;
+    }
+}
+
+/* Animation for new characters */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.name-tracker-character.new {
+    animation: fadeIn 0.3s ease;
+}
+
+/* System Prompt Editor */
+.system-prompt-editor h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--SmartThemeBodyColor);
+}
+
+.system-prompt-editor p {
+    margin-bottom: 10px;
+    color: var(--SmartThemeQuoteColor);
+    font-size: 0.9em;
+}
+
+#system_prompt_editor {
+    background-color: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 3px;
+    padding: 10px;
+    resize: vertical;
+}
+
+#system_prompt_editor:focus {
+    outline: none;
+    border-color: var(--SmartThemeEmColor);
+}
+
+.system-prompt-actions button {
+    min-width: 100px;
+}
+
+#system_prompt_reset {
+    margin-right: auto;
+}
+
+
+`, "",{"version":3,"sources":["webpack://./style.css"],"names":[],"mappings":"AAAA,0CAA0C;;AAE1C;IACI,YAAY;AAChB;;AAEA;IACI,mBAAmB;AACvB;;AAEA;IACI,gBAAgB;IAChB,mBAAmB;IACnB,iBAAiB;AACrB;;AAEA,mBAAmB;AACnB;IACI,gDAAgD;IAChD,8CAA8C;IAC9C,kBAAkB;IAClB,aAAa;AACjB;;AAEA;IACI,iBAAiB;IACjB,iCAAiC;IACjC,YAAY;IACZ,kBAAkB;AACtB;;AAEA,mBAAmB;AACnB;IACI,iBAAiB;IACjB,gBAAgB;IAChB,8CAA8C;IAC9C,kBAAkB;IAClB,YAAY;IACZ,eAAe;AACnB;;AAEA;IACI,aAAa;IACb,mBAAmB;IACnB,8CAA8C;IAC9C,kBAAkB;IAClB,gDAAgD;AACpD;;AAEA;IACI,gBAAgB;AACpB;;AAEA,gFAAgF;AAChF;IACI,8BAA8B;IAC9B,yCAAyC;AAC7C;;AAEA;IACI,aAAa;IACb,8BAA8B;IAC9B,mBAAmB;IACnB,kBAAkB;AACtB;;AAEA;IACI,iBAAiB;IACjB,gBAAgB;IAChB,iCAAiC;AACrC;;AAEA;IACI,cAAc;IACd,iBAAiB;AACrB;;AAEA;IACI,kCAAkC;IAClC,6BAA6B;AACjC;;AAEA;IACI,qBAAqB;IACrB,gBAAgB;IAChB,kBAAkB;IAClB,iBAAiB;IACjB,iBAAiB;IACjB,gBAAgB;AACpB;;AAEA;IACI,yBAAyB;IACzB,WAAW;AACf;;AAEA;IACI,sBAAsB;IACtB,WAAW;AACf;;AAEA;IACI,yBAAyB;IACzB,WAAW;AACf;;AAEA,gCAAgC;AAChC;IACI,aAAa;IACb,mBAAmB;IACnB,iCAAiC;AACrC;;AAEA;IACI,mBAAmB;AACvB;;AAEA;IACI,cAAc;IACd,iBAAiB;IACjB,kBAAkB;IAClB,iCAAiC;AACrC;;AAEA;IACI,cAAc;IACd,eAAe;IACf,kCAAkC;IAClC,iBAAiB;AACrB;;AAEA;;IAEI,WAAW;IACX,sBAAsB;AAC1B;;AAEA;IACI,gBAAgB;IAChB,kCAAkC;IAClC,kBAAkB;IAClB,kBAAkB;AACtB;;AAEA;IACI,qBAAqB;IACrB,iBAAiB;IACjB,gBAAgB;IAChB,0CAA0C;IAC1C,8CAA8C;IAC9C,kBAAkB;IAClB,sBAAsB;IACtB,iBAAiB;IACjB,kBAAkB;IAClB,kCAAkC;AACtC;;AAEA;IACI,iBAAiB;IACjB,iCAAiC;IACjC,aAAa;IACb,YAAY;IACZ,0CAA0C;IAC1C,mDAAmD;IACnD,kBAAkB;IAClB,gBAAgB;AACpB;;AAEA;IACI,aAAa;IACb,QAAQ;IACR,eAAe;IACf,eAAe;AACnB;;AAEA;IACI,OAAO;IACP,gBAAgB;IAChB,iBAAiB;IACjB,gBAAgB;AACpB;;AAEA;IACI,iBAAiB;IACjB,gBAAgB;AACpB;;AAEA;IACI,kCAAkC;IAClC,kBAAkB;IAClB,kBAAkB;IAClB,aAAa;AACjB;;AAEA,oBAAoB;AACpB;IACI,gDAAgD;IAChD,mDAAmD;IACnD,aAAa;IACb,eAAe;IACf,kBAAkB;AACtB;;AAEA,iBAAiB;AACjB;IACI,aAAa;AACjB;;AAEA;IACI,mBAAmB;AACvB;;AAEA;IACI,iCAAiC;IACjC,iBAAiB;AACrB;;AAEA;IACI,cAAc;IACd,gBAAgB;IAChB,gBAAgB;IAChB,aAAa;IACb,wCAAwC;IACxC,8BAA8B;IAC9B,kBAAkB;AACtB;;AAEA,kBAAkB;AAClB;IACI,YAAY;IACZ,mBAAmB;AACvB;;AAEA,mBAAmB;AACnB;IACI,QAAQ;AACZ;;AAEA;IACI,OAAO;AACX;;AAEA,uBAAuB;AACvB;IACI,cAAc;IACd,aAAa;IACb,gDAAgD;IAChD,8CAA8C;IAC9C,kBAAkB;IAClB,kBAAkB;AACtB;;AAEA;IACI,kBAAkB;IAClB,iBAAiB;AACrB;;AAEA;IACI,WAAW;IACX,YAAY;IACZ,iCAAiC;IACjC,mBAAmB;IACnB,gBAAgB;AACpB;;AAEA;IACI,YAAY;IACZ,6CAA6C;IAC7C,2BAA2B;AAC/B;;AAEA,yDAAyD;AACzD;IACI,aAAa;IACb,gBAAgB;IAChB,aAAa;IACb,iCAAiC;IACjC,kBAAkB;IAClB,gBAAgB;AACpB;;AAEA;IACI,cAAc;AAClB;;AAEA;IACI,kBAAkB;AACtB;;AAEA;IACI,gBAAgB;AACpB;;AAEA;IACI,iBAAiB;IACjB,kCAAkC;IAClC,iBAAiB;AACrB;;AAEA,2BAA2B;AAC3B;IACI;QACI,sBAAsB;IAC1B;;IAEA;QACI,WAAW;IACf;AACJ;;AAEA,iCAAiC;AACjC;IACI;QACI,UAAU;QACV,4BAA4B;IAChC;IACA;QACI,UAAU;QACV,wBAAwB;IAC5B;AACJ;;AAEA;IACI,2BAA2B;AAC/B;;AAEA,yBAAyB;AACzB;IACI,aAAa;IACb,mBAAmB;IACnB,iCAAiC;AACrC;;AAEA;IACI,mBAAmB;IACnB,kCAAkC;IAClC,gBAAgB;AACpB;;AAEA;IACI,gDAAgD;IAChD,iCAAiC;IACjC,8CAA8C;IAC9C,kBAAkB;IAClB,aAAa;IACb,gBAAgB;AACpB;;AAEA;IACI,aAAa;IACb,sCAAsC;AAC1C;;AAEA;IACI,gBAAgB;AACpB;;AAEA;IACI,kBAAkB;AACtB","sourcesContent":["/* Styles for the Name Tracker extension */\r\n\r\n.name-tracker-settings {\r\n    padding: 5px;\r\n}\r\n\r\n.name-tracker_block {\r\n    margin-bottom: 10px;\r\n}\r\n\r\n.name-tracker_block h4 {\r\n    margin-top: 10px;\r\n    margin-bottom: 10px;\r\n    font-weight: bold;\r\n}\r\n\r\n/* Status Display */\r\n.name-tracker-status-block {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    padding: 10px;\r\n}\r\n\r\n.name-tracker-status {\r\n    font-weight: bold;\r\n    color: var(--SmartThemeBodyColor);\r\n    padding: 5px;\r\n    text-align: center;\r\n}\r\n\r\n/* Character List */\r\n.name-tracker-character-list {\r\n    max-height: 400px;\r\n    overflow-y: auto;\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    padding: 5px;\r\n    margin-top: 5px;\r\n}\r\n\r\n.name-tracker-character {\r\n    padding: 10px;\r\n    margin-bottom: 10px;\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n}\r\n\r\n.name-tracker-character:last-child {\r\n    margin-bottom: 0;\r\n}\r\n\r\n/* Active/loaded character styling (characters that are loaded in SillyTavern) */\r\n.name-tracker-character.main-character {\r\n    border-left: 3px solid #4CAF50;\r\n    background-color: rgba(76, 175, 80, 0.05);\r\n}\r\n\r\n.character-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-bottom: 5px;\r\n}\r\n\r\n.character-name {\r\n    font-weight: bold;\r\n    font-size: 1.1em;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.character-name .fa-user {\r\n    color: #4CAF50;\r\n    margin-right: 5px;\r\n}\r\n\r\n.character-name.ignored {\r\n    color: var(--SmartThemeQuoteColor);\r\n    text-decoration: line-through;\r\n}\r\n\r\n.character-badge {\r\n    display: inline-block;\r\n    padding: 2px 8px;\r\n    border-radius: 3px;\r\n    font-size: 0.75em;\r\n    font-weight: bold;\r\n    margin-left: 5px;\r\n}\r\n\r\n.character-badge.main-char {\r\n    background-color: #4CAF50;\r\n    color: #fff;\r\n}\r\n\r\n.character-badge.ignored {\r\n    background-color: #666;\r\n    color: #fff;\r\n}\r\n\r\n.character-badge.unresolved {\r\n    background-color: #ff9800;\r\n    color: #000;\r\n}\r\n\r\n/* Lorebook entry editor modal */\r\n.lorebook-entry-editor h3 {\r\n    margin-top: 0;\r\n    margin-bottom: 20px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.editor-section {\r\n    margin-bottom: 15px;\r\n}\r\n\r\n.editor-section label {\r\n    display: block;\r\n    font-weight: bold;\r\n    margin-bottom: 5px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.editor-section small {\r\n    display: block;\r\n    margin-top: 3px;\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-size: 0.85em;\r\n}\r\n\r\n.editor-section input,\r\n.editor-section textarea {\r\n    width: 100%;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.character-aliases {\r\n    font-size: 0.9em;\r\n    color: var(--SmartThemeQuoteColor);\r\n    margin-bottom: 8px;\r\n    font-style: italic;\r\n}\r\n\r\n.lorebook-entry-id {\r\n    display: inline-block;\r\n    margin-left: 10px;\r\n    padding: 2px 6px;\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    font-family: monospace;\r\n    font-size: 0.85em;\r\n    font-style: normal;\r\n    color: var(--SmartThemeQuoteColor);\r\n}\r\n\r\n.character-details {\r\n    font-size: 0.85em;\r\n    color: var(--SmartThemeBodyColor);\r\n    margin: 8px 0;\r\n    padding: 8px;\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border-left: 2px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    line-height: 1.4;\r\n}\r\n\r\n.character-actions {\r\n    display: flex;\r\n    gap: 5px;\r\n    flex-wrap: wrap;\r\n    margin-top: 8px;\r\n}\r\n\r\n.character-actions .menu_button {\r\n    flex: 1;\r\n    min-width: 100px;\r\n    padding: 5px 10px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.menu_button.compact {\r\n    padding: 5px 10px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.name-tracker-empty {\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-style: italic;\r\n    text-align: center;\r\n    padding: 20px;\r\n}\r\n\r\n/* Ollama Settings */\r\n.ollama-settings {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border-left: 3px solid var(--SmartThemeBorderColor);\r\n    padding: 10px;\r\n    margin-top: 5px;\r\n    border-radius: 5px;\r\n}\r\n\r\n/* Merge Dialog */\r\n.merge-dialog {\r\n    padding: 15px;\r\n}\r\n\r\n.merge-dialog p {\r\n    margin-bottom: 10px;\r\n}\r\n\r\n.merge-dialog strong {\r\n    color: var(--SmartThemeBodyColor);\r\n    font-weight: bold;\r\n}\r\n\r\n.merge-warning {\r\n    color: #ff9800;\r\n    font-size: 0.9em;\r\n    margin-top: 10px;\r\n    padding: 10px;\r\n    background-color: rgba(255, 152, 0, 0.1);\r\n    border-left: 3px solid #ff9800;\r\n    border-radius: 3px;\r\n}\r\n\r\n/* Button states */\r\nbutton:disabled {\r\n    opacity: 0.5;\r\n    cursor: not-allowed;\r\n}\r\n\r\n/* Flex utilities */\r\n.flexGap5 {\r\n    gap: 5px;\r\n}\r\n\r\n.flex1 {\r\n    flex: 1;\r\n}\r\n\r\n/* Progress indicator */\r\n.name-tracker-progress {\r\n    margin: 10px 0;\r\n    padding: 10px;\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    text-align: center;\r\n}\r\n\r\n.name-tracker-progress .progress-text {\r\n    margin-bottom: 5px;\r\n    font-weight: bold;\r\n}\r\n\r\n.name-tracker-progress .progress-bar {\r\n    width: 100%;\r\n    height: 20px;\r\n    background-color: var(--black50a);\r\n    border-radius: 10px;\r\n    overflow: hidden;\r\n}\r\n\r\n.name-tracker-progress .progress-fill {\r\n    height: 100%;\r\n    background-color: var(--SmartThemeQuoteColor);\r\n    transition: width 0.3s ease;\r\n}\r\n\r\n/* Character details preview (for potential future use) */\r\n.character-details {\r\n    display: none;\r\n    margin-top: 10px;\r\n    padding: 10px;\r\n    background-color: var(--black30a);\r\n    border-radius: 5px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.character-details.expanded {\r\n    display: block;\r\n}\r\n\r\n.character-details-section {\r\n    margin-bottom: 8px;\r\n}\r\n\r\n.character-details-section:last-child {\r\n    margin-bottom: 0;\r\n}\r\n\r\n.character-details-label {\r\n    font-weight: bold;\r\n    color: var(--SmartThemeQuoteColor);\r\n    margin-right: 5px;\r\n}\r\n\r\n/* Responsive adjustments */\r\n@media (max-width: 768px) {\r\n    .character-actions {\r\n        flex-direction: column;\r\n    }\r\n    \r\n    .character-actions .menu_button {\r\n        width: 100%;\r\n    }\r\n}\r\n\r\n/* Animation for new characters */\r\n@keyframes fadeIn {\r\n    from {\r\n        opacity: 0;\r\n        transform: translateY(-10px);\r\n    }\r\n    to {\r\n        opacity: 1;\r\n        transform: translateY(0);\r\n    }\r\n}\r\n\r\n.name-tracker-character.new {\r\n    animation: fadeIn 0.3s ease;\r\n}\r\n\r\n/* System Prompt Editor */\r\n.system-prompt-editor h3 {\r\n    margin-top: 0;\r\n    margin-bottom: 10px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.system-prompt-editor p {\r\n    margin-bottom: 10px;\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-size: 0.9em;\r\n}\r\n\r\n#system_prompt_editor {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    color: var(--SmartThemeBodyColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    padding: 10px;\r\n    resize: vertical;\r\n}\r\n\r\n#system_prompt_editor:focus {\r\n    outline: none;\r\n    border-color: var(--SmartThemeEmColor);\r\n}\r\n\r\n.system-prompt-actions button {\r\n    min-width: 100px;\r\n}\r\n\r\n#system_prompt_reset {\r\n    margin-right: auto;\r\n}\r\n\r\n\r\n"],"sourceRoot":""}]);
+// Exports
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
+
+
+/***/ },
+
+/***/ 102
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   A: () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   stContext: () => (/* binding */ sillyTavernContext)
+/* harmony export */ });
+/* harmony import */ var _debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/* harmony import */ var _errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
+/**
+ * SillyTavern context abstraction layer for Name Tracker extension
+ * Provides a thin wrapper around SillyTavern.getContext() with error handling
+ */
+
+
+
+
+const logger = _debug_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"].createModuleLogger */ .Ay.createModuleLogger('Context');
+
+class SillyTavernContext {
+    constructor() {
+        this._context = null;
+        this._lastUpdate = 0;
+        this._updateInterval = 1000; // Cache context for 1 second
+    }
+
+    /**
+     * Get fresh SillyTavern context
+     * @returns {Object} SillyTavern context object
+     */
+    getContext() {
+        const now = Date.now();
+        if (!this._context || (now - this._lastUpdate) > this._updateInterval) {
+            try {
+                this._context = SillyTavern.getContext();
+                this._lastUpdate = now;
+            } catch (error) {
+                logger.error('Failed to get SillyTavern context:', error);
+                throw new Error('SillyTavern context not available');
+            }
+        }
+        return this._context;
+    }
+
+    /**
+     * Get current chat
+     * @returns {Array} Current chat messages
+     */
+    getChat() {
+        return this.getContext().chat || [];
+    }
+
+    /**
+     * Get current chat metadata
+     * @returns {Object} Chat metadata object
+     */
+    getChatMetadata() {
+        return this.getContext().chatMetadata || {};
+    }
+
+    /**
+     * Get current chat ID
+     * @returns {string|null} Chat identifier
+     */
+    getChatId() {
+        return this.getContext().chatId || null;
+    }
+
+    /**
+     * Get current character ID
+     * @returns {number|null} Character index
+     */
+    getCharacterId() {
+        return this.getContext().characterId;
+    }
+
+    /**
+     * Get characters list
+     * @returns {Array} Available characters
+     */
+    getCharacters() {
+        return this.getContext().characters || [];
+    }
+
+    /**
+     * Get user name (name1)
+     * @returns {string} User's persona name
+     */
+    getUserName() {
+        return this.getContext().name1 || 'User';
+    }
+
+    /**
+     * Get extension settings object
+     * @returns {Object} Extension settings
+     */
+    getExtensionSettings() {
+        return this.getContext().extensionSettings || {};
+    }
+
+    /**
+     * Save extension settings
+     * @returns {Promise<void>}
+     */
+    async saveExtensionSettings() {
+        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+            if (context.saveSettingsDebounced) {
+                context.saveSettingsDebounced();
+            } else {
+                logger.warn('saveSettingsDebounced not available');
+            }
+        }, { silent: true });
+    }
+
+    /**
+     * Save chat metadata
+     * @returns {Promise<void>}
+     */
+    async saveChatMetadata() {
+        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+            if (context.saveMetadata) {
+                await context.saveMetadata();
+            } else {
+                logger.warn('saveMetadata not available');
+            }
+        }, { silent: true });
+    }
+
+    /**
+     * Generate quiet prompt (background LLM call)
+     * @param {Object} options - Generation options
+     * @returns {Promise<string>} Generated text
+     */
+    async generateQuietPrompt(options) {
+        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+            if (!context.generateQuietPrompt) {
+                throw new Error('generateQuietPrompt not available');
+            }
+            return await context.generateQuietPrompt(options);
+        }, { retries: 1 });
+    }
+
+    /**
+     * Load world info (lorebook)
+     * @param {string} lorebookName - Name of lorebook to load
+     * @returns {Promise<Object|null>} Lorebook data
+     */
+    async loadWorldInfo(lorebookName) {
+        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+            if (!context.loadWorldInfo) {
+                throw new Error('loadWorldInfo not available');
+            }
+            return await context.loadWorldInfo(lorebookName);
+        });
+    }
+
+    /**
+     * Save world info (lorebook)
+     * @param {string} lorebookName - Name of lorebook
+     * @param {Object} data - Lorebook data
+     * @param {boolean} create - Create if doesn't exist
+     * @returns {Promise<void>}
+     */
+    async saveWorldInfo(lorebookName, data, create = false) {
+        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+            if (!context.saveWorldInfo) {
+                throw new Error('saveWorldInfo not available');
+            }
+            return await context.saveWorldInfo(lorebookName, data, create);
+        });
+    }
+
+    /**
+     * Save world info entry
+     * @param {string} lorebookName - Lorebook name
+     * @param {Object} entryData - Entry data
+     * @returns {Promise<void>}
+     */
+    async saveWorldInfoEntry(lorebookName, entryData) {
+        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+            if (!context.saveWorldInfoEntry) {
+                throw new Error('saveWorldInfoEntry not available');
+            }
+            return await context.saveWorldInfoEntry(lorebookName, entryData);
+        });
+    }
+
+    /**
+     * Set the chat's selected world info book (makes it active for the chat)
+     * @param {string} lorebookName - Name of lorebook to select
+     * @returns {Promise<void>}
+     */
+    async setSelectedWorldInfo(lorebookName) {
+        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+
+            // First method: Use saveSelectedWorldInfo if available
+            if (context.saveSelectedWorldInfo && typeof context.saveSelectedWorldInfo === 'function') {
+                await context.saveSelectedWorldInfo(lorebookName);
+                return;
+            }
+
+            // Second method: Set the world_info directly in chat metadata
+            if (!context.chatMetadata) {
+                throw new Error('Chat metadata not available');
+            }
+
+            context.chatMetadata.world_info = lorebookName;
+
+            // Save the metadata
+            if (context.saveMetadata && typeof context.saveMetadata === 'function') {
+                await context.saveMetadata();
+            }
+
+            logger.debug(`Selected world info: ${lorebookName}`);
+        }, { silent: true });
+    }
+
+    /**
+     * Get event source for listening to SillyTavern events
+     * @returns {Object} Event source object
+     */
+    getEventSource() {
+        const context = this.getContext();
+        return context.eventSource;
+    }
+
+    /**
+     * Get event types constants
+     * @returns {Object} Event types
+     */
+    getEventTypes() {
+        const context = this.getContext();
+        return context.event_types;
+    }
+
+    /**
+     * Call generic popup
+     * @param {string} content - HTML content
+     * @param {number} type - Popup type
+     * @param {string} input - Input placeholder
+     * @param {Object} options - Additional options
+     * @returns {Promise<any>} Popup result
+     */
+    async callGenericPopup(content, type, input = '', options = {}) {
+        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+            if (!context.callGenericPopup) {
+                throw new Error('callGenericPopup not available');
+            }
+            return await context.callGenericPopup(content, type, input, options);
+        });
+    }
+
+    /**
+     * Check if SillyTavern context is available
+     * @returns {boolean} Context availability
+     */
+    isContextAvailable() {
+        try {
+            return !!this.getContext();
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Clear cached context (force refresh on next access)
+     */
+    clearCache() {
+        this._context = null;
+        this._lastUpdate = 0;
+        logger.debug('Cleared context cache');
+    }
+
+    /**
+     * Get context status information for debugging
+     * @returns {Object} Context status
+     */
+    getStatus() {
+        return {
+            available: this.isContextAvailable(),
+            cached: !!this._context,
+            lastUpdate: this._lastUpdate,
+            chatId: this.getChatId(),
+            characterId: this.getCharacterId(),
+        };
+    }
+
+    /**
+     * Dump entire context object to console for debugging
+     * Shows all properties and their values in a readable format
+     */
+    dumpContextToConsole() {
+        try {
+            const context = this.getContext();
+
+            // Create a formatted dump
+            const dump = {
+                timestamp: new Date().toISOString(),
+                availableProperties: Object.keys(context),
+                fullContext: context,
+                detailedBreakdown: {},
+            };
+
+            // Add detailed breakdown of key properties
+            const keyProps = [
+                'maxContext', 'maxTokens', 'amount_gen', 'token_limit',
+                'extensionSettings', 'settings', 'chat', 'chatMetadata',
+                'characters', 'world_info', 'botId', 'characterId', 'chatId',
+                'impersonate', 'groups',
+            ];
+
+            for (const prop of keyProps) {
+                if (prop in context) {
+                    dump.detailedBreakdown[prop] = {
+                        type: typeof context[prop],
+                        value: context[prop],
+                        isNull: context[prop] === null,
+                        isUndefined: context[prop] === undefined,
+                    };
+                }
+            }
+
+            // Log to console with formatting
+            console.group('%c[Name Tracker] COMPLETE CONTEXT DUMP', 'color: #00ff00; font-weight: bold; font-size: 14px;');
+            console.log('%cTimestamp:', 'color: #ffaa00; font-weight: bold;', dump.timestamp);
+            console.log('%cTotal Properties:', 'color: #ffaa00; font-weight: bold;', dump.availableProperties.length);
+            console.log('%cAll Property Names:', 'color: #00aaff; font-weight: bold;', dump.availableProperties.join(', '));
+            console.log('%cDetailed Property Breakdown:', 'color: #ff00ff; font-weight: bold;', dump.detailedBreakdown);
+            console.log('%cFull Context Object:', 'color: #00ff00; font-weight: bold;', context);
+            console.log('%cJSON Dump (for copying):', 'color: #ffff00; font-weight: bold;', JSON.stringify(dump, null, 2));
+            console.groupEnd();
+
+            return dump;
+        } catch (error) {
+            console.error('[Name Tracker] ERROR dumping context:', error);
+            throw error;
+        }
+    }
+}
+
+// Create singleton instance
+const sillyTavernContext = new SillyTavernContext();
+
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (sillyTavernContext);
+
+
+/***/ },
+
+/***/ 113
+(module) {
+
+
+
+/* istanbul ignore next  */
+function styleTagTransform(css, styleElement) {
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = css;
+  } else {
+    while (styleElement.firstChild) {
+      styleElement.removeChild(styleElement.firstChild);
+    }
+    styleElement.appendChild(document.createTextNode(css));
+  }
+}
+module.exports = styleTagTransform;
+
+/***/ },
+
+/***/ 134
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   TQ: () => (/* binding */ updateLorebookEntry),
+/* harmony export */   _Z: () => (/* binding */ viewInLorebook),
+/* harmony export */   initializeLorebook: () => (/* binding */ initializeLorebook)
+/* harmony export */ });
+/* unused harmony exports createLorebookContent, deleteLorebookEntry, purgeLorebookEntries, adoptExistingEntries, getCurrentLorebookName, resetLorebookState, getLorebookStats */
+/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
+/* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
+/* harmony import */ var _core_context_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(102);
+/* harmony import */ var _utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(854);
+/* harmony import */ var _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(695);
+/**
+ * Lorebook Management Module
+ *
+ * Handles chat-level lorebook creation, entry formatting, and SillyTavern integration
+ * for the Name Tracker extension.
+ */
+
+// Early debugging
+console.log('[LOREBOOK] Starting module load...');
+
+
+
+
+
+
+
+
+// Post-import debugging
+console.log('[LOREBOOK] Imports completed. Types:');
+console.log('[LOREBOOK] createModuleLogger:', typeof _core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* .createModuleLogger */ .Xv);
+console.log('[LOREBOOK] withErrorBoundary:', typeof _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc);
+console.log('[LOREBOOK] NameTrackerError:', typeof _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_);
+
+// Try to create debug logger with explicit error handling
+let debug;
+try {
+    console.log('[LOREBOOK] About to call createModuleLogger...');
+    debug = (0,_core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* .createModuleLogger */ .Xv)('lorebook');
+    console.log('[LOREBOOK] Debug logger created successfully:', debug);
+} catch (error) {
+    console.error('[LOREBOOK] Failed to create debug logger:', error);
+    console.error('[LOREBOOK] Error stack:', error.stack);
+    // Create fallback logger
+    debug = {
+        log: console.log.bind(console, '[LOREBOOK]'),
+        error: console.error.bind(console, '[LOREBOOK]'),
+        warn: console.warn.bind(console, '[LOREBOOK]'),
+        debug: console.debug.bind(console, '[LOREBOOK]'),
+    };
+}
+const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__/* .NotificationManager */ .h('Lorebook Management');
+
+// Lorebook state
+let lorebookName = null;
+
+/**
+ * Initialize or get the lorebook for this chat
+ * @returns {Promise<string|null>} Lorebook name if successful, null if no chat
+ */
+async function initializeLorebook() {
+    console.log('╔═══════════════════════════════════════════════════════════════════════════');
+    console.log('║ [NT-Lorebook] initializeLorebook() CALLED');
+    console.log('╚═══════════════════════════════════════════════════════════════════════════');
+
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('initializeLorebook', async () => {
+        console.log('║ [NT-Lorebook] Inside withErrorBoundary, getting context...');
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
+        console.log('║ [NT-Lorebook] Got context:', !!context);
+        console.log('║ [NT-Lorebook] context.chatId:', context?.chatId);
+
+        if (!context.chatId) {
+            console.warn('║ [NT-Lorebook] ⚠️  NO ACTIVE CHAT - Aborting initialization');
+            debug.log('No active chat, skipping lorebook initialization');
+            lorebookName = null;
+            return null;
+        }
+
+        console.log('║ [NT-Lorebook] Active chat detected, proceeding...');
+        const METADATA_KEY = 'world_info';
+        const chatMetadata = context.chatMetadata;
+        console.log('║ [NT-Lorebook] chatMetadata exists?:', !!chatMetadata);
+
+        if (!chatMetadata) {
+            console.warn('║ [NT-Lorebook] ⚠️  NO CHAT METADATA - Aborting initialization');
+            debug.log('No chat metadata available, skipping lorebook initialization');
+            lorebookName = null;
+            return null;
+        }
+
+        console.log('║ [NT-Lorebook] Checking for existing bound lorebook...');
+        console.log('║ [NT-Lorebook] chatMetadata[world_info]:', chatMetadata[METADATA_KEY]);
+
+        // Check if chat already has a bound lorebook
+        if (chatMetadata[METADATA_KEY]) {
+            lorebookName = chatMetadata[METADATA_KEY];
+            console.log('╔═══════════════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] ✅ EXISTING LOREBOOK FOUND');
+            console.log('╠═══════════════════════════════════════════════════════════════════════════');
+            console.log('║ Lorebook Name:', lorebookName);
+            console.log('║ Module Variable Set: YES');
+            console.log('╚═══════════════════════════════════════════════════════════════════════════');
+            debug.log(`Using existing chat lorebook: ${lorebookName}`);
+
+            // Lorebook is already bound in chatMetadata - no additional selection needed
+            return lorebookName;
+        }
+
+        // Create a new chat-bound lorebook name
+        const bookName = `NameTracker_${context.chatId}`
+            .replace(/[^a-z0-9 -]/gi, '_')
+            .replace(/_{2,}/g, '_')
+            .substring(0, 64);
+
+        console.log('╔═══════════════════════════════════════════════════════════════════════════');
+        console.log('║ [NT-Lorebook] 🆕 CREATING NEW LOREBOOK');
+        console.log('╠═══════════════════════════════════════════════════════════════════════════');
+        console.log('║ Generated Name:', bookName);
+        console.log('║ Chat ID:', context.chatId);
+        console.log('╚═══════════════════════════════════════════════════════════════════════════');
+        debug.log(`Creating new chat lorebook: ${bookName}`);
+        lorebookName = bookName;
+        console.log('║ [NT-Lorebook] Module variable lorebookName SET TO:', lorebookName);
+
+        // Bind it to the chat metadata
+        chatMetadata[METADATA_KEY] = lorebookName;
+
+        // Save chat metadata using context API
+        try {
+            await context.saveMetadata();
+            console.log(`[NT-Lorebook] ✅ Bound lorebook to chat metadata: ${lorebookName}`);
+            debug.log(`Bound lorebook to chat: ${lorebookName}`);
+
+            // CRITICAL: Actually SELECT the lorebook so it's active for the chat
+            await context.setSelectedWorldInfo(lorebookName);
+            console.log(`[NT-Lorebook] ✅ Selected lorebook as active for this chat: ${lorebookName}`);
+
+            // Ensure the lorebook file exists (create empty if needed)
+            const worldInfo = await context.loadWorldInfo(lorebookName);
+            if (!worldInfo) {
+                console.log(`[NT-Lorebook] 📝 Creating empty lorebook file: ${lorebookName}`);
+                debug.log();
+                await context.saveWorldInfo(lorebookName, { entries: {} }, true);
+                console.log('[NT-Lorebook] ✅ Lorebook file created successfully');
+            } else {
+                console.log(`[NT-Lorebook] ℹ️  Lorebook file already exists with ${Object.keys(worldInfo.entries || {}).length} entries`);
+            }
+
+            // Notify user
+            notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
+            console.log('[NT-Lorebook] 🎉 Chat lorebook initialization complete');
+        } catch (error) {
+            console.error('Failed to initialize lorebook:', error);
+            lorebookName = null;
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_(`Failed to initialize lorebook: ${error.message}`);
+        }
+
+        return lorebookName;
+    });
+}
+
+/**
+ * Update or create lorebook entry for a character
+ * @param {Object} character - Character data
+ * @param {string} characterName - Character name
+ * @returns {Promise<void>}
+ */
+async function updateLorebookEntry(character, characterName) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('updateLorebookEntry', async () => {
+        console.log('╔════════════════════════════════════════════════════════════════');
+        console.log('║ [NT-Lorebook] updateLorebookEntry CALLED');
+        console.log('╠════════════════════════════════════════════════════════════════');
+        console.log('║ CRITICAL: Checking lorebookName variable');
+        console.log('║ lorebookName value:', lorebookName);
+        console.log('║ lorebookName type:', typeof lorebookName);
+        console.log('║ lorebookName is null?:', lorebookName === null);
+        console.log('║ lorebookName is undefined?:', lorebookName === undefined);
+        console.log('║ lorebookName is falsy?:', !lorebookName);
+        console.log('╚════════════════════════════════════════════════════════════════');
+
+        if (!lorebookName) {
+            console.error('╔════════════════════════════════════════════════════════════════');
+            console.error('║ [NT-Lorebook] ❌ CRITICAL ERROR: NO LOREBOOK INITIALIZED!');
+            console.error('╠════════════════════════════════════════════════════════════════');
+            console.error('║ lorebookName is:', lorebookName);
+            console.error('║ Character:', characterName);
+            console.error('║ SKIPPING LOREBOOK ENTRY UPDATE');
+            console.error('╚════════════════════════════════════════════════════════════════');
+            debug.log('No lorebook initialized, skipping entry update');
+            return;
+        }
+
+        console.log('╔════════════════════════════════════════════════════════════════');
+        console.log('║ [NT-Lorebook] ✅ Lorebook IS initialized');
+        console.log('╠════════════════════════════════════════════════════════════════');
+        console.log('║ Character Name:', characterName);
+        console.log('║ Character Object:', JSON.stringify(character, null, 2));
+        console.log('║ Has lorebookEntryId?:', !!character.lorebookEntryId);
+        console.log('║ Existing Entry ID:', character.lorebookEntryId || 'NONE');
+        console.log('╚════════════════════════════════════════════════════════════════');
+
+        debug.log(`updateLorebookEntry called for: ${characterName}`);
+        debug.log('  Character data:', character);
+
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
+        const lorebookConfig = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLorebookConfig */ .gf)();
+
+        // Build the entry content in a readable format
+        const contentParts = [];
+
+        // Physical Age / Mental Age
+        if (character.physicalAge || character.mentalAge) {
+            const ageInfo = [];
+            if (character.physicalAge) ageInfo.push(`Physical: ${character.physicalAge}`);
+            if (character.mentalAge) ageInfo.push(`Mental: ${character.mentalAge}`);
+            contentParts.push(`**Age:** ${ageInfo.join(', ')}`);
+        }
+
+        // Physical (consolidated body description)
+        if (character.physical) {
+            contentParts.push(`\n**Physical Description:**\n${character.physical}`);
+        }
+
+        // Personality (consolidated traits, likes, dislikes)
+        if (character.personality) {
+            contentParts.push(`\n**Personality:**\n${character.personality}`);
+        }
+
+        // Sexuality
+        if (character.sexuality) {
+            contentParts.push(`\n**Sexuality:**\n${character.sexuality}`);
+        }
+
+        // Race/Ethnicity
+        if (character.raceEthnicity) {
+            contentParts.push(`**Race/Ethnicity:** ${character.raceEthnicity}`);
+        }
+
+        // Role & Skills
+        if (character.roleSkills) {
+            contentParts.push(`\n**Role & Skills:**\n${character.roleSkills}`);
+        }
+
+        // Relationships
+        if (character.relationships && character.relationships.length > 0) {
+            contentParts.push('\n**Relationships:**');
+            character.relationships.forEach(rel => {
+                contentParts.push(`- ${rel}`);
+            });
+        }
+
+        const content = contentParts.join('\n');
+
+        // Build the keys array (name + aliases)
+        const keys = [character.preferredName];
+        if (character.aliases) {
+            keys.push(...character.aliases);
+        }
+
+        // Load the world info to check if entry exists
+        let worldInfo = await context.loadWorldInfo(lorebookName);
+
+        if (!worldInfo) {
+            debug.log();
+            // Match SillyTavern's world info structure
+            worldInfo = {
+                entries: {},
+            };
+        }
+
+        // Clean up orphaned entries for this character
+        // Remove any entries that match this character's name/aliases but aren't the current entry ID
+        console.log(`[NT-Lorebook] 🧹 Cleaning up orphaned entries for: ${characterName}`);
+        const orphanedUids = [];
+        for (const [uid, entry] of Object.entries(worldInfo.entries)) {
+            if (!entry.key || !Array.isArray(entry.key)) continue;
+
+            // Check if any of this entry's keys match our character's primary name or aliases
+            const hasMatchingKey = entry.key.some(k =>
+                k.toLowerCase() === characterName.toLowerCase() ||
+                (character.aliases && character.aliases.some(alias =>
+                    k.toLowerCase() === alias.toLowerCase(),
+                )),
+            );
+
+            // If this entry has matching keys but isn't our current entry, mark it for removal
+            if (hasMatchingKey && uid !== character.lorebookEntryId) {
+                console.log(`[NT-Lorebook]    Removing orphaned entry: ${uid} (keys: ${entry.key.join(', ')})`);
+                orphanedUids.push(uid);
+            }
+        }
+
+        // Remove orphaned entries
+        for (const uid of orphanedUids) {
+            delete worldInfo.entries[uid];
+        }
+
+        if (orphanedUids.length > 0) {
+            console.log(`[NT-Lorebook] ✅ Removed ${orphanedUids.length} orphaned entries`);
+        }
+
+        // Calculate dynamic cooldown
+        const messageFreq = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('messageFrequency', 10);
+        const calculatedCooldown = Math.max(1, Math.floor(messageFreq * 0.75));
+
+
+        let existingUid = null;
+
+        // Check if this character already has a lorebook entry
+        if (character.lorebookEntryId && worldInfo.entries && worldInfo.entries[character.lorebookEntryId]) {
+            // Update existing entry
+            existingUid = character.lorebookEntryId;
+            const existingEntry = worldInfo.entries[existingUid];
+
+            console.log(`[NT-Lorebook] 🔄 Updating existing entry for: ${characterName}`);
+            console.log(`[NT-Lorebook]    Entry UID: ${existingUid}`);
+            console.log(`[NT-Lorebook]    Keys: ${keys.join(', ')}`);
+            console.log(`[NT-Lorebook]    Content length: ${content.length} chars`);
+
+            existingEntry.key = keys;
+            existingEntry.content = content;
+            existingEntry.enabled = lorebookConfig.enabled;
+            existingEntry.position = lorebookConfig.position;
+            existingEntry.probability = lorebookConfig.probability;
+            existingEntry.depth = lorebookConfig.depth;
+            existingEntry.scanDepth = lorebookConfig.scanDepth;
+            existingEntry.cooldown = calculatedCooldown;
+
+            debug.log();
+        } else {
+            // Create new entry
+            const newUid = (0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .generateUID */ .cv)();
+
+            console.log('╔════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] CREATING NEW ENTRY');
+            console.log('╠════════════════════════════════════════════════════════════════');
+            console.log('║ Character Name:', characterName);
+            console.log('║ Generated UID:', newUid);
+            console.log('║ Keys Array:', JSON.stringify(keys));
+            console.log('║ Content Preview:', content.substring(0, 200) + '...');
+            console.log('║ Content Length:', content.length, 'characters');
+            console.log('╚════════════════════════════════════════════════════════════════');
+
+            const newEntry = {
+                uid: newUid,
+                key: keys,
+                keysecondary: [],
+                comment: character.preferredName,
+                content: content,
+                constant: false,
+                selective: true,
+                contextConfig: {
+                    prefix: '',
+                    suffix: '',
+                    tokenBudget: 0,
+                    reservedTokens: 0,
+                    budgetPriority: 400,
+                    trimDirection: 'doNotTrim',
+                    insertionOrder: 0,
+                    maximumTrimType: 'sentence',
+                    insertionPosition: 'before',
+                },
+                enabled: lorebookConfig.enabled,
+                position: lorebookConfig.position,
+                excludeRecursion: false,
+                preventRecursion: false,
+                delayUntilRecursion: false,
+                probability: lorebookConfig.probability,
+                useProbability: true,
+                depth: lorebookConfig.depth,
+                selectiveLogic: 0,
+                group: '',
+                scanDepth: lorebookConfig.scanDepth,
+                caseSensitive: null,
+                matchWholeWords: null,
+                useGroupScoring: null,
+                automationId: '',
+                role: 0,
+                vectorized: false,
+                sticky: 0,
+                cooldown: calculatedCooldown,
+                delay: 0,
+            };
+
+            // World info entries are stored as an object with UID as key
+            worldInfo.entries[newUid] = newEntry;
+            character.lorebookEntryId = newUid;
+
+            console.log(`[NT-Lorebook] 🆕 Creating new entry for: ${characterName}`);
+            console.log(`[NT-Lorebook]    Entry UID: ${newUid}`);
+            console.log(`[NT-Lorebook]    Keys: ${keys.join(', ')}`);
+            console.log(`[NT-Lorebook]    Content length: ${content.length} chars`);
+            console.log(`[NT-Lorebook]    Enabled: ${lorebookConfig.enabled}`);
+            console.log(`[NT-Lorebook]    Position: ${lorebookConfig.position}`);
+
+            // Save the character with the new lorebook entry ID
+            console.log('╔════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] SAVING CHARACTER WITH ENTRY ID');
+            console.log('╠════════════════════════════════════════════════════════════════');
+            console.log('║ Character Name:', characterName);
+            console.log('║ Character Object BEFORE save:', JSON.stringify(character, null, 2));
+            console.log('║ Lorebook Entry ID:', newUid);
+            console.log('╚════════════════════════════════════════════════════════════════');
+
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setCharacter */ .e7)(characterName, character);
+
+            console.log('╔════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] CHARACTER SAVE COMPLETE');
+            console.log('╠════════════════════════════════════════════════════════════════');
+            console.log('║ Character Name:', characterName);
+            console.log('║ Entry ID Saved:', character.lorebookEntryId);
+            console.log('╚════════════════════════════════════════════════════════════════');
+
+            debug.log();
+        }
+
+        // Save the lorebook
+        try {
+            console.log('╔════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] SAVING LOREBOOK TO DISK');
+            console.log('╠════════════════════════════════════════════════════════════════');
+            console.log('║ Lorebook Name:', lorebookName);
+            console.log('║ Total Entries:', Object.keys(worldInfo.entries).length);
+            console.log('║ Entry UIDs:', Object.keys(worldInfo.entries));
+            console.log('║ WorldInfo Structure:', JSON.stringify({
+                entryCount: Object.keys(worldInfo.entries).length,
+                entryKeys: Object.keys(worldInfo.entries),
+                sampleEntry: Object.values(worldInfo.entries)[0] ? {
+                    uid: Object.values(worldInfo.entries)[0].uid,
+                    key: Object.values(worldInfo.entries)[0].key,
+                    contentLength: Object.values(worldInfo.entries)[0].content.length,
+                } : 'NONE',
+            }, null, 2));
+            console.log('╚════════════════════════════════════════════════════════════════');
+
+            await context.saveWorldInfo(lorebookName, worldInfo, true);
+
+            console.log('╔════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] LOREBOOK SAVE COMPLETE');
+            console.log('╠════════════════════════════════════════════════════════════════');
+            console.log('║ Lorebook Name:', lorebookName);
+            console.log('║ Save Successful: YES');
+            console.log('╚════════════════════════════════════════════════════════════════');
+
+            // Verify the save worked by reloading
+            console.log('╔════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] VERIFYING LOREBOOK SAVE');
+            console.log('╠════════════════════════════════════════════════════════════════');
+            console.log('║ Reloading:', lorebookName);
+            console.log('╚════════════════════════════════════════════════════════════════');
+
+            const verifyWorldInfo = await context.loadWorldInfo(lorebookName);
+            const targetUid = existingUid || character.lorebookEntryId;
+
+            console.log('╔════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] VERIFICATION RESULTS');
+            console.log('╠════════════════════════════════════════════════════════════════');
+            console.log('║ Target UID:', targetUid);
+            console.log('║ Verification Data Loaded?:', !!verifyWorldInfo);
+            console.log('║ Has Entries Object?:', !!verifyWorldInfo?.entries);
+            console.log('║ Available Entry UIDs:', Object.keys(verifyWorldInfo?.entries || {}));
+            console.log('║ Target Entry Found?:', !!(verifyWorldInfo?.entries?.[targetUid]));
+
+            if (verifyWorldInfo && verifyWorldInfo.entries && verifyWorldInfo.entries[targetUid]) {
+                console.log('║ ✅ VERIFICATION: SUCCESS');
+                console.log('║ Entry Data:', JSON.stringify({
+                    uid: verifyWorldInfo.entries[targetUid].uid,
+                    key: verifyWorldInfo.entries[targetUid].key,
+                    enabled: verifyWorldInfo.entries[targetUid].enabled,
+                    contentLength: verifyWorldInfo.entries[targetUid].content.length,
+                }, null, 2));
+                console.log('╚════════════════════════════════════════════════════════════════');
+                debug.log();
+            } else {
+                console.log('║ ❌ VERIFICATION: FAILED');
+                console.log('║ Entry NOT found in reloaded lorebook!');
+                console.log('╚════════════════════════════════════════════════════════════════');
+                console.error('[NT-Lorebook] ❌ WARNING: Lorebook verification failed - entries may not have been saved!');
+                console.error('[NT-Lorebook]    Target UID:', targetUid);
+                console.error('[NT-Lorebook]    Available entries:', Object.keys(verifyWorldInfo?.entries || {}));
+                console.error('[Name Tracker] WARNING: Lorebook verification failed - entries may not have been saved!');
+            }
+
+            debug.log();
+        } catch (error) {
+            console.error('[NT-Lorebook] ❌ Error saving lorebook:', error);
+            console.error('[NT-Lorebook]    Lorebook name:', lorebookName);
+            console.error('[NT-Lorebook]    Error details:', error.message);
+            console.error('[Name Tracker] Error saving lorebook:', error);
+            debug.log();
+            throw error; // Re-throw so caller knows it failed
+        }
+    });
+}
+
+/**
+ * Create lorebook content from character data (JSON format)
+ * @param {Object} character - Character data
+ * @returns {string} JSON string representation
+ */
+function createLorebookContent(character) {
+    return withErrorBoundary('createLorebookContent', () => {
+        const content = {
+            name: character.preferredName,
+            aliases: character.aliases,
+            physical: character.physical,
+            mental: character.mental,
+            relationships: character.relationships,
+        };
+
+        return JSON.stringify(content, null, 2);
+    });
+}
+
+/**
+ * View character in lorebook editor
+ * @param {string} characterName - Name of character to view
+ * @returns {Promise<void>}
+ */
+async function viewInLorebook(characterName) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('viewInLorebook', async () => {
+        const character = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacter */ .qN)(characterName);
+
+        if (!character) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('Character not found');
+        }
+
+        if (!lorebookName) {
+            notifications.warning('No active chat or lorebook');
+            return;
+        }
+
+        // Import the openWorldInfoEditor function from SillyTavern
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
+
+        // Open the lorebook editor
+        if (typeof context.openWorldInfoEditor === 'function') {
+            await context.openWorldInfoEditor(lorebookName);
+            notifications.success(`Opened lorebook for ${characterName}`);
+        } else {
+            // Fallback: show the world info panel if openWorldInfoEditor doesn't exist
+            $('#WorldInfo').click();
+            notifications.info(`Please select "${lorebookName}" from the World Info panel`);
+        }
+    });
+}
+
+/**
+ * Delete a character's lorebook entry
+ * @param {Object} character - Character data
+ * @returns {Promise<boolean>} True if deleted successfully
+ */
+async function deleteLorebookEntry(character) {
+    return withErrorBoundary('deleteLorebookEntry', async () => {
+        if (!lorebookName || !character.lorebookEntryId) {
+            debug.log();
+            return false;
+        }
+
+        const context = stContext.getContext();
+
+        try {
+            const worldInfo = await context.loadWorldInfo(lorebookName);
+            if (worldInfo && worldInfo.entries && worldInfo.entries[character.lorebookEntryId]) {
+                delete worldInfo.entries[character.lorebookEntryId];
+                await context.saveWorldInfo(lorebookName, worldInfo, true);
+
+                debug.log();
+                return true;
+            }
+        } catch (error) {
+            console.error('Error deleting lorebook entry:', error);
+            return false;
+        }
+
+        return false;
+    });
+}
+
+/**
+ * Purge all tracked character entries from lorebook
+ * @param {Array} characters - Array of character objects to purge
+ * @returns {Promise<number>} Number of entries deleted
+ */
+async function purgeLorebookEntries(characters) {
+    return withErrorBoundary('purgeLorebookEntries', async () => {
+        if (!lorebookName) {
+            debug.log();
+            return 0;
+        }
+
+        const context = stContext.getContext();
+        let deletedCount = 0;
+
+        try {
+            const worldInfo = await context.loadWorldInfo(lorebookName);
+
+            if (worldInfo && worldInfo.entries) {
+                // Get all entry IDs from our tracked characters
+                const entryIds = characters
+                    .map(char => char.lorebookEntryId)
+                    .filter(id => id !== undefined && id !== null);
+
+                // Delete each entry
+                for (const entryId of entryIds) {
+                    if (worldInfo.entries[entryId]) {
+                        delete worldInfo.entries[entryId];
+                        deletedCount++;
+                        debug.log();
+                    }
+                }
+
+                // Save the lorebook
+                await context.saveWorldInfo(lorebookName, worldInfo, true);
+            }
+        } catch (error) {
+            console.error('Error purging lorebook entries:', error);
+            throw new NameTrackerError(`Failed to purge lorebook entries: ${error.message}`);
+        }
+
+        return deletedCount;
+    });
+}
+
+/**
+ * Adopt existing lorebook entries into character cache
+ * This allows manual entries or previous data to be imported
+ * @returns {Promise<number>} Number of entries adopted
+ */
+async function adoptExistingEntries() {
+    return withErrorBoundary('adoptExistingEntries', async () => {
+        if (!lorebookName) {
+            debug.log();
+            return 0;
+        }
+
+        const context = stContext.getContext();
+        let adoptedCount = 0;
+
+        try {
+            const worldInfo = await context.loadWorldInfo(lorebookName);
+
+            if (!worldInfo || !worldInfo.entries) {
+                debug.log();
+                return 0;
+            }
+
+            const characters = getCharacters();
+
+            // Look for entries that might belong to our extension
+            for (const [entryId, entry] of Object.entries(worldInfo.entries)) {
+                if (!entry.key || !Array.isArray(entry.key) || entry.key.length === 0) {
+                    continue;
+                }
+
+                const primaryName = entry.key[0];
+
+                // Check if this entry represents a character we should track
+                const managedByExtension = entry.comment?.includes('Auto-generated entry for')
+                    || entry.comment === primaryName
+                    || entry.comment === `Auto-generated entry for ${primaryName}`;
+
+                if (!characters[primaryName] && managedByExtension) {
+                    // Try to parse the content to recreate character data
+                    const character = {
+                        preferredName: primaryName,
+                        aliases: entry.key.slice(1),
+                        physical: '',
+                        personality: '',
+                        sexuality: '',
+                        raceEthnicity: '',
+                        roleSkills: '',
+                        relationships: [],
+                        ignored: false,
+                        confidence: 50,
+                        lorebookEntryId: entryId,
+                        lastUpdated: Date.now(),
+                        isMainChar: false,
+                    };
+
+                    // Store the adopted character
+                    setCharacter(primaryName, character);
+                    adoptedCount++;
+
+                    debug.log();
+                }
+            }
+
+            if (adoptedCount > 0) {
+                notifications.success(`Adopted ${adoptedCount} existing lorebook entries`);
+            }
+
+        } catch (error) {
+            console.error('Error adopting existing entries:', error);
+            throw new NameTrackerError(`Failed to adopt existing entries: ${error.message}`);
+        }
+
+        return adoptedCount;
+    });
+}
+
+/**
+ * Get the current lorebook name
+ * @returns {string|null} Current lorebook name
+ */
+function getCurrentLorebookName() {
+    return lorebookName;
+}
+
+/**
+ * Reset lorebook state (called on chat change)
+ */
+function resetLorebookState() {
+    lorebookName = null;
+    debug.log();
+}
+
+/**
+ * Get lorebook statistics
+ * @returns {Promise<Object>} Lorebook statistics
+ */
+async function getLorebookStats() {
+    return withErrorBoundary('getLorebookStats', async () => {
+        if (!lorebookName) {
+            return {
+                name: null,
+                entryCount: 0,
+                trackedEntries: 0,
+                orphanedEntries: 0,
+            };
+        }
+
+        const context = stContext.getContext();
+
+        try {
+            const worldInfo = await context.loadWorldInfo(lorebookName);
+            const characters = getCharacters();
+
+            if (!worldInfo || !worldInfo.entries) {
+                return {
+                    name: lorebookName,
+                    entryCount: 0,
+                    trackedEntries: 0,
+                    orphanedEntries: 0,
+                };
+            }
+
+            const totalEntries = Object.keys(worldInfo.entries).length;
+            const trackedIds = Object.values(characters)
+                .map(char => char.lorebookEntryId)
+                .filter(id => id);
+            const trackedEntries = trackedIds.length;
+            const orphanedEntries = totalEntries - trackedEntries;
+
+            return {
+                name: lorebookName,
+                entryCount: totalEntries,
+                trackedEntries,
+                orphanedEntries,
+            };
+        } catch (error) {
+            console.error('Error getting lorebook stats:', error);
+            return {
+                name: lorebookName,
+                entryCount: 0,
+                trackedEntries: 0,
+                orphanedEntries: 0,
+                error: error.message,
+            };
+        }
+    });
+}
+
+
+/***/ },
+
+/***/ 314
+(module) {
+
+
+
+/*
+  MIT License http://www.opensource.org/licenses/mit-license.php
+  Author Tobias Koppers @sokra
+*/
+module.exports = function (cssWithMappingToString) {
+  var list = [];
+
+  // return the list of modules as css string
+  list.toString = function toString() {
+    return this.map(function (item) {
+      var content = "";
+      var needLayer = typeof item[5] !== "undefined";
+      if (item[4]) {
+        content += "@supports (".concat(item[4], ") {");
+      }
+      if (item[2]) {
+        content += "@media ".concat(item[2], " {");
+      }
+      if (needLayer) {
+        content += "@layer".concat(item[5].length > 0 ? " ".concat(item[5]) : "", " {");
+      }
+      content += cssWithMappingToString(item);
+      if (needLayer) {
+        content += "}";
+      }
+      if (item[2]) {
+        content += "}";
+      }
+      if (item[4]) {
+        content += "}";
+      }
+      return content;
+    }).join("");
+  };
+
+  // import a list of modules into the list
+  list.i = function i(modules, media, dedupe, supports, layer) {
+    if (typeof modules === "string") {
+      modules = [[null, modules, undefined]];
+    }
+    var alreadyImportedModules = {};
+    if (dedupe) {
+      for (var k = 0; k < this.length; k++) {
+        var id = this[k][0];
+        if (id != null) {
+          alreadyImportedModules[id] = true;
+        }
+      }
+    }
+    for (var _k = 0; _k < modules.length; _k++) {
+      var item = [].concat(modules[_k]);
+      if (dedupe && alreadyImportedModules[item[0]]) {
+        continue;
+      }
+      if (typeof layer !== "undefined") {
+        if (typeof item[5] === "undefined") {
+          item[5] = layer;
+        } else {
+          item[1] = "@layer".concat(item[5].length > 0 ? " ".concat(item[5]) : "", " {").concat(item[1], "}");
+          item[5] = layer;
+        }
+      }
+      if (media) {
+        if (!item[2]) {
+          item[2] = media;
+        } else {
+          item[1] = "@media ".concat(item[2], " {").concat(item[1], "}");
+          item[2] = media;
+        }
+      }
+      if (supports) {
+        if (!item[4]) {
+          item[4] = "".concat(supports);
+        } else {
+          item[1] = "@supports (".concat(item[4], ") {").concat(item[1], "}");
+          item[4] = supports;
+        }
+      }
+      list.push(item);
+    }
+  };
+  return list;
+};
+
+/***/ },
+
+/***/ 354
+(module) {
+
+
+
+module.exports = function (item) {
+  var content = item[1];
+  var cssMapping = item[3];
+  if (!cssMapping) {
+    return content;
+  }
+  if (typeof btoa === "function") {
+    var base64 = btoa(unescape(encodeURIComponent(JSON.stringify(cssMapping))));
+    var data = "sourceMappingURL=data:application/json;charset=utf-8;base64,".concat(base64);
+    var sourceMapping = "/*# ".concat(data, " */");
+    return [content].concat([sourceMapping]).join("\n");
+  }
+  return [content].join("\n");
+};
+
+/***/ },
+
+/***/ 462
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   S_: () => (/* binding */ NameTrackerError),
+/* harmony export */   Xc: () => (/* binding */ withErrorBoundary),
+/* harmony export */   r_: () => (/* binding */ errorHandler)
+/* harmony export */ });
+/* harmony import */ var _debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/**
+ * Error handling and recovery system for Name Tracker extension
+ * Provides error boundaries, graceful degradation, and transaction rollback
+ */
+
+
+
+const logger = _debug_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"].createModuleLogger */ .Ay.createModuleLogger('ErrorHandler');
+
+class NameTrackerError extends Error {
+    constructor(message, code, module, recoverable = true) {
+        super(message);
+        this.name = 'NameTrackerError';
+        this.code = code;
+        this.module = module;
+        this.recoverable = recoverable;
+        this.timestamp = Date.now();
+    }
+}
+
+class ErrorHandler {
+    constructor() {
+        this.errorHistory = [];
+        this.transactionStack = [];
+        this.recoveryStrategies = new Map();
+        this.criticalErrorCallbacks = [];
+    }
+
+    /**
+     * Create error boundary for a module operation
+     * @param {string} moduleName - Module name
+     * @param {Function} operation - Operation to execute
+     * @param {Object} options - Error handling options
+     * @returns {Promise<any>} Operation result or error recovery result
+     */
+    async withErrorBoundary(moduleName, operation, options = {}) {
+        const {
+            fallback = null,
+            retries = 0,
+            silent = false,
+            operationId = null,
+        } = options;
+
+        let lastError = null;
+        const startTime = Date.now();
+
+        if (operationId) {
+            logger.trace(operationId, `Starting operation in ${moduleName}`);
+        }
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                const result = await operation();
+
+                if (operationId) {
+                    logger.trace(operationId, `Operation completed successfully in ${moduleName}`);
+                }
+
+                return result;
+            } catch (error) {
+                console.log(`[STnametracker] Error caught in ${moduleName}:`, error);
+                lastError = error;
+
+                if (attempt < retries) {
+                    console.log(`[STnametracker] Retrying operation in ${moduleName}, attempt ${attempt + 1}/${retries + 1}:`, error.message);
+                    logger.warn(`Retrying operation in ${moduleName}, attempt ${attempt + 1}/${retries + 1}:`, error.message);
+                    await this.delay(Math.pow(2, attempt) * 100); // Exponential backoff
+                    continue;
+                }
+            }
+        }
+
+        // All retries failed
+        console.log(`[STnametracker] All retries failed in ${moduleName}, tracking error:`, lastError);
+        const trackedError = this.trackError(lastError, moduleName, {
+            operation: operation.name || 'anonymous',
+            duration: Date.now() - startTime,
+            retries: retries,
+            operationId: operationId,
+        });
+
+        if (!silent) {
+            console.log(`[STnametracker] Notifying user of error in ${moduleName}`);
+            this.notifyUser(trackedError);
+        }
+
+        // Try recovery strategy
+        if (fallback) {
+            try {
+                logger.debug(`Attempting fallback for ${moduleName}:`, trackedError.code);
+                return await fallback(trackedError);
+            } catch (fallbackError) {
+                logger.error(`Fallback failed for ${moduleName}:`, fallbackError);
+            }
+        }
+
+        // Check if we have a recovery strategy
+        const recovery = this.recoveryStrategies.get(trackedError.code);
+        if (recovery) {
+            try {
+                return await recovery(trackedError);
+            } catch (recoveryError) {
+                logger.error(`Recovery strategy failed for ${trackedError.code}:`, recoveryError);
+            }
+        }
+
+        throw trackedError;
+    }
+
+    /**
+     * Track and categorize errors
+     * @param {Error} error - Original error
+     * @param {string} moduleName - Module where error occurred
+     * @param {Object} context - Additional context
+     * @returns {NameTrackerError} Tracked error
+     */
+    trackError(error, moduleName, context = {}) {
+        let trackedError;
+
+        if (error instanceof NameTrackerError) {
+            trackedError = error;
+        } else {
+            // Categorize common error types
+            const code = this.categorizeError(error, moduleName);
+            trackedError = new NameTrackerError(
+                error.message,
+                code,
+                moduleName,
+                this.isRecoverable(error, code),
+            );
+        }
+
+        trackedError.context = context;
+        this.errorHistory.push(trackedError);
+
+        // Keep only last 100 errors
+        if (this.errorHistory.length > 100) {
+            this.errorHistory.shift();
+        }
+
+        logger.error(`Error in ${moduleName}:`, {
+            code: trackedError.code,
+            message: trackedError.message,
+            context: context,
+        });
+
+        return trackedError;
+    }
+
+    /**
+     * Categorize error types for better handling
+     * @param {Error} error - Original error
+     * @param {string} moduleName - Module name
+     * @returns {string} Error code
+     */
+    categorizeError(error, moduleName) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+            return 'NETWORK_ERROR';
+        }
+
+        if (error.message.includes('JSON') || error.message.includes('parse')) {
+            return 'DATA_FORMAT_ERROR';
+        }
+
+        if (error.message.includes('context') || error.message.includes('SillyTavern')) {
+            return 'CONTEXT_ERROR';
+        }
+
+        if (error.name === 'TypeError') {
+            return 'TYPE_ERROR';
+        }
+
+        if (moduleName === 'LLM' && (error.message.includes('quota') || error.message.includes('rate'))) {
+            return 'API_LIMIT_ERROR';
+        }
+
+        return 'UNKNOWN_ERROR';
+    }
+
+    /**
+     * Determine if an error is recoverable
+     * @param {Error} error - Original error
+     * @param {string} code - Error code
+     * @returns {boolean} Whether error is recoverable
+     */
+    isRecoverable(error, code) {
+        const nonRecoverableErrors = [
+            'CONTEXT_ERROR',
+            'TYPE_ERROR',
+        ];
+
+        return !nonRecoverableErrors.includes(code);
+    }
+
+    /**
+     * Start a transaction for rollback capability
+     * @param {string} transactionId - Unique transaction identifier
+     * @param {Object} initialState - State to potentially rollback to
+     */
+    startTransaction(transactionId, initialState) {
+        this.transactionStack.push({
+            id: transactionId,
+            state: JSON.stringify(initialState),
+            timestamp: Date.now(),
+        });
+
+        logger.debug(`Started transaction: ${transactionId}`);
+    }
+
+    /**
+     * Commit a transaction (remove from rollback stack)
+     * @param {string} transactionId - Transaction identifier
+     */
+    commitTransaction(transactionId) {
+        const index = this.transactionStack.findIndex(t => t.id === transactionId);
+        if (index !== -1) {
+            this.transactionStack.splice(index, 1);
+            logger.debug(`Committed transaction: ${transactionId}`);
+        }
+    }
+
+    /**
+     * Rollback a transaction
+     * @param {string} transactionId - Transaction identifier
+     * @returns {Object|null} Previous state or null if not found
+     */
+    rollbackTransaction(transactionId) {
+        const index = this.transactionStack.findIndex(t => t.id === transactionId);
+        if (index !== -1) {
+            const transaction = this.transactionStack.splice(index, 1)[0];
+            logger.debug(`Rolled back transaction: ${transactionId}`);
+            return JSON.parse(transaction.state);
+        }
+        return null;
+    }
+
+    /**
+     * Register a recovery strategy for specific error codes
+     * @param {string} errorCode - Error code to handle
+     * @param {Function} strategy - Recovery function
+     */
+    registerRecoveryStrategy(errorCode, strategy) {
+        this.recoveryStrategies.set(errorCode, strategy);
+        logger.debug(`Registered recovery strategy for: ${errorCode}`);
+    }
+
+    /**
+     * Register callback for critical errors
+     * @param {Function} callback - Function to call on critical errors
+     */
+    onCriticalError(callback) {
+        this.criticalErrorCallbacks.push(callback);
+    }
+
+    /**
+     * Notify user of errors via toastr
+     * @param {NameTrackerError} error - Error to display
+     */
+    notifyUser(error) {
+        const message = `Name Tracker: ${error.message}`;
+
+        if (error.recoverable) {
+            toastr.warning(message, 'Warning', { timeOut: 5000 });
+        } else {
+            toastr.error(message, 'Error', { timeOut: 8000 });
+
+            // Notify critical error callbacks
+            this.criticalErrorCallbacks.forEach(callback => {
+                try {
+                    callback(error);
+                } catch (callbackError) {
+                    logger.error('Critical error callback failed:', callbackError);
+                }
+            });
+        }
+    }
+
+    /**
+     * Get recent error history
+     * @param {number} count - Number of recent errors to return
+     * @returns {Array} Recent errors
+     */
+    getRecentErrors(count = 10) {
+        return this.errorHistory.slice(-count);
+    }
+
+    /**
+     * Clear error history
+     */
+    clearHistory() {
+        this.errorHistory = [];
+        logger.debug('Cleared error history');
+    }
+
+    /**
+     * Utility delay function for retries
+     * @param {number} ms - Milliseconds to delay
+     * @returns {Promise} Delay promise
+     */
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Create singleton instance
+const errorHandler = new ErrorHandler();
+
+
+const withErrorBoundary = errorHandler.withErrorBoundary.bind(errorHandler);
+/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && (errorHandler)));
+
+
+/***/ },
+
+/***/ 540
+(module) {
+
+
+
+/* istanbul ignore next  */
+function insertStyleElement(options) {
+  var element = document.createElement("style");
+  options.setAttributes(element, options.attributes);
+  options.insert(element, options.options);
+  return element;
+}
+module.exports = insertStyleElement;
+
+/***/ },
+
+/***/ 548
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   PL: () => (/* binding */ getSetting),
+/* harmony export */   TJ: () => (/* binding */ get_settings),
+/* harmony export */   ZC: () => (/* binding */ setSetting),
+/* harmony export */   bg: () => (/* binding */ getCharacters),
+/* harmony export */   e7: () => (/* binding */ setCharacter),
+/* harmony export */   eU: () => (/* binding */ getLLMConfig),
+/* harmony export */   gf: () => (/* binding */ getLorebookConfig),
+/* harmony export */   nF: () => (/* binding */ setChatData),
+/* harmony export */   nT: () => (/* binding */ set_settings),
+/* harmony export */   qN: () => (/* binding */ getCharacter),
+/* harmony export */   sr: () => (/* binding */ removeCharacter),
+/* harmony export */   yb: () => (/* binding */ set_chat_metadata),
+/* harmony export */   zB: () => (/* binding */ getChatData)
+/* harmony export */ });
+/* unused harmony exports MODULE_NAME, DEFAULT_SETTINGS, DEFAULT_CHAT_DATA, setCharacters, addCharacter, getSettings, get_chat_metadata */
+/* harmony import */ var _errors_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(462);
+/* harmony import */ var _debug_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(806);
+/* harmony import */ var _context_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(102);
+/**
+ * Simplified settings management for Name Tracker extension
+ * Uses SillyTavern standard patterns with preserved error handling
+ */
+
+
+
+
+
+const MODULE_NAME = 'STnametracker';
+const debug = (0,_debug_js__WEBPACK_IMPORTED_MODULE_1__/* .createModuleLogger */ .Xv)('Settings');
+
+// Default settings structure
+const DEFAULT_SETTINGS = Object.freeze({
+    enabled: true,
+    autoAnalyze: true,
+    messageFrequency: 10,
+    llmSource: 'sillytavern', // 'sillytavern' or 'ollama'
+    ollamaEndpoint: 'http://localhost:11434',
+    ollamaModel: '',
+    confidenceThreshold: 70,
+    lorebookPosition: 0, // after character defs
+    lorebookDepth: 1,
+    lorebookCooldown: 5,
+    lorebookScanDepth: 1,
+    lorebookProbability: 100,
+    lorebookEnabled: true,
+    debugMode: false,
+    systemPrompt: null, // null means use default
+    lastScannedMessageId: -1,
+    totalCharactersDetected: 0,
+    lastAnalysisTime: null,
+    analysisCache: new Map(),
+});
+
+// Default chat-level data structure
+const DEFAULT_CHAT_DATA = Object.freeze({
+    characters: {},
+    lastScannedMessageId: -1,
+    analysisHistory: [],
+    lorebookEntries: {},
+    processingStats: {
+        totalProcessed: 0,
+        charactersFound: 0,
+        lastProcessedTime: null,
+    },
+});
+
+/**
+ * Get current settings with defaults
+ * @returns {Object} Current settings
+ */
+function get_settings() {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+        // Ensure extension_settings exists
+        if (typeof extension_settings === 'undefined') {
+            console.warn('[STnametracker] extension_settings not available');
+            return { ...DEFAULT_SETTINGS };
+        }
+
+        // Initialize if not exists
+        if (!extension_settings[MODULE_NAME]) {
+            extension_settings[MODULE_NAME] = { ...DEFAULT_SETTINGS };
+        }
+
+        // Merge with defaults to ensure all properties exist
+        const settings = { ...DEFAULT_SETTINGS, ...extension_settings[MODULE_NAME] };
+        return settings;
+    }, { ...DEFAULT_SETTINGS });
+}
+
+/**
+ * Update settings and save
+ * @param {Object} newSettings - Settings to update
+ */
+function set_settings(newSettings) {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+        // Ensure extension_settings exists
+        if (typeof extension_settings === 'undefined') {
+            console.warn('[STnametracker] extension_settings not available for saving');
+            return;
+        }
+
+        // Initialize if not exists
+        if (!extension_settings[MODULE_NAME]) {
+            extension_settings[MODULE_NAME] = { ...DEFAULT_SETTINGS };
+        }
+
+        // Update settings
+        Object.assign(extension_settings[MODULE_NAME], newSettings);
+
+        // Save to SillyTavern
+        if (typeof saveSettingsDebounced !== 'undefined') {
+            saveSettingsDebounced();
+        }
+    });
+}
+
+/**
+ * Get current chat characters
+ * @returns {Object} Chat characters data
+ */
+function getCharacters() {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME].characters || {};
+        } catch (error) {
+            debug.warn('Failed to get characters:', error.message);
+            return {};
+        }
+    }, {});
+}
+
+/**
+ * Update chat characters and save
+ * @param {Object} characters - Characters data to save
+ */
+async function setCharacters(characters) {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', async () => {
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            // Update characters
+            metadata[MODULE_NAME].characters = characters;
+
+            // CRITICAL: AWAIT the save to complete before returning
+            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata();
+        } catch (error) {
+            debug.warn('Failed to set characters:', error.message);
+            throw error; // Re-throw so caller knows it failed
+        }
+    });
+}
+
+/**
+ * Get chat-level data
+ * @returns {Object} Chat metadata
+ */
+function getChatData() {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME];
+        } catch (error) {
+            debug.warn('Failed to get chat data:', error.message);
+            return { ...DEFAULT_CHAT_DATA };
+        }
+    }, { ...DEFAULT_CHAT_DATA });
+}
+
+/**
+ * Update chat-level data
+ * @param {Object} data - Data to update
+ */
+async function setChatData(data) {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', async () => {
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+
+            // Initialize if not exists
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            // Update data
+            Object.assign(metadata[MODULE_NAME], data);
+
+            // CRITICAL: AWAIT the save to complete before returning
+            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata();
+        } catch (error) {
+            debug.warn('Failed to set chat data:', error.message);
+            throw error; // Re-throw so caller knows it failed
+        }
+    });
+}
+
+/**
+ * Add a character to the current chat
+ * @param {string} name - Character name
+ * @param {Object} characterData - Character data
+ */
+async function addCharacter(name, characterData) {
+    return errorHandler.withErrorBoundary('Settings', async () => {
+        const characters = getCharacters();
+        characters[name] = characterData;
+        await setCharacters(characters); // AWAIT the async save
+    });
+}
+
+/**
+ * Remove a character from the current chat
+ * @param {string} name - Character name to remove
+ */
+async function removeCharacter(name) {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', async () => {
+        const characters = getCharacters();
+        delete characters[name];
+        await setCharacters(characters); // AWAIT the async save
+    });
+}
+
+/**
+ * Get a specific setting value
+ * @param {string} key - Setting key
+ * @param {*} defaultValue - Default value if not found
+ * @returns {*} Setting value
+ */
+function getSetting(key, defaultValue) {
+    const settings = get_settings();
+    return settings[key] !== undefined ? settings[key] : defaultValue;
+}
+
+/**
+ * Set a specific setting value
+ * @param {string} key - Setting key
+ * @param {*} value - Setting value
+ */
+function setSetting(key, value) {
+    const update = {};
+    update[key] = value;
+    set_settings(update);
+}
+
+/**
+ * Get a single character by name
+ * @param {string} name - Character name
+ * @returns {Object|null} Character data or null if not found
+ */
+function getCharacter(name) {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+        if (!name || typeof name !== 'string') {
+            console.warn('[STnametracker] Invalid character name:', name);
+            return null;
+        }
+        const chars = getCharacters();
+        return chars[name] || null;
+    }, null);
+}
+
+/**
+ * Set a character by name
+ * @param {string} name - Character name
+ * @param {Object} character - Character data
+ */
+async function setCharacter(name, character) {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', async () => {
+        if (!name || typeof name !== 'string') {
+            throw new Error('Character name must be a non-empty string');
+        }
+        if (!character || typeof character !== 'object') {
+            throw new Error('Character data must be an object');
+        }
+        const chars = { ...getCharacters() };
+        chars[name] = character;
+        await setCharacters(chars); // AWAIT the async setCharacters
+        debug.log(`Set character: ${name}`);
+    });
+}
+
+/**
+ * Get LLM configuration
+ * @returns {Object} LLM configuration object
+ */
+function getLLMConfig() {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+        const llmSource = getSetting('llmSource');
+        console.log('[NT-LLMConfig] llmSource setting:', llmSource);
+        console.log('[NT-LLMConfig] All extension_settings keys:', Object.keys(extension_settings.sillytavern_nametracker || {}));
+        return {
+            source: llmSource,
+            ollamaEndpoint: getSetting('ollamaEndpoint'),
+            ollamaModel: getSetting('ollamaModel'),
+            systemPrompt: getSetting('systemPrompt'),
+        };
+    }, { source: 'sillytavern', ollamaEndpoint: 'http://localhost:11434', ollamaModel: '', systemPrompt: null });
+}
+
+/**
+ * Get lorebook configuration
+ * @returns {Object} Lorebook configuration object
+ */
+function getLorebookConfig() {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+        return {
+            position: getSetting('lorebookPosition'),
+            depth: getSetting('lorebookDepth'),
+            cooldown: getSetting('lorebookCooldown'),
+            scanDepth: getSetting('lorebookScanDepth'),
+            probability: getSetting('lorebookProbability'),
+            enabled: getSetting('lorebookEnabled'),
+        };
+    }, { position: 0, depth: 1, cooldown: 5, scanDepth: 1, probability: 100, enabled: true });
+}
+
+/**
+ * Alias for get_settings for compatibility
+ * @returns {Object} Current settings
+ */
+function getSettings() {
+    return get_settings();
+}
+
+/**
+ * Get chat metadata value
+ * @param {string} key - Metadata key
+ * @returns {any} Metadata value
+ */
+function get_chat_metadata(key) {
+    return errorHandler.withErrorBoundary('Settings', () => {
+        try {
+            const metadata = stContext.getChatMetadata();
+
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            return metadata[MODULE_NAME][key];
+        } catch (error) {
+            debug.warn('Failed to get chat metadata:', error.message);
+            return DEFAULT_CHAT_DATA[key];
+        }
+    }, DEFAULT_CHAT_DATA[key]);
+}
+
+/**
+ * Set chat metadata value
+ * @param {string} key - Metadata key
+ * @param {any} value - New value
+ */
+function set_chat_metadata(key, value) {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+        try {
+            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+
+            if (!metadata[MODULE_NAME]) {
+                metadata[MODULE_NAME] = { ...DEFAULT_CHAT_DATA };
+            }
+
+            metadata[MODULE_NAME][key] = value;
+            debug.log(`Updated chat data ${key}`);
+
+            _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata().catch(err => {
+                debug.warn('Failed to save chat metadata:', err.message);
+            });
+        } catch (error) {
+            debug.warn('Failed to set chat metadata:', error.message);
+        }
+    });
+}
+
+
+
+
+/***/ },
+
+/***/ 551
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   OW: () => (/* binding */ createCharacter),
+/* harmony export */   _$: () => (/* binding */ findExistingCharacter),
+/* harmony export */   eY: () => (/* binding */ isIgnoredCharacter),
+/* harmony export */   el: () => (/* binding */ toggleIgnoreCharacter),
+/* harmony export */   g9: () => (/* binding */ createNewCharacter),
+/* harmony export */   lF: () => (/* binding */ mergeCharacters),
+/* harmony export */   pp: () => (/* binding */ hasUnresolvedRelationships),
+/* harmony export */   rL: () => (/* binding */ findPotentialMatch),
+/* harmony export */   t9: () => (/* binding */ updateCharacter),
+/* harmony export */   undoLastMerge: () => (/* binding */ undoLastMerge),
+/* harmony export */   vu: () => (/* binding */ purgeAllCharacters)
+/* harmony export */ });
+/* unused harmony exports calculateNameSimilarity, cleanAliases, detectMergeOpportunities, getUndoHistory, clearUndoHistory, exportCharacters, importCharacters */
+/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(134);
+/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(806);
+/* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(462);
+/* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(548);
+/* harmony import */ var _utils_notifications_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(695);
+/**
+ * Character Management Module
+ *
+ * Handles character CRUD operations, merging, alias detection, relationship management,
+ * and per-character processing state tracking for the Name Tracker extension.
+ */
+
+
+
+
+
+
+
+const debug = (0,_core_debug_js__WEBPACK_IMPORTED_MODULE_1__/* .createModuleLogger */ .Xv)('characters');
+const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_4__/* .NotificationManager */ .h('Character Management');
+
+// ============================================================================
+// DEBUG CONFIGURATION
+// ============================================================================
+const DEBUG_LOGGING = true; // Set to false in production after testing
+
+function debugLog(message, data = null) {
+    if (DEBUG_LOGGING) {
+        console.log(`[NT-Characters] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// CONFIGURATION CONSTANTS - Merge confidence thresholds and detection parameters
+// ============================================================================
+
+// Merge Confidence Tiers (as percentages: 0-100)
+const MERGE_CONFIDENCE_HIGH = 0.9;      // 90%+ - Automatic merge (e.g., exact substring: "Jazz"/"Jasmine")
+const MERGE_CONFIDENCE_MEDIUM = 0.7;    // 70%+ - User prompt required (e.g., phonetic similarity)
+// eslint-disable-next-line no-unused-vars
+const MERGE_CONFIDENCE_LOW = 0.5;       // 50%+ - No automatic action (may indicate false positives)
+
+// Substring Matching Thresholds
+const MIN_SUBSTRING_LENGTH = 3;         // Minimum length for substring detection
+const SUBSTRING_MATCH_BONUS = 0.95;     // High confidence for substring matches
+
+// Character management state
+let undoHistory = []; // Store last 3 merge operations
+
+/**
+ * Character data structure
+ * @typedef {Object} CharacterData
+ * @property {string} preferredName - The preferred/canonical name
+ * @property {string[]} aliases - List of alternative names
+ * @property {string} physicalAge - Physical age description
+ * @property {string} mentalAge - Mental age description
+ * @property {string} physical - Physical description
+ * @property {string} personality - Personality traits
+ * @property {string} sexuality - Sexual orientation/preferences
+ * @property {string} raceEthnicity - Race/ethnicity information
+ * @property {string} roleSkills - Role and skills description
+ * @property {string[]} relationships - Relationships with other characters
+ * @property {boolean} ignored - Whether character is ignored
+ * @property {number} confidence - Confidence score (0-100)
+ * @property {string|null} lorebookEntryId - Associated lorebook entry ID
+ * @property {number} lastUpdated - Timestamp of last update
+ * @property {boolean} isMainChar - Whether this is the main character
+ */
+
+/**
+ * Check if a character is in the ignored list
+ * @param {string} name - Character name to check
+ * @returns {boolean} True if character is ignored
+ */
+function isIgnoredCharacter(name) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('isIgnoredCharacter', () => {
+        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        return Object.values(chars).some(
+            char => char.ignored && (char.preferredName === name || char.aliases.includes(name)),
+        );
+    });
+}
+
+/**
+ * Find existing character by name or alias
+ * @param {string} name - Name to search for
+ * @returns {CharacterData|null} Character data if found, null otherwise
+ */
+function findExistingCharacter(name) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('findExistingCharacter', () => {
+        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        const found = Object.values(chars).find(
+            char => char.preferredName === name || char.aliases.includes(name),
+        ) || null;
+        debugLog(`[FindChar] Searching for '${name}': ${found ? 'FOUND as ' + found.preferredName : 'NOT FOUND'}`);
+        return found;
+    });
+}
+
+/**
+ * Find potential match for a new character based on confidence threshold
+ * @param {Object} analyzedChar - Character data from LLM analysis
+ * @returns {Promise<CharacterData|null>} Potential match if found
+ */
+async function findPotentialMatch(analyzedChar) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('findPotentialMatch', async () => {
+        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        const threshold = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .get_settings */ .TJ)('confidenceThreshold', 70);
+
+        debug.log();
+
+        // Simple matching logic - can be enhanced with LLM-based similarity
+        for (const existingChar of Object.values(chars)) {
+            // Check for name similarity (simple approach)
+            const similarity = calculateNameSimilarity(analyzedChar.name, existingChar.preferredName);
+
+            if (similarity >= threshold) {
+                debug.log();
+                return existingChar;
+            }
+
+            // Check aliases
+            for (const alias of existingChar.aliases) {
+                const aliasSimilarity = calculateNameSimilarity(analyzedChar.name, alias);
+                if (aliasSimilarity >= threshold) {
+                    debug.log();
+                    return existingChar;
+                }
+            }
+        }
+
+        return null;
+    });
+}
+
+/**
+ * Calculate simple name similarity (0-100)
+ * @param {string} name1 - First name to compare
+ * @param {string} name2 - Second name to compare
+ * @returns {number} Similarity score 0-100
+ */
+function calculateNameSimilarity(name1, name2) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('calculateNameSimilarity', () => {
+        name1 = name1.toLowerCase();
+        name2 = name2.toLowerCase();
+
+        // Exact match
+        if (name1 === name2) {
+            return 100;
+        }
+
+        // One contains the other
+        if (name1.includes(name2) || name2.includes(name1)) {
+            return 85;
+        }
+
+        // Check if they share significant parts
+        const words1 = name1.split(/\s+/);
+        const words2 = name2.split(/\s+/);
+
+        const commonWords = words1.filter(w => words2.includes(w));
+        if (commonWords.length > 0) {
+            return 70;
+        }
+
+        // No significant similarity
+        return 0;
+    });
+}
+
+/**
+ * Filter and clean aliases
+ * Removes character's own name, relationship words, and other invalid aliases
+ * @param {string[]} aliases - Array of alias strings
+ * @param {string} characterName - The character's actual name
+ * @returns {string[]} Cleaned array of unique aliases
+ */
+function cleanAliases(aliases, characterName) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('cleanAliases', () => {
+        if (!aliases || !Array.isArray(aliases)) {
+            return [];
+        }
+
+        // Common relationship/role words that shouldn't be aliases
+        const invalidAliases = [
+            'son', 'daughter', 'mother', 'father', 'mom', 'dad', 'parent',
+            'brother', 'sister', 'sibling', 'cousin', 'uncle', 'aunt',
+            'friend', 'boyfriend', 'girlfriend', 'husband', 'wife', 'spouse',
+            'boss', 'employee', 'coworker', 'colleague', 'partner',
+            'neighbor', 'roommate', 'child', 'kid', 'baby',
+            'man', 'woman', 'person', 'guy', 'girl', 'boy',
+            'user', '{{user}}', 'char', '{{char}}',
+        ];
+
+        const lowerName = characterName.toLowerCase();
+
+        return aliases.filter(alias => {
+            if (!alias || typeof alias !== 'string') return false;
+
+            const lowerAlias = alias.trim().toLowerCase();
+
+            // Remove if it's the character's own name
+            if (lowerAlias === lowerName) return false;
+
+            // Remove if it's just a relationship word
+            if (invalidAliases.includes(lowerAlias)) return false;
+
+            // Remove if it's too short (likely not a real alias)
+            if (lowerAlias.length < 2) return false;
+
+            return true;
+        })
+            .map(alias => alias.trim()) // Trim whitespace
+            .filter((alias, index, self) => self.indexOf(alias) === index); // Remove duplicates
+    });
+}
+
+// ============================================================================
+// MERGE DETECTION AND CONFIDENCE SCORING
+// ============================================================================
+
+/**
+ * Detect potential merge opportunities for a new character
+ * Finds existing characters that might be the same person with different names
+ * @param {string} newCharacterName - Name of the newly discovered character
+ * @returns {Array} Array of potential merge targets with confidence scores
+ */
+function detectMergeOpportunities(newCharacterName) {
+    return withErrorBoundary('detectMergeOpportunities', () => {
+        debugLog(`[MergeDetect] Checking merge opportunities for: ${newCharacterName}`);
+
+        const potentialMatches = [];
+        const existingCharacters = getCharacters();
+
+        if (!newCharacterName || typeof newCharacterName !== 'string') {
+            debugLog('[MergeDetect] Invalid name provided');
+            return potentialMatches;
+        }
+
+        // eslint-disable-next-line no-unused-vars
+        for (const [_existingName, existingChar] of Object.entries(existingCharacters)) {
+            const confidence = calculateMergeConfidence(newCharacterName, existingChar);
+
+            if (confidence >= MERGE_CONFIDENCE_MEDIUM) {
+                const tier = confidence >= MERGE_CONFIDENCE_HIGH ? 'HIGH' : 'MEDIUM';
+                const reason = generateMergeReason(newCharacterName, existingChar, confidence);
+                potentialMatches.push({
+                    targetName: existingChar.preferredName,
+                    confidence: confidence,
+                    tier: tier,
+                    reason: reason,
+                });
+                debugLog(`[MergeDetect] ${newCharacterName} -> ${existingChar.preferredName}: ${tier} (${Math.round(confidence * 100)}%) - ${reason}`);
+            }
+        }
+
+        // Sort by confidence descending
+        potentialMatches.sort((a, b) => b.confidence - a.confidence);
+
+        debugLog(`[MergeDetect] Total merge candidates for ${newCharacterName}: ${potentialMatches.length}`);
+
+        return potentialMatches;
+    }, []);
+}
+
+/**
+ * Calculate merge confidence between two character names
+ * Returns value 0-1 (0-100%)
+ * @private
+ */
+function calculateMergeConfidence(newName, existingChar) {
+    debugLog(`[CalcConfidence] Comparing '${newName}' vs '${existingChar.preferredName}'`);
+
+    const existingName = existingChar.preferredName;
+    let confidence = 0;
+
+    // Check for exact substring match (e.g., "Jazz" in "Jasmine")
+    if (isSubstringMatch(newName, existingName)) {
+        confidence = SUBSTRING_MATCH_BONUS;
+        debugLog('[CalcConfidence] Substring match detected');
+    }
+    // Check if new name matches any existing alias
+    else if (existingChar.aliases && existingChar.aliases.some(alias =>
+        newName.toLowerCase() === alias.toLowerCase())) {
+        confidence = 0.95;
+    }
+    // Check for phonetic similarity
+    else if (isPhoneticSimilar(newName, existingName)) {
+        confidence = 0.8;
+    }
+    // Check for partial similarity
+    else if (isPartialMatch(newName, existingName)) {
+        confidence = 0.65;
+    }
+
+    return confidence;
+}
+
+/**
+ * Check if newName is a substring of existingName (or vice versa)
+ * Used for detecting nickname relationships like "Jazz" for "Jasmine"
+ * @private
+ */
+function isSubstringMatch(newName, existingName) {
+    const newLower = newName.toLowerCase();
+    const existLower = existingName.toLowerCase();
+
+    // Check if one is a substring of the other, and long enough to be meaningful
+    if (newName.length >= MIN_SUBSTRING_LENGTH) {
+        return existLower.includes(newLower) || newLower.includes(existLower);
+    }
+
+    return false;
+}
+
+/**
+ * Basic phonetic similarity check using Levenshtein distance
+ * @private
+ */
+function isPhoneticSimilar(str1, str2) {
+    const distance = levenshteinDistance(str1.toLowerCase(), str2.toLowerCase());
+    const maxLength = Math.max(str1.length, str2.length);
+    const similarity = 1 - (distance / maxLength);
+
+    // Consider similar if >75% match
+    return similarity >= 0.75;
+}
+
+/**
+ * Check for partial name match (e.g., first/last name components)
+ * @private
+ */
+function isPartialMatch(newName, existingName) {
+    const newParts = newName.toLowerCase().split(/\s+/);
+    const existParts = existingName.toLowerCase().split(/\s+/);
+
+    // Check if any part of new name matches parts of existing
+    return newParts.some(newPart => existParts.some(existPart =>
+        newPart === existPart && newPart.length > 2,
+    ));
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ * @private
+ */
+function levenshteinDistance(str1, str2) {
+    const track = Array(str2.length + 1).fill(null).map(() =>
+        Array(str1.length + 1).fill(null),
+    );
+
+    for (let i = 0; i <= str1.length; i++) {
+        track[0][i] = i;
+    }
+
+    for (let j = 0; j <= str2.length; j++) {
+        track[j][0] = j;
+    }
+
+    for (let j = 1; j <= str2.length; j++) {
+        for (let i = 1; i <= str1.length; i++) {
+            const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+            track[j][i] = Math.min(
+                track[j][i - 1] + 1,
+                track[j - 1][i] + 1,
+                track[j - 1][i - 1] + indicator,
+            );
+        }
+    }
+
+    return track[str2.length][str1.length];
+}
+
+/**
+ * Generate human-readable reason for merge suggestion
+ * @private
+ */
+function generateMergeReason(newName, existingChar, confidence) {
+    if (confidence >= MERGE_CONFIDENCE_HIGH) {
+        if (newName.toLowerCase().includes(existingChar.preferredName.toLowerCase())) {
+            return `"${newName}" contains "${existingChar.preferredName}" (likely nickname)`;
+        }
+        return `Exact match confidence: ${(confidence * 100).toFixed(0)}%`;
+    }
+
+    return `Phonetic/partial match with confidence: ${(confidence * 100).toFixed(0)}%`;
+}
+
+/**
+ * Create a new character entry
+antml:parameter>
+
+ * @param {Object} analyzedChar - Character data from LLM analysis
+ * @param {boolean} isMainChar - Whether this is the main character
+ * @returns {Promise<CharacterData>} Created character data
+ */
+async function createCharacter(analyzedChar, isMainChar = false) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('createCharacter', async () => {
+        debug.log();
+        // Clean and filter aliases
+        const aliases = await cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
+
+        const character = {
+            preferredName: analyzedChar.name,
+            aliases: aliases,
+            physicalAge: analyzedChar.physicalAge || '',
+            mentalAge: analyzedChar.mentalAge || '',
+            physical: analyzedChar.physical || '',
+            personality: analyzedChar.personality || '',
+            sexuality: analyzedChar.sexuality || '',
+            raceEthnicity: analyzedChar.raceEthnicity || '',
+            roleSkills: analyzedChar.roleSkills || '',
+            relationships: analyzedChar.relationships || [],
+            ignored: false,
+            confidence: analyzedChar.confidence || 50,
+            lorebookEntryId: null,
+            lastUpdated: Date.now(),
+            isMainChar: isMainChar || false,
+        };
+
+        debug.log();
+
+        // Store character in settings - CRITICAL: AWAIT to ensure save completes
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(character.preferredName, character);
+
+        // Create lorebook entry
+        await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_0__/* .updateLorebookEntry */ .TQ)(character, character.preferredName);
+
+        debug.log();
+
+        return character;
+    });
+}
+
+/**
+ * Update existing character with new information
+ * @param {CharacterData} existingChar - Existing character data
+ * @param {Object} analyzedChar - New character data from LLM analysis
+ * @param {boolean} addAsAlias - Whether to add the analyzed name as an alias
+ * @param {boolean} isMainChar - Whether this is the main character
+ * @returns {Promise<CharacterData>} Updated character data
+ */
+async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, isMainChar = false) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('updateCharacter', async () => {
+        debug.log();
+
+        // Mark as main character if detected
+        if (isMainChar) {
+            existingChar.isMainChar = true;
+        }
+
+        // If adding as alias, add the analyzed name to aliases if not already present
+        if (addAsAlias && analyzedChar.name !== existingChar.preferredName) {
+            if (!existingChar.aliases) existingChar.aliases = [];
+            if (!existingChar.aliases.includes(analyzedChar.name) &&
+                analyzedChar.name.toLowerCase() !== existingChar.preferredName.toLowerCase()) {
+                existingChar.aliases.push(analyzedChar.name);
+            }
+        }
+
+        // Clean up all aliases using the helper function
+        existingChar.aliases = cleanAliases(existingChar.aliases || [], existingChar.preferredName);
+
+        // Update consolidated fields (new data takes precedence if not empty)
+        if (analyzedChar.physicalAge) existingChar.physicalAge = analyzedChar.physicalAge;
+        if (analyzedChar.mentalAge) existingChar.mentalAge = analyzedChar.mentalAge;
+        if (analyzedChar.physical) existingChar.physical = analyzedChar.physical;
+        if (analyzedChar.personality) existingChar.personality = analyzedChar.personality;
+        if (analyzedChar.sexuality) existingChar.sexuality = analyzedChar.sexuality;
+        if (analyzedChar.raceEthnicity) existingChar.raceEthnicity = analyzedChar.raceEthnicity;
+        if (analyzedChar.roleSkills) existingChar.roleSkills = analyzedChar.roleSkills;
+
+        // Merge relationships array - deduplicate
+        if (analyzedChar.relationships && Array.isArray(analyzedChar.relationships)) {
+            if (!existingChar.relationships) existingChar.relationships = [];
+            for (const rel of analyzedChar.relationships) {
+                if (!existingChar.relationships.includes(rel)) {
+                    existingChar.relationships.push(rel);
+                }
+            }
+        }
+
+        // Update confidence (average of old and new)
+        if (analyzedChar.confidence) {
+            existingChar.confidence = Math.round((existingChar.confidence + analyzedChar.confidence) / 2);
+        }
+
+        existingChar.lastUpdated = Date.now();
+
+        // Update character in settings - AWAIT to ensure save completes
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(existingChar.preferredName, existingChar);
+
+        debug.log();
+
+        return existingChar;
+    });
+}
+
+/**
+ * Merge two characters
+ * @param {string} sourceName - Name of character to merge from
+ * @param {string} targetName - Name of character to merge into
+ * @returns {Promise<void>}
+ */
+async function mergeCharacters(sourceName, targetName) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('mergeCharacters', async () => {
+        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+
+        const sourceChar = chars[sourceName];
+        const targetChar = chars[targetName];
+
+        if (!sourceChar || !targetChar) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .NameTrackerError */ .S_('One or both characters not found');
+        }
+
+        // Store for undo
+        const undoData = {
+            operation: 'merge',
+            timestamp: Date.now(),
+            sourceName: sourceName,
+            targetName: targetName,
+            sourceData: JSON.parse(JSON.stringify(sourceChar)),
+            targetDataBefore: JSON.parse(JSON.stringify(targetChar)),
+        };
+
+        // Add to undo history
+        undoHistory.push(undoData);
+        if (undoHistory.length > 3) {
+            undoHistory.shift();
+        }
+
+        // Merge aliases
+        for (const alias of sourceChar.aliases) {
+            if (!targetChar.aliases.includes(alias)) {
+                targetChar.aliases.push(alias);
+            }
+        }
+
+        // Add source name as alias if not the same
+        if (sourceChar.preferredName !== targetChar.preferredName &&
+            !targetChar.aliases.includes(sourceChar.preferredName)) {
+            targetChar.aliases.push(sourceChar.preferredName);
+        }
+
+        // Merge fields (target takes precedence for conflicts, but add new fields)
+        if (sourceChar.physicalAge && !targetChar.physicalAge) targetChar.physicalAge = sourceChar.physicalAge;
+        if (sourceChar.mentalAge && !targetChar.mentalAge) targetChar.mentalAge = sourceChar.mentalAge;
+        if (sourceChar.physical && !targetChar.physical) targetChar.physical = sourceChar.physical;
+        if (sourceChar.personality && !targetChar.personality) targetChar.personality = sourceChar.personality;
+        if (sourceChar.sexuality && !targetChar.sexuality) targetChar.sexuality = sourceChar.sexuality;
+        if (sourceChar.raceEthnicity && !targetChar.raceEthnicity) targetChar.raceEthnicity = sourceChar.raceEthnicity;
+        if (sourceChar.roleSkills && !targetChar.roleSkills) targetChar.roleSkills = sourceChar.roleSkills;
+
+        // Merge relationships
+        for (const rel of sourceChar.relationships) {
+            if (!targetChar.relationships.includes(rel)) {
+                targetChar.relationships.push(rel);
+            }
+        }
+
+        // Update timestamp
+        targetChar.lastUpdated = Date.now();
+
+        // Update target character and delete source - AWAIT both
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(targetChar.preferredName, targetChar);
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .removeCharacter */ .sr)(sourceName);
+
+        // Save chat data
+        // Auto-saved by new settings system
+
+        debug.log();
+        notifications.success(`Merged ${sourceName} into ${targetName}`);
+
+        return undoData;
+    });
+}
+
+/**
+ * Undo last merge operation
+ * @returns {Promise<boolean>} True if undo was successful
+ */
+async function undoLastMerge() {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('undoLastMerge', async () => {
+        if (undoHistory.length === 0) {
+            notifications.warning('No merge operations to undo');
+            return false;
+        }
+
+        const lastOp = undoHistory.pop();
+
+        if (lastOp.operation !== 'merge') {
+            notifications.error('Last operation was not a merge');
+            return false;
+        }
+
+        // Restore source character - AWAIT
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(lastOp.sourceName, lastOp.sourceData);
+
+        // Restore target character to pre-merge state - AWAIT
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(lastOp.targetName, lastOp.targetDataBefore);
+
+        debug.log();
+        notifications.success('Merge undone successfully');
+
+        return true;
+    });
+}
+
+/**
+ * Toggle ignore status for a character
+ * @param {string} characterName - Name of character to toggle
+ * @returns {boolean} New ignore status
+ */
+async function toggleIgnoreCharacter(characterName) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('toggleIgnoreCharacter', async () => {
+        const character = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacter */ .qN)(characterName);
+
+        if (!character) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .NameTrackerError */ .S_('Character not found');
+        }
+
+        character.ignored = !character.ignored;
+
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(characterName, character);
+
+        // Save chat data
+        // Auto-saved by new settings system
+
+        const status = character.ignored ? 'ignored' : 'unignored';
+        notifications.info(`${characterName} ${status}`);
+        debug.log();
+
+        return character.ignored;
+    });
+}
+
+/**
+ * Manually create a new character
+ * @param {string} characterName - Name of new character
+ * @returns {Promise<CharacterData>} Created character
+ */
+async function createNewCharacter(characterName) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('createNewCharacter', async () => {
+        if (!characterName || !characterName.trim()) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .NameTrackerError */ .S_('Character name is required');
+        }
+
+        const trimmedName = characterName.trim();
+
+        // Check if character already exists
+        if ((0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacter */ .qN)(trimmedName)) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .NameTrackerError */ .S_(`Character "${trimmedName}" already exists`);
+        }
+
+        // Create basic character structure
+        const newChar = {
+            name: trimmedName,
+            aliases: [],
+            physicalAge: '',
+            mentalAge: '',
+            physical: '',
+            personality: '',
+            sexuality: '',
+            raceEthnicity: '',
+            roleSkills: '',
+            relationships: [],
+            confidence: 100, // Manually created = 100% confidence
+        };
+
+        const character = await createCharacter(newChar, false);
+
+        // Save chat data
+        // Auto-saved by new settings system
+
+        debug.log();
+        notifications.success(`Created character: ${trimmedName}`);
+
+        return character;
+    });
+}
+
+/**
+ * Purge all character entries
+ * @returns {Promise<number>} Number of characters purged
+ */
+async function purgeAllCharacters() {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('purgeAllCharacters', async () => {
+        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        const characterCount = Object.keys(chars).length;
+
+        if (characterCount === 0) {
+            notifications.info('No characters to purge');
+            return 0;
+        }
+
+        // Clear all character data
+        (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .set_chat_metadata */ .yb)('characters', {});
+
+        // Clear undo history
+        undoHistory = [];
+
+        debug.log();
+        notifications.success(`Purged ${characterCount} characters`);
+
+        return characterCount;
+    });
+}
+
+/**
+ * Check if character has unresolved relationships
+ * @param {CharacterData} character - Character to check
+ * @returns {boolean} True if character has relationships to unknown characters
+ */
+function hasUnresolvedRelationships(character) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('hasUnresolvedRelationships', () => {
+        if (!character.relationships || character.relationships.length === 0) {
+            return false;
+        }
+
+        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        const knownNames = Object.values(chars).reduce((names, char) => {
+            names.add(char.preferredName.toLowerCase());
+            char.aliases.forEach(alias => names.add(alias.toLowerCase()));
+            return names;
+        }, new Set());
+
+        return character.relationships.some(rel => {
+            // Simple check - extract character names from relationship strings
+            const words = rel.toLowerCase().split(/\s+/);
+            return words.some(word => {
+                return word.length > 2 && !knownNames.has(word);
+            });
+        });
+    });
+}
+
+/**
+ * Get undo history
+ * @returns {Array} Array of undo operations
+ */
+function getUndoHistory() {
+    return [...undoHistory];
+}
+
+/**
+ * Clear undo history
+ */
+function clearUndoHistory() {
+    undoHistory = [];
+    debug.log();
+}
+
+/**
+ * Export all characters as JSON
+ * @returns {Object} Character data
+ */
+function exportCharacters() {
+    return withErrorBoundary('exportCharacters', () => {
+        return getCharacters();
+    });
+}
+
+/**
+ * Import characters from JSON
+ * @param {Object} characterData - Character data to import
+ * @param {boolean} merge - Whether to merge with existing characters
+ * @returns {Promise<number>} Number of characters imported
+ */
+async function importCharacters(characterData, merge = false) {
+    return withErrorBoundary('importCharacters', async () => {
+        if (!characterData || typeof characterData !== 'object') {
+            throw new NameTrackerError('Invalid character data');
+        }
+
+        let importCount = 0;
+
+        for (const [name, character] of Object.entries(characterData)) {
+            if (merge || !getCharacter(name)) {
+                await setCharacter(name, character);
+                importCount++;
+            }
+        }
+
+        debug.log();
+        notifications.success(`Imported ${importCount} characters`);
+
+        return importCount;
+    });
+}
+
+
+/***/ },
+
+/***/ 659
+(module) {
+
+
+
+var memo = {};
+
+/* istanbul ignore next  */
+function getTarget(target) {
+  if (typeof memo[target] === "undefined") {
+    var styleTarget = document.querySelector(target);
+
+    // Special case to return head of iframe instead of iframe itself
+    if (window.HTMLIFrameElement && styleTarget instanceof window.HTMLIFrameElement) {
+      try {
+        // This will throw an exception if access to iframe is blocked
+        // due to cross-origin restrictions
+        styleTarget = styleTarget.contentDocument.head;
+      } catch (e) {
+        // istanbul ignore next
+        styleTarget = null;
+      }
+    }
+    memo[target] = styleTarget;
+  }
+  return memo[target];
+}
+
+/* istanbul ignore next  */
+function insertBySelector(insert, style) {
+  var target = getTarget(insert);
+  if (!target) {
+    throw new Error("Couldn't find a style target. This probably means that the value for the 'insert' parameter is invalid.");
+  }
+  target.appendChild(style);
+}
+module.exports = insertBySelector;
+
+/***/ },
+
+/***/ 695
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   A: () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   h: () => (/* binding */ NotificationManager)
+/* harmony export */ });
+/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/**
+ * Notification utilities for Name Tracker extension
+ * Centralizes toastr notifications with consistent styling
+ */
+
+
+
+const logger = _core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"].createModuleLogger */ .Ay.createModuleLogger('Notifications');
+
+class NotificationManager {
+    constructor() {
+        this.defaultOptions = {
+            timeOut: 5000,
+            extendedTimeOut: 2000,
+            closeButton: true,
+            progressBar: true,
+            preventDuplicates: true,
+        };
+
+        this.prefix = 'Name Tracker: ';
+    }
+
+    /**
+     * Show success notification
+     * @param {string} message - Message to display
+     * @param {string} title - Optional title
+     * @param {Object} options - Toastr options
+     */
+    success(message, title = 'Success', options = {}) {
+        const opts = { ...this.defaultOptions, ...options };
+        toastr.success(this.prefix + message, title, opts);
+        logger.debug('Success notification:', message);
+    }
+
+    /**
+     * Show info notification
+     * @param {string} message - Message to display
+     * @param {string} title - Optional title
+     * @param {Object} options - Toastr options
+     */
+    info(message, title = 'Info', options = {}) {
+        const opts = { ...this.defaultOptions, ...options };
+        toastr.info(this.prefix + message, title, opts);
+        logger.debug('Info notification:', message);
+    }
+
+    /**
+     * Show warning notification
+     * @param {string} message - Message to display
+     * @param {string} title - Optional title
+     * @param {Object} options - Toastr options
+     */
+    warning(message, title = 'Warning', options = {}) {
+        const opts = { ...this.defaultOptions, timeOut: 8000, ...options };
+        toastr.warning(this.prefix + message, title, opts);
+        logger.debug('Warning notification:', message);
+    }
+
+    /**
+     * Show error notification
+     * @param {string} message - Message to display
+     * @param {string} title - Optional title
+     * @param {Object} options - Toastr options
+     */
+    error(message, title = 'Error', options = {}) {
+        const opts = {
+            ...this.defaultOptions,
+            timeOut: 10000,
+            extendedTimeOut: 5000,
+            ...options,
+        };
+        toastr.error(this.prefix + message, title, opts);
+        logger.error('Error notification:', message);
+    }
+
+    /**
+     * Show persistent notification that doesn't auto-close
+     * @param {string} message - Message to display
+     * @param {string} title - Optional title
+     * @param {string} type - Notification type (info, success, warning, error)
+     */
+    persistent(message, title = 'Notice', type = 'info') {
+        const opts = {
+            ...this.defaultOptions,
+            timeOut: 0,
+            extendedTimeOut: 0,
+        };
+
+        switch (type) {
+            case 'success':
+                toastr.success(this.prefix + message, title, opts);
+                break;
+            case 'warning':
+                toastr.warning(this.prefix + message, title, opts);
+                break;
+            case 'error':
+                toastr.error(this.prefix + message, title, opts);
+                break;
+            default:
+                toastr.info(this.prefix + message, title, opts);
+        }
+
+        logger.debug('Persistent notification:', message);
+    }
+
+    /**
+     * Show progress notification for long operations
+     * @param {string} message - Message to display
+     * @param {number} progress - Progress percentage (0-100)
+     * @param {string} id - Unique ID for updating the same notification
+     * @returns {string} Notification ID for updates
+     */
+    progress(message, progress = 0, id = null) {
+        const notificationId = id || `progress_${Date.now()}`;
+        const progressHtml = `
+            <div style="margin-bottom: 8px;">${this.prefix}${message}</div>
+            <div style="background: #333; border-radius: 3px; overflow: hidden;">
+                <div style="background: #007acc; height: 6px; width: ${progress}%; transition: width 0.3s ease;"></div>
+            </div>
+            <div style="text-align: center; font-size: 11px; margin-top: 4px;">${progress}%</div>
+        `;
+
+        const opts = {
+            timeOut: 0,
+            extendedTimeOut: 0,
+            closeButton: false,
+            progressBar: false,
+            preventDuplicates: false,
+            toastId: notificationId,
+        };
+
+        // Remove existing notification with same ID
+        toastr.remove();
+
+        toastr.info(progressHtml, '', opts);
+        logger.debug('Progress notification:', message, `${progress}%`);
+
+        return notificationId;
+    }
+
+    /**
+     * Clear all notifications
+     */
+    clear() {
+        toastr.clear();
+        logger.debug('Cleared all notifications');
+    }
+
+    /**
+     * Show a confirmation-style notification with action buttons
+     * @param {string} message - Message to display
+     * @param {Function} onConfirm - Callback for confirm action
+     * @param {Function} onCancel - Callback for cancel action
+     * @param {string} title - Optional title
+     */
+    confirm(message, onConfirm, onCancel = null, title = 'Confirm') {
+        const confirmId = `confirm_${Date.now()}`;
+        const confirmHtml = `
+            <div style="margin-bottom: 12px;">${message}</div>
+            <div style="text-align: right;">
+                <button class="btn btn-sm btn-secondary me-2" onclick="nameTrackerNotifications.handleConfirmCancel('${confirmId}')">Cancel</button>
+                <button class="btn btn-sm btn-primary" onclick="nameTrackerNotifications.handleConfirmOk('${confirmId}')">Confirm</button>
+            </div>
+        `;
+
+        // Store callbacks globally for onclick handlers
+        window.nameTrackerNotifications = window.nameTrackerNotifications || {};
+        window.nameTrackerNotifications.confirmCallbacks = window.nameTrackerNotifications.confirmCallbacks || {};
+        window.nameTrackerNotifications.confirmCallbacks[confirmId] = { onConfirm, onCancel };
+
+        window.nameTrackerNotifications.handleConfirmOk = (id) => {
+            const callbacks = window.nameTrackerNotifications.confirmCallbacks[id];
+            if (callbacks && callbacks.onConfirm) {
+                callbacks.onConfirm();
+            }
+            delete window.nameTrackerNotifications.confirmCallbacks[id];
+            toastr.clear();
+        };
+
+        window.nameTrackerNotifications.handleConfirmCancel = (id) => {
+            const callbacks = window.nameTrackerNotifications.confirmCallbacks[id];
+            if (callbacks && callbacks.onCancel) {
+                callbacks.onCancel();
+            }
+            delete window.nameTrackerNotifications.confirmCallbacks[id];
+            toastr.clear();
+        };
+
+        const opts = {
+            timeOut: 0,
+            extendedTimeOut: 0,
+            closeButton: false,
+            progressBar: false,
+            preventDuplicates: false,
+            toastId: confirmId,
+        };
+
+        toastr.info(confirmHtml, this.prefix + title, opts);
+        logger.debug('Confirmation notification:', message);
+
+        return confirmId;
+    }
+
+    /**
+     * Get notification status for debugging
+     * @returns {Object} Status information
+     */
+    getStatus() {
+        return {
+            defaultOptions: this.defaultOptions,
+            prefix: this.prefix,
+            activeConfirms: Object.keys(window.nameTrackerNotifications?.confirmCallbacks || {}).length,
+        };
+    }
+}
+
+// Create singleton instance
+const notifications = new NotificationManager();
+
+logger.debug('Notifications module loaded');
+
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (notifications);
+
+
+/***/ },
+
+/***/ 744
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Bw: () => (/* binding */ loadOllamaModels),
+/* harmony export */   Kr: () => (/* binding */ callLLMAnalysis),
+/* harmony export */   au: () => (/* binding */ calculateMessageTokens),
+/* harmony export */   fR: () => (/* binding */ buildCharacterRoster),
+/* harmony export */   getMaxPromptLength: () => (/* binding */ getMaxPromptLength)
+/* harmony export */ });
+/* unused harmony exports getOllamaModels, getOllamaModelContext, callSillyTavern, callOllama, parseJSONResponse, clearAnalysisCache, getCacheStats */
+/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
+/* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
+/* harmony import */ var _core_context_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(102);
+/* harmony import */ var _utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(854);
+/* harmony import */ var _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(695);
+/**
+ * LLM Integration Module
+ *
+ * Handles LLM API calls to SillyTavern and Ollama for character analysis.
+ * Includes conservative parameter settings, token management, context window handling,
+ * and JSON parsing for deterministic character extraction.
+ */
+
+
+
+
+
+
+
+
+const debug = (0,_core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* .createModuleLogger */ .Xv)('llm');
+const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__/* .NotificationManager */ .h('LLM Integration');
+
+// ============================================================================
+// DEBUG CONFIGURATION
+// ============================================================================
+const DEBUG_LOGGING = true; // Set to false in production after testing
+
+function debugLog(message, data = null) {
+    if (DEBUG_LOGGING) {
+        console.log(`[NT-LLM] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// CONFIGURATION CONSTANTS - Conservative parameters for deterministic output
+// ============================================================================
+// These hardcoded values ensure reliable JSON extraction with minimal hallucination.
+// They override user chat settings specifically for character analysis operations.
+
+// Generation Parameters (Anti-hallucination configuration)
+const GENERATION_TEMPERATURE = 0.2;     // Very low for deterministic output
+const GENERATION_TOP_P = 0.85;          // Slightly reduced nucleus sampling
+const GENERATION_TOP_K = 25;            // Standard focused sampling
+const GENERATION_REP_PEN = 1.1;         // Slight repetition penalty
+
+// Context Window Management
+// Reserved for future dynamic context management
+// eslint-disable-next-line no-unused-vars
+const RESPONSE_BUFFER_PERCENT = 25;     // Reserve 25% for response generation
+// eslint-disable-next-line no-unused-vars
+const SAFETY_MARGIN_PERCENT = 10;       // Reserve 10% safety margin
+// eslint-disable-next-line no-unused-vars
+const MIN_RESPONSE_TOKENS = 1000;       // Minimum tokens allowed for response
+
+// Ollama-Specific Parameters
+// eslint-disable-next-line no-unused-vars
+const OLLAMA_MIN_PREDICT = 500;         // Minimum tokens to predict
+// eslint-disable-next-line no-unused-vars
+const OLLAMA_MAX_PREDICT = 4000;        // Maximum tokens to predict
+
+// Cache Configuration
+// eslint-disable-next-line no-unused-vars
+const CACHE_MAX_ENTRIES = 50;           // Maximum cached analysis results
+// eslint-disable-next-line no-unused-vars
+const CACHE_INVALIDATION_TIME = 3600000; // 1 hour cache duration
+
+// LLM state management
+const analysisCache = new Map(); // Cache for LLM analysis results
+let ollamaModels = []; // Available Ollama models
+
+/**
+ * Default system prompt for character analysis
+ */
+const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
+
+CRITICAL: Your entire response must be a single JSON object starting with { and ending with }
+
+DO NOT include:
+- Any text before the JSON
+- Any text after the JSON  
+- Code block markers
+- Explanations or commentary
+
+REQUIRED JSON structure (copy this exact format):
+{
+  "characters": [
+    {
+            "name": "Full character name (one person only)",
+            "aliases": ["Other names and nicknames for THIS SAME person"],
+            "physicalAge": "Age if mentioned",
+            "mentalAge": "Mental age if different",
+            "physical": "Physical description",
+            "personality": "Personality traits",
+            "sexuality": "Sexual orientation if mentioned",
+            "raceEthnicity": "Race/ethnicity if mentioned",
+            "roleSkills": "Job/role/skills",
+            "relationships": ["Relationships with other characters"],
+            "confidence": 75
+    }
+  ]
+}
+
+Rules:
+- One entry per distinct person. NEVER combine two different people into one entry.
+- If the same person is referred by variants ("John", "John Blackwell", "Scout"), make ONE entry with name = best full name ("John Blackwell") and put other names in aliases.
+- Do NOT create names like "Jade/Jesse" or "Sarah and Maya". Instead, create separate entries: [{name:"Jade"}, {name:"Jesse"}].
+- Only extract clearly named speaking characters.
+- Skip generic references ("the waiter", "a woman").
+- Use most recent information for conflicts.
+- Empty array if no clear characters: {"characters":[]}
+- Confidence: 90+ (explicit), 70-89 (clear), 50-69 (mentioned), <50 (vague).
+
+Examples (correct vs wrong):
+- ✅ {"name":"John Blackwell","aliases":["John","Scout"]}
+- ❌ {"name":"John/Scout"}
+- ✅ [{"name":"Jade"},{"name":"Jesse"}]
+- ❌ {"name":"Jade and Jesse"}
+
+Your response must start with { immediately.`;
+
+/**
+ * Get the system prompt for analysis
+ * @returns {string} System prompt text
+ */
+function getSystemPrompt() {
+    const settings = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)();
+    const prompt = settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+    // Ensure we return a string, not a Promise or object
+    return typeof prompt === 'string' ? prompt : DEFAULT_SYSTEM_PROMPT;
+}
+
+/**
+ * Load available Ollama models from the configured endpoint and cache them.
+ * @returns {Promise<Array>} Array of available models
+ */
+async function loadOllamaModels() {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('loadOllamaModels', async () => {
+        const ollamaEndpoint = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('ollamaEndpoint', 'http://localhost:11434');
+
+        try {
+            const response = await fetch(`${ollamaEndpoint}/api/tags`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to load Ollama models: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            ollamaModels = Array.isArray(data?.models) ? data.models : [];
+            debugLog(`[OllamaModels] Found ${ollamaModels.length} models: ${ollamaModels.map(m => m.name).join(', ')}`);
+            return [...ollamaModels];
+        } catch (error) {
+            console.error('Error loading Ollama models:', error);
+            notifications.error('Failed to load Ollama models. Check endpoint and try again.');
+            throw error;
+        }
+    });
+}
+
+/**
+ * Get cached Ollama models
+ * @returns {Array} Array of available models
+ */
+function getOllamaModels() {
+    return [...ollamaModels];
+}
+
+/**
+ * Get Ollama model context size
+ * @param {string} modelName - Name of the Ollama model
+ * @returns {Promise<number>} Context size in tokens, or default 4096
+ */
+async function getOllamaModelContext(modelName) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('getOllamaModelContext', async () => {
+        const ollamaEndpoint = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('ollamaEndpoint', 'http://localhost:11434');
+
+        if (!modelName) {
+            debug.log();
+            return 4096;
+        }
+
+        try {
+            const response = await fetch(`${ollamaEndpoint}/api/show`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: modelName,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch model info: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            // Look for num_ctx in parameters array
+            if (data.parameters && Array.isArray(data.parameters)) {
+                for (const param of data.parameters) {
+                    const match = param.match(/num_ctx\\s+(\\d+)/);
+                    if (match) {
+                        const contextSize = parseInt(match[1]);
+                        debug.log();
+                        return contextSize;
+                    }
+                }
+            }
+
+            // Fallback: check if it's in model details
+            if (data.model_info && data.model_info.num_ctx) {
+                const contextSize = parseInt(data.model_info.num_ctx);
+                debug.log();
+                return contextSize;
+            }
+
+            debug.log();
+            return 4096;
+        } catch (error) {
+            console.error('Error fetching Ollama model context:', error);
+            debug.log();
+            return 4096;
+        }
+    });
+}
+
+/**
+ * Build a roster of known characters for context
+ * @returns {string} Formatted roster text
+ */
+function buildCharacterRoster() {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('buildCharacterRoster', () => {
+        const characters = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
+        const characterNames = Object.keys(characters);
+
+        if (characterNames.length === 0) {
+            return '';
+        }
+
+        const roster = characterNames.map(name => {
+            const char = characters[name];
+            const aliases = char.aliases && char.aliases.length > 0
+                ? ` (also known as: ${char.aliases.join(', ')})`
+                : '';
+            const relationships = char.relationships && char.relationships.length > 0
+                ? `\\n    Relationships: ${char.relationships.join('; ')}`
+                : '';
+            return `  - ${name}${aliases}${relationships}`;
+        }).join('\\n');
+
+        return `\\n\\n[KNOWN CHARACTERS]\\nThe following characters have already been identified. If you encounter them again, use the same name and add any new details:\\n${roster}\\n`;
+    });
+}
+
+/**
+ * Get the maximum safe prompt length based on API context window
+ * Uses actual token counts from messages when available
+ * @returns {Promise<number>} Maximum prompt length in tokens
+ */
+async function getMaxPromptLength() {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('getMaxPromptLength', async () => {
+        const detectionLog = []; // Track detection attempts
+        const logEntry = (msg) => {
+            detectionLog.push(msg);
+            console.log(`[NT-MaxContext] ${msg}`);
+        };
+
+        try {
+            const llmConfig = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
+            let maxContext = 4096; // Default
+            let maxGenTokens = 2048; // Default generation limit
+            let detectionMethod = 'fallback';
+
+            logEntry(`Starting context detection for LLM source: ${llmConfig.source}`);
+
+            if (llmConfig.source === 'ollama' && llmConfig.ollamaModel) {
+                logEntry(`Using Ollama model: ${llmConfig.ollamaModel}`);
+                // Get Ollama model's context size
+                maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
+                detectionMethod = 'ollama';
+            } else {
+                logEntry('Using SillyTavern context');
+                // Use SillyTavern's context
+                let context = null;
+
+                try {
+                    context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
+                    logEntry('Successfully retrieved SillyTavern context');
+                } catch (error) {
+                    logEntry(`ERROR: Failed to get context: ${error.message}`);
+                    context = null;
+                }
+
+                // Debug: Log all context properties
+                if (context) {
+                    try {
+                        const contextKeys = Object.keys(context);
+                        const relevantKeys = contextKeys.filter(k =>
+                            k.toLowerCase().includes('max') ||
+                            k.toLowerCase().includes('context') ||
+                            k.toLowerCase().includes('token') ||
+                            k.toLowerCase().includes('prompt'),
+                        );
+                        logEntry(`Available context properties: ${relevantKeys.join(', ')}`);
+                    } catch (e) {
+                        logEntry(`Error analyzing context keys: ${e.message}`);
+                    }
+                }
+
+                // Try multiple possible paths for max context
+                let detectedMaxContext = null;
+
+                // Method 1: Direct maxContext property (PRIMARY)
+                logEntry('Method 1: Checking context.maxContext...');
+                if (context && typeof context.maxContext === 'number' && context.maxContext > 0) {
+                    detectedMaxContext = context.maxContext;
+                    logEntry(`✓ Method 1 SUCCESS: context.maxContext = ${detectedMaxContext}`);
+                    detectionMethod = 'context.maxContext';
+                } else {
+                    const reason = !context ? 'context is null' :
+                        typeof context.maxContext !== 'number' ? `type is ${typeof context.maxContext}` :
+                            context.maxContext <= 0 ? `value is ${context.maxContext}` : 'unknown';
+                    logEntry(`✗ Method 1 FAILED: ${reason}`);
+                }
+
+                // Method 2: extensionSettings.common.maxContext path
+                if (!detectedMaxContext) {
+                    logEntry('Method 2: Checking context.extensionSettings.common.maxContext...');
+                    if (context?.extensionSettings?.common) {
+                        if (typeof context.extensionSettings.common.maxContext === 'number' && context.extensionSettings.common.maxContext > 0) {
+                            detectedMaxContext = context.extensionSettings.common.maxContext;
+                            logEntry(`✓ Method 2 SUCCESS: extensionSettings.common.maxContext = ${detectedMaxContext}`);
+                            detectionMethod = 'extensionSettings.common.maxContext';
+                        } else {
+                            logEntry('✗ Method 2 FAILED: extensionSettings.common exists but maxContext is invalid');
+                        }
+                    } else {
+                        logEntry('✗ Method 2 FAILED: extensionSettings.common path does not exist');
+                    }
+                }
+
+                // Method 3: chat.maxContextSize path
+                if (!detectedMaxContext) {
+                    logEntry('Method 3: Checking context.chat.maxContextSize...');
+                    if (context?.chat && typeof context.chat === 'object' && !Array.isArray(context.chat)) {
+                        if (typeof context.chat.maxContextSize === 'number' && context.chat.maxContextSize > 0) {
+                            detectedMaxContext = context.chat.maxContextSize;
+                            logEntry(`✓ Method 3 SUCCESS: chat.maxContextSize = ${detectedMaxContext}`);
+                            detectionMethod = 'chat.maxContextSize';
+                        } else {
+                            logEntry('✗ Method 3 FAILED: chat exists but maxContextSize is invalid');
+                        }
+                    } else {
+                        logEntry('✗ Method 3 FAILED: chat path does not exist or is an array');
+                    }
+                }
+
+                // Method 4: token_limit
+                if (!detectedMaxContext) {
+                    logEntry('Method 4: Checking context.token_limit...');
+                    if (context && typeof context.token_limit === 'number' && context.token_limit > 0) {
+                        detectedMaxContext = context.token_limit;
+                        logEntry(`✓ Method 4 SUCCESS: token_limit = ${detectedMaxContext}`);
+                        detectionMethod = 'token_limit';
+                    } else {
+                        logEntry('✗ Method 4 FAILED: token_limit is not valid');
+                    }
+                }
+
+                // Method 5: amount_gen (maximum generation tokens)
+                if (!detectedMaxContext) {
+                    logEntry('Method 5: Checking context.amount_gen (fallback)...');
+                    if (context && typeof context.amount_gen === 'number' && context.amount_gen > 0) {
+                        // amount_gen is typically small (generation limit), not context size
+                        // Use as indicator if no other value found
+                        detectedMaxContext = context.amount_gen * 4; // Rough estimate
+                        logEntry(`✓ Method 5 FALLBACK: amount_gen = ${context.amount_gen}, estimated context = ${detectedMaxContext}`);
+                        detectionMethod = 'amount_gen_estimate';
+                    } else {
+                        logEntry('✗ Method 5 FAILED: amount_gen is not valid');
+                    }
+                }
+
+                // Method 6: Check settings object directly
+                if (!detectedMaxContext) {
+                    logEntry('Method 6: Checking context.settings.max_context...');
+                    if (context && typeof context.settings === 'object') {
+                        if (typeof context.settings.max_context === 'number' && context.settings.max_context > 0) {
+                            detectedMaxContext = context.settings.max_context;
+                            logEntry(`✓ Method 6 SUCCESS: settings.max_context = ${detectedMaxContext}`);
+                            detectionMethod = 'settings.max_context';
+                        } else {
+                            logEntry('✗ Method 6 FAILED: settings exists but max_context is invalid');
+                        }
+                    } else {
+                        logEntry('✗ Method 6 FAILED: settings path does not exist');
+                    }
+                }
+
+                // Final check: is detected value reasonable?
+                if (detectedMaxContext && (typeof detectedMaxContext !== 'number' || detectedMaxContext < 100)) {
+                    logEntry(`WARNING: Detected maxContext is not valid: ${detectedMaxContext}, type: ${typeof detectedMaxContext}`);
+                    detectedMaxContext = null;
+                }
+
+                // Check if context is fully loaded
+                if (!context || !detectedMaxContext) {
+                    logEntry('WARNING: Could not detect maxContext from any path, using fallback (4096)');
+                    logEntry(`Context exists: ${!!context}, detectedMaxContext: ${detectedMaxContext}`);
+                    if (context) {
+                        try {
+                            const allKeys = Object.keys(context).sort();
+                            logEntry(`Full context object keys (first 20): ${allKeys.slice(0, 20).join(', ')}${allKeys.length > 20 ? `... (${allKeys.length - 20} more)` : ''}`);
+                        } catch (e) {
+                            logEntry(`Could not enumerate context keys: ${e.message}`);
+                        }
+                    }
+                    maxContext = 4096;
+                    maxGenTokens = 1024;
+                    detectionMethod = 'fallback';
+                } else {
+                    maxContext = Math.floor(detectedMaxContext);
+                    logEntry(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
+
+                    // For our extension's background analysis, we set our own max_tokens in generateRaw()
+                    // We don't use amount_gen (that's for user chat messages)
+                    // Reserve a reasonable amount for our structured JSON responses
+                    maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
+
+                    logEntry(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
+                }
+            }
+
+            // Reserve space for: system prompt (500 tokens) + max generation (maxGenTokens) + safety margin (500)
+            const reservedTokens = 500 + maxGenTokens + 500;
+            const tokensForPrompt = Math.max(1000, maxContext - reservedTokens);
+
+            logEntry(`Token allocation: maxContext=${maxContext}, reserved=${reservedTokens}, available=${tokensForPrompt}`);
+            logEntry(`Final detection method: ${detectionMethod}`);
+
+            const finalValue = Math.max(1000, Math.min(tokensForPrompt, 50000));
+            logEntry(`Returning maxPromptLength: ${finalValue}`);
+
+            // Return object with detection details
+            return {
+                maxPrompt: finalValue,
+                detectionMethod: detectionMethod,
+                maxContext: maxContext,
+                debugLog: detectionLog.join('\n'),
+            };
+        } catch (error) {
+            const errorMsg = `ERROR in getMaxPromptLength: ${error.message}`;
+            logEntry(errorMsg);
+            console.error('[NT-MaxContext] Stack:', error.stack);
+            // Return conservative fallback on any error with details
+            return {
+                maxPrompt: 3276, // Based on default 4096 context with reserves
+                detectionMethod: 'error',
+                maxContext: 4096,
+                debugLog: detectionLog.join('\n') + '\nFATAL ERROR: ' + error.message,
+            };
+        }
+    });
+}
+
+/**
+ * Calculate total token count for a batch of messages
+ * Uses pre-calculated token counts from SillyTavern when available
+ * @param {Array} messages - Array of chat message objects
+ * @returns {Promise<number>} Total token count
+ */
+async function calculateMessageTokens(messages) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('calculateMessageTokens', async () => {
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
+        let totalTokens = 0;
+
+        // Try to use pre-calculated token counts from message objects
+        for (const msg of messages) {
+            if (msg && typeof msg === 'object' && msg.extra && typeof msg.extra.token_count === 'number') {
+                // SillyTavern stores token count in extra.token_count
+                totalTokens += msg.extra.token_count;
+            } else {
+                // Fallback: use getTokenCountAsync for the message text
+                const text = msg?.mes || msg?.message || String(msg);
+                if (text && context.getTokenCountAsync) {
+                    try {
+                        const count = await context.getTokenCountAsync(text);
+                        totalTokens += count;
+                    // eslint-disable-next-line no-unused-vars
+                    } catch (_error) {
+                        debug.log();
+                        // Final fallback: rough estimate (4 chars per token)
+                        totalTokens += Math.ceil(text.length / 4);
+                    }
+                } else {
+                    // Character-based estimate
+                    totalTokens += Math.ceil(text.length / 4);
+                }
+            }
+        }
+
+        return totalTokens;
+    });
+}
+
+/**
+ * Call SillyTavern's LLM using systemPrompt + prompt structure
+ * Works in both Chat Completion and Text Completion modes
+ * Retries up to 3 times with 2s delay on parse failures
+ * @param {string} systemPrompt - System-level instructions
+ * @param {string} prompt - User data/instructions to analyze
+ * @param {string} prefill - Optional response prefill (e.g., "{" to force JSON)
+ * @returns {Promise<Object>} Parsed JSON response
+ */
+async function callSillyTavern(systemPrompt, prompt, prefill = '') {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callSillyTavern', async () => {
+        debug.log();
+
+        // Use SillyTavern.getContext() as recommended in official docs
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
+
+        // Check if we have an active API connection
+        if (!context.onlineStatus) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('No API connection available. Please connect to an API first.');
+        }
+
+        console.log('[NT-ST-Call] Starting SillyTavern LLM call');
+        console.log('[NT-ST-Call] System prompt length:', systemPrompt.length, 'characters');
+        console.log('[NT-ST-Call] User prompt length:', prompt.length, 'characters');
+        if (prefill) console.log('[NT-ST-Call] Prefill:', prefill);
+        console.log('[NT-ST-Call] ========== PROMPT STRUCTURE START ==========');
+        console.log('SYSTEM:', systemPrompt);
+        console.log('USER:', prompt);
+        if (prefill) console.log('PREFILL:', prefill);
+        console.log('[NT-ST-Call] ========== PROMPT STRUCTURE END ==========');
+
+        // Get token count for combined text
+        const combinedText = systemPrompt + '\n\n' + prompt + (prefill ? '\n' + prefill : '');
+        let promptTokens;
+        try {
+            promptTokens = await context.getTokenCountAsync(combinedText);
+            console.log('[NT-ST-Call] Token count:', promptTokens);
+            debug.log();
+        } catch (_error) {
+            console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
+            debug.log();
+            promptTokens = Math.ceil(combinedText.length / 4);
+            console.log('[NT-ST-Call] Estimated tokens:', promptTokens);
+            debug.log();
+        }
+
+        // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
+        const maxContext = context.maxContext || 4096;
+        const calculatedMaxTokens = Math.floor(maxContext * 0.25);
+        const maxTokens = Math.max(4000, calculatedMaxTokens);
+        console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
+        debug.log();
+
+        // Retry logic: attempt up to 3 times with 2s delay
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY_MS = 2000;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                console.log(`[NT-ST-Call] Attempt ${attempt}/${MAX_RETRIES}`);
+                console.log('[NT-ST-Call] Calling generateRaw with params:', {
+                    temperature: GENERATION_TEMPERATURE,
+                    top_p: GENERATION_TOP_P,
+                    top_k: GENERATION_TOP_K,
+                    rep_pen: GENERATION_REP_PEN,
+                    responseLength: maxTokens,
+                });
+
+                const result = await context.generateRaw({
+                    systemPrompt,
+                    prompt,
+                    prefill,
+                    temperature: GENERATION_TEMPERATURE,
+                    top_p: GENERATION_TOP_P,
+                    top_k: GENERATION_TOP_K,
+                    rep_pen: GENERATION_REP_PEN,
+                    responseLength: maxTokens, // SillyTavern uses responseLength for text completion length
+                });
+
+                console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
+                console.log('[NT-ST-Call] Response type:', typeof result);
+                console.log(JSON.stringify(result, null, 2));
+                console.log('[NT-ST-Call] ========== RAW API RESPONSE END ==========');
+
+                console.log('[NT-ST-Call] Raw result type:', typeof result);
+                console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
+
+                // Extract text from chat completion response
+                // Chat format: { choices: [{ message: { content: "..." } }] }
+                // Text format: { choices: [{ text: "..." }] }
+                let resultText = result;
+
+                if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
+                    // Try chat completion format first
+                    if (result.choices[0]?.message?.content) {
+                        console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
+                        resultText = result.choices[0].message.content;
+                    }
+                    // Fall back to text completion format
+                    else if (result.choices[0]?.text) {
+                        console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
+                        resultText = result.choices[0].text;
+                    }
+                }
+
+                console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
+                console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
+                if (resultText && typeof resultText === 'string') {
+                    console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
+                }
+                console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
+                console.log(resultText);
+                console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
+                debug.log();
+
+                // The result should be a string
+                if (!resultText || typeof resultText !== 'string') {
+                    throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('Empty or invalid response from SillyTavern LLM');
+                }
+
+                // If we used a prefill, prepend it to complete the JSON
+                if (prefill) {
+                    console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
+                    resultText = prefill + resultText;
+
+                    // If the prefill opened an object but response doesn't close it, add closing brace
+                    // Count braces to see if balanced
+                    const openBraces = (resultText.match(/{/g) || []).length;
+                    const closeBraces = (resultText.match(/}/g) || []).length;
+
+                    if (openBraces > closeBraces) {
+                        const missing = openBraces - closeBraces;
+                        console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
+                        resultText += '}'.repeat(missing);
+                    }
+
+                    console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
+                }
+
+                const parsed = await parseJSONResponse(resultText);
+                console.log('[NT-ST-Call] parseJSONResponse returned type:', typeof parsed);
+                console.log('[NT-ST-Call] parseJSONResponse returned value:', parsed);
+                console.log('[NT-ST-Call] parsed.characters exists?:', parsed && 'characters' in parsed);
+                console.log('[NT-ST-Call] parsed.characters type:', typeof parsed?.characters);
+                console.log('[NT-ST-Call] parsed.characters is Array?:', Array.isArray(parsed?.characters));
+                const parsedCount = Array.isArray(parsed?.characters) ? parsed.characters.length : 0;
+                console.log('[NT-ST-Call] ✅ Successfully parsed on attempt', attempt, 'characters:', parsedCount);
+                console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
+                return parsed;
+
+            } catch (error) {
+                lastError = error;
+                console.error(`[NT-ST-Call] ❌ Attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
+                console.error('[NT-ST-Call] Error details:', error);
+
+                if (attempt < MAX_RETRIES) {
+                    console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                }
+            }
+        }
+
+        // All retries failed - prompt user
+        const shouldContinue = confirm(
+            `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
+            `Last error: ${lastError.message}\n\n` +
+            'Check console for detailed logs. Continue processing remaining batches?',
+        );
+
+        if (!shouldContinue) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('User aborted after parse failures');
+        }
+
+        // Return empty result if user wants to continue
+        return { characters: [] };
+    });
+}
+
+/**
+ * Call Ollama API with optimized parameters for JSON extraction
+ * Uses low temperature and focused sampling for deterministic, structured output
+ * @param {string} prompt - The complete prompt to send
+ * @returns {Promise<Object>} Parsed JSON response
+ */
+async function callOllama(prompt) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callOllama', async () => {
+        const llmConfig = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
+
+        if (!llmConfig.ollamaModel) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('No Ollama model selected');
+        }
+
+        debug.log();
+
+        // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
+        const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
+        const calculatedMaxTokens = Math.floor(maxContext * 0.25);
+        const maxTokens = Math.max(4000, calculatedMaxTokens);
+        debug.log();
+
+        const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: llmConfig.ollamaModel,
+                prompt: prompt,
+                stream: false,
+                format: 'json',
+                // Ollama-specific generation parameters for structured output
+                // Using same conservative settings as SillyTavern for consistency
+                options: {
+                    temperature: GENERATION_TEMPERATURE,      // Very low for deterministic output
+                    top_p: GENERATION_TOP_P,                  // Focused sampling
+                    top_k: GENERATION_TOP_K,                  // Standard focused sampling
+                    repeat_penalty: GENERATION_REP_PEN,       // Slight repetition penalty
+                    num_predict: maxTokens,  // Dynamic: 25% of context, min 4000 (prevents truncation)
+                },
+            }),
+        });
+
+        if (!response.ok) {
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_(`Ollama API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        debug.log();
+        debug.log();
+
+        return parseJSONResponse(data.response);
+    });
+}
+
+/**
+ * Parse JSON response from LLM, handling various formats
+ * @param {string} text - Raw text response from LLM
+ * @returns {Object} Parsed JSON object
+ */
+function parseJSONResponse(text) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('parseJSONResponse', () => {
+        console.log('[NT-Parse] ========== PARSE START ==========');
+        console.log('[NT-Parse] Input type:', typeof text);
+        console.log('[NT-Parse] Input is null?:', text === null);
+        console.log('[NT-Parse] Input is undefined?:', text === undefined);
+
+        if (typeof text === 'object' && text !== null) {
+            console.log('[NT-Parse] Input is an OBJECT (not string). Keys:', Object.keys(text));
+            console.log('[NT-Parse] Full object:', JSON.stringify(text).substring(0, 500));
+
+            // If it's already an object with characters, return it
+            if (text.characters && Array.isArray(text.characters)) {
+                console.log('[NT-Parse] Object already has characters array, returning as-is');
+                return text;
+            }
+        }
+
+        console.log('[NT-Parse] Input length:', text ? text.length : 'null');
+        if (text && typeof text === 'string') {
+            console.log('[NT-Parse] First 300 chars:', text.substring(0, 300));
+            console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
+        }
+
+        if (!text || typeof text !== 'string') {
+            console.error('[NT-Parse] ❌ INVALID: Response is not a string:', typeof text);
+            console.error('[NT-Parse] ❌ Response value:', text);
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('LLM returned empty or invalid response');
+        }
+
+        // Remove any leading/trailing whitespace
+        text = text.trim();
+        console.log('[NT-Parse] After trim, length:', text.length);
+        if (text.length === 0) {
+            console.error('[NT-Parse] ❌ Text is empty after trim');
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('LLM returned empty response');
+        }
+
+        // Try to extract JSON from markdown code blocks (```json or ```)
+        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+            console.log('[NT-Parse] Found markdown code block, extracting JSON');
+            text = jsonMatch[1].trim();
+            console.log('[NT-Parse] After markdown extraction, length:', text.length);
+        }
+
+        // Try to find JSON object in the text (look for first { to last })
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+
+        console.log('[NT-Parse] Brace search: first={' + firstBrace + ', last=' + lastBrace + '}');
+
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            const beforeText = text.substring(0, firstBrace);
+            const jsonText = text.substring(firstBrace, lastBrace + 1);
+            const afterText = text.substring(lastBrace + 1);
+
+            console.log('[NT-Parse] Text before JSON:', beforeText.substring(0, 100));
+            console.log('[NT-Parse] Extracted JSON length:', jsonText.length);
+            console.log('[NT-Parse] Text after JSON:', afterText.substring(0, 100));
+
+            text = jsonText;
+        }
+
+        // Remove common prefixes that LLMs add
+        text = text.replace(/^(?:Here's the analysis:|Here is the JSON:|Result:|Output:)\s*/i, '');
+
+        // Clean up common formatting issues
+        text = text.trim();
+
+        console.log('[NT-Parse] Before JSON.parse, length:', text.length);
+        console.log('[NT-Parse] First 200 chars:', text.substring(0, 200));
+        console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
+
+        try {
+            console.log('[NT-Parse] Attempting JSON.parse...');
+            const parsed = JSON.parse(text);
+
+            console.log('[NT-Parse] ✅ Successfully parsed JSON');
+            console.log('[NT-Parse] Parsed type:', typeof parsed);
+            console.log('[NT-Parse] Parsed keys:', Object.keys(parsed));
+            console.log('[NT-Parse] Full parsed object:', JSON.stringify(parsed).substring(0, 500));
+
+            // Validate structure
+            if (!parsed.characters) {
+                console.warn('[NT-Parse] ⚠️  parsed.characters is undefined or null');
+                console.warn('[NT-Parse] Available keys in object:', Object.keys(parsed));
+            } else if (!Array.isArray(parsed.characters)) {
+                console.warn('[NT-Parse] ⚠️  parsed.characters exists but is NOT an array. Type:', typeof parsed.characters);
+                console.warn('[NT-Parse] Value:', parsed.characters);
+            }
+
+            if (!parsed.characters || !Array.isArray(parsed.characters)) {
+                console.warn('[NT-Parse] ❌ Response missing characters array, returning empty');
+                console.warn('[NT-Parse] Full parsed object:', parsed);
+                return { characters: [] };
+            }
+
+            console.log('[NT-Parse] ✅ Valid response with', parsed.characters.length, 'characters');
+            console.log('[NT-Parse] ========== PARSE END (SUCCESS) ==========');
+            return parsed;
+        } catch (error) {
+            console.error('[NT-Parse] ❌ JSON.parse failed:', error.message);
+            console.error('[NT-Parse] ❌ Error at position:', error.name);
+            console.log('[NT-Parse] Text being parsed (first 500 chars):', text.substring(0, 500));
+            console.log('[NT-Parse] Text being parsed (last 200 chars):', text.substring(Math.max(0, text.length - 200)));
+
+            // Check if response was truncated (common issue with long responses)
+            if (text.includes('"characters"') && !text.trim().endsWith('}')) {
+                console.log('[NT-Parse] Detected truncated response, attempting recovery...');
+
+                // Try to salvage partial data by attempting to close the JSON
+                let salvaged = text;
+
+                // Count open vs closed braces to determine how many we need
+                const openBraces = (text.match(/\{/g) || []).length;
+                const closeBraces = (text.match(/\}/g) || []).length;
+                const openBrackets = (text.match(/\[/g) || []).length;
+                const closeBrackets = (text.match(/\]/g) || []).length;
+
+                console.log('[NT-Parse] Recovery attempt - braces: open=' + openBraces + ' close=' + closeBraces + ', brackets: open=' + openBrackets + ' close=' + closeBrackets);
+
+                // Try to close incomplete strings and objects
+                if (salvaged.match(/"[^"]*$/)) {
+                    // Has unclosed quote
+                    console.log('[NT-Parse] Adding closing quote');
+                    salvaged += '"';
+                }
+
+                // Close missing brackets/braces
+                for (let i = 0; i < (openBrackets - closeBrackets); i++) {
+                    salvaged += ']';
+                }
+                for (let i = 0; i < (openBraces - closeBraces); i++) {
+                    salvaged += '}';
+                }
+
+                console.log('[NT-Parse] Salvaged text length:', salvaged.length);
+                console.log('[NT-Parse] Attempting to parse salvaged content...');
+
+                try {
+                    const recovered = JSON.parse(salvaged);
+                    console.log('[NT-Parse] ✅ Successfully recovered JSON with', recovered.characters?.length || 0, 'characters');
+                    console.log('[NT-Parse] ========== PARSE END (RECOVERED) ==========');
+                    return recovered;
+                } catch (e) {
+                    console.error('[NT-Parse] ❌ Recovery failed:', e.message);
+                    console.error('[NT-Parse] Salvaged text (first 500):', salvaged.substring(0, 500));
+                }
+            }
+
+            console.log('[NT-Parse] ========== PARSE END (FAILED) ==========');
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('Failed to parse LLM response as JSON. The response may be too long or truncated. Try analyzing fewer messages at once.');
+        }
+    });
+}
+
+/**
+ * Call LLM for character analysis with automatic batch splitting if prompt is too long
+ * and adaptive splitting when parse/output failures occur.
+ * @param {Array} messageObjs - Array of message objects (with .mes property) or strings
+ * @param {string} knownCharacters - Roster of previously identified characters
+ * @param {number} depth - Recursion depth (for logging)
+ * @param {number} retryCount - Number of retries attempted (simple backoff)
+ * @param {number} splitAttempts - Number of times this failing batch has been split
+ * @returns {Promise<Object>} Analysis result with merged characters
+ */
+async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, retryCount = 0, splitAttempts = 0) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callLLMAnalysis', async () => {
+        const llmConfig = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
+        const maxPromptResult = await getMaxPromptLength(); // Dynamic based on API context window
+        const maxPromptTokens = maxPromptResult.maxPrompt;
+        const MAX_SIMPLE_RETRIES = 1;   // retry count after first failure (total 2 attempts)
+        const MAX_SPLIT_ATTEMPTS = 2;   // how many times we can split on failure (up to 4 chunks)
+
+        debug.log();
+
+        // Extract message text
+        const messages = messageObjs.map(msg => {
+            if (typeof msg === 'string') return msg;
+            if (msg.mes) return msg.mes;
+            if (msg.message) return msg.message;
+            return JSON.stringify(msg);
+        });
+
+        // Create cache key
+        const cacheKey = (0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .simpleHash */ .tx)(messages.join('\\n') + llmConfig.source + llmConfig.ollamaModel);
+
+        // Check cache
+        if (analysisCache.has(cacheKey)) {
+            debug.log();
+            return analysisCache.get(cacheKey);
+        }
+
+        // Build the prompt
+        const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\\n${msg}`).join('\\n\\n');
+
+        // Get system prompt and ensure it's a string
+        let systemPrompt = getSystemPrompt();
+        console.log('[NT-Prompt] getSystemPrompt() returned type:', typeof systemPrompt);
+
+        // Handle if it's a Promise
+        if (systemPrompt && typeof systemPrompt === 'object' && typeof systemPrompt.then === 'function') {
+            console.warn('[NT-Prompt] getSystemPrompt returned Promise, awaiting...');
+            systemPrompt = await systemPrompt;
+            console.log('[NT-Prompt] After await, type:', typeof systemPrompt);
+        }
+
+        // Handle if it's still an object after await
+        if (typeof systemPrompt !== 'string') {
+            console.warn('[NT-Prompt] systemPrompt is not a string, using default. Type:', typeof systemPrompt, 'Value:', systemPrompt);
+            systemPrompt = DEFAULT_SYSTEM_PROMPT;
+        }
+
+        // Get character roster and ensure it's a string
+        let rosterStr = knownCharacters || '';
+        console.log('[NT-Prompt] knownCharacters type:', typeof rosterStr);
+
+        // Handle if it's a Promise
+        if (rosterStr && typeof rosterStr === 'object' && typeof rosterStr.then === 'function') {
+            console.warn('[NT-Prompt] knownCharacters is Promise, awaiting...');
+            rosterStr = await rosterStr;
+            console.log('[NT-Prompt] After await, type:', typeof rosterStr);
+        }
+
+        // Ensure it's a string
+        rosterStr = String(rosterStr || '');
+
+        console.log('[NT-Prompt] Final systemPrompt length:', systemPrompt.length);
+        console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
+        console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
+
+        // Build system message with instructions and roster
+        const systemMessage = systemPrompt + (rosterStr ? '\n\n' + rosterStr : '');
+
+        // Build user prompt with data
+        const userPrompt = '[DATA TO ANALYZE]\n' + messagesText;
+
+        // No prefill - let model generate complete JSON from system prompt guidance
+        const prefill = '';
+
+        // Calculate actual token count for the combined messages
+        let promptTokens;
+        const combinedText = systemMessage + '\n\n' + userPrompt;
+        try {
+            promptTokens = await calculateMessageTokens([{ mes: combinedText }]);
+            debug.log();
+        } catch {
+            debug.log();
+            // Fallback to character-based estimate
+            promptTokens = Math.ceil(combinedText.length / 4);
+        }
+
+        // If prompt is too long, split into sub-batches
+        if (promptTokens > maxPromptTokens && messageObjs.length > 1) {
+            debug.log();
+
+            // Split roughly in half
+            const midpoint = Math.floor(messageObjs.length / 2);
+            const firstHalf = messageObjs.slice(0, midpoint);
+            const secondHalf = messageObjs.slice(midpoint);
+
+            debug.log();
+
+            // Analyze both halves in parallel
+            const [result1, result2] = await Promise.all([
+                callLLMAnalysis(firstHalf, knownCharacters, depth + 1, 0, splitAttempts),
+                callLLMAnalysis(secondHalf, knownCharacters, depth + 1, 0, splitAttempts),
+            ]);
+
+            // Merge the results
+            const mergedResult = {
+                characters: [
+                    ...(result1.characters || []),
+                    ...(result2.characters || []),
+                ],
+            };
+
+            debug.log();
+            return mergedResult;
+        }
+
+        // Prompt is acceptable length, proceed with analysis
+        debug.log(`Calling LLM with prompt (${promptTokens} tokens)...`);
+        console.log('[NT-Prompt] Prompt composition:');
+        console.log('SYSTEM (' + systemMessage.length + ' chars):');
+        console.log('='.repeat(80));
+        console.log(systemMessage);
+        console.log('='.repeat(80));
+        console.log('USER (' + userPrompt.length + ' chars):');
+        console.log('='.repeat(80));
+        console.log(userPrompt);
+        console.log('='.repeat(80));
+        console.log('PREFILL:', prefill);
+        console.log('='.repeat(80));
+
+        let result;
+
+        try {
+            if (llmConfig.source === 'ollama') {
+                // Ollama still uses flat prompt for now
+                const flatPrompt = systemMessage + '\n\n' + userPrompt + '\n' + prefill;
+                result = await callOllama(flatPrompt);
+            } else {
+                result = await callSillyTavern(systemMessage, userPrompt, prefill);
+            }
+        } catch (error) {
+            const isRetryable = error.message.includes('JSON')
+                || error.message.includes('empty')
+                || error.message.includes('truncated');
+
+            // First retry: try the same batch once with backoff
+            if (isRetryable && retryCount < MAX_SIMPLE_RETRIES) {
+                debug.log();
+
+                const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
+                await new Promise(resolve => setTimeout(resolve, delay));
+
+                return await callLLMAnalysis(messageObjs, knownCharacters, depth, retryCount + 1, splitAttempts);
+            }
+
+            // Subsequent retries: split the current failing batch into halves (up to 4 chunks total)
+            if (isRetryable && messageObjs.length > 1 && splitAttempts < MAX_SPLIT_ATTEMPTS) {
+                const midpoint = Math.floor(messageObjs.length / 2);
+                const firstHalf = messageObjs.slice(0, midpoint);
+                const secondHalf = messageObjs.slice(midpoint);
+
+                const [result1, result2] = await Promise.all([
+                    callLLMAnalysis(firstHalf, knownCharacters, depth + 1, 0, splitAttempts + 1),
+                    callLLMAnalysis(secondHalf, knownCharacters, depth + 1, 0, splitAttempts + 1),
+                ]);
+
+                return {
+                    characters: [
+                        ...(result1.characters || []),
+                        ...(result2.characters || []),
+                    ],
+                };
+            }
+
+            // Max retries/splits exceeded or non-retryable error
+            throw error;
+        }
+
+        // Cache the result only if we have characters
+        if (result && Array.isArray(result.characters) && result.characters.length > 0) {
+            if (analysisCache.size > 50) {
+                // Clear oldest entries if cache is getting too large
+                const firstKey = analysisCache.keys().next().value;
+                analysisCache.delete(firstKey);
+            }
+            analysisCache.set(cacheKey, result);
+        } else {
+            console.warn('[NT-Cache] Skipping cache because result is empty or has no characters');
+        }
+
+        debug.log();
+        return result;
+    });
+}
+
+/**
+ * Clear the analysis cache
+ */
+function clearAnalysisCache() {
+    analysisCache.clear();
+    debug.log();
+}
+
+/**
+ * Get analysis cache statistics
+ * @returns {Object} Cache statistics
+ */
+function getCacheStats() {
+    return {
+        size: analysisCache.size,
+        entries: [...analysisCache.keys()].map(key => ({
+            key: key.substring(0, 8) + '...',
+            timestamp: Date.now(),
+        })),
+    };
+}
+
+// End of module
+
+
+/***/ },
+
+/***/ 806
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Ay: () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   Xv: () => (/* binding */ createModuleLogger)
+/* harmony export */ });
+/* unused harmony exports debugLogger, addTrace, startTimer, endTimer */
+/**
+ * Debug and logging utilities for Name Tracker extension
+ * Provides module-specific logging, performance monitoring, and state inspection
+ */
+
+const MODULE_NAME = 'STnametracker';
+
+class DebugLogger {
+    constructor() {
+        this.modules = new Map();
+        this.performanceMarks = new Map();
+        this.operationTraces = new Map();
+    }
+
+    /**
+     * Create a module-specific logger
+     * @param {string} moduleName - Name of the module
+     * @returns {Object} Logger instance with module-specific methods
+     */
+    createModuleLogger(moduleName) {
+        if (this.modules.has(moduleName)) {
+            return this.modules.get(moduleName);
+        }
+
+        const logger = {
+            log: (...args) => this.log(moduleName, 'log', ...args),
+            warn: (...args) => this.log(moduleName, 'warn', ...args),
+            error: (...args) => this.log(moduleName, 'error', ...args),
+            debug: (...args) => this.log(moduleName, 'debug', ...args),
+            trace: (operationId, message) => this.addTrace(moduleName, operationId, message),
+            startTimer: (timerName) => this.startTimer(moduleName, timerName),
+            endTimer: (timerName) => this.endTimer(moduleName, timerName),
+        };
+
+        this.modules.set(moduleName, logger);
+        return logger;
+    }
+
+    /**
+     * Internal logging method
+     * @param {string} moduleName - Module name
+     * @param {string} level - Log level
+     * @param {...any} args - Arguments to log
+     */
+    log(moduleName, level, ...args) {
+        if (!this.isDebugEnabled()) {
+            return;
+        }
+
+        const timestamp = new Date().toLocaleTimeString();
+        const prefix = `[${MODULE_NAME}:${moduleName}] ${timestamp}`;
+
+        switch (level) {
+            case 'error':
+                console.error(prefix, ...args);
+                break;
+            case 'warn':
+                console.warn(prefix, ...args);
+                break;
+            case 'debug':
+                console.debug(prefix, ...args);
+                break;
+            default:
+                console.log(prefix, ...args);
+        }
+    }
+
+    /**
+     * Add operation trace for debugging workflows
+     * @param {string} moduleName - Module name
+     * @param {string} operationId - Unique operation identifier
+     * @param {string} message - Trace message
+     */
+    addTrace(moduleName, operationId, message) {
+        if (!this.isDebugEnabled()) {
+            return;
+        }
+
+        if (!this.operationTraces.has(operationId)) {
+            this.operationTraces.set(operationId, []);
+        }
+
+        this.operationTraces.get(operationId).push({
+            module: moduleName,
+            timestamp: Date.now(),
+            message: message,
+        });
+    }
+
+    /**
+     * Get trace history for an operation
+     * @param {string} operationId - Operation identifier
+     * @returns {Array} Trace entries
+     */
+    getTrace(operationId) {
+        return this.operationTraces.get(operationId) || [];
+    }
+
+    /**
+     * Start performance timer
+     * @param {string} moduleName - Module name
+     * @param {string} timerName - Timer identifier
+     */
+    startTimer(moduleName, timerName) {
+        const key = `${moduleName}:${timerName}`;
+        this.performanceMarks.set(key, performance.now());
+    }
+
+    /**
+     * End performance timer and log duration
+     * @param {string} moduleName - Module name
+     * @param {string} timerName - Timer identifier
+     * @returns {number} Duration in milliseconds
+     */
+    endTimer(moduleName, timerName) {
+        const key = `${moduleName}:${timerName}`;
+        const startTime = this.performanceMarks.get(key);
+
+        if (startTime === undefined) {
+            this.log(moduleName, 'warn', `Timer '${timerName}' was not started`);
+            return 0;
+        }
+
+        const duration = performance.now() - startTime;
+        this.performanceMarks.delete(key);
+
+        this.log(moduleName, 'debug', `Timer '${timerName}': ${duration.toFixed(2)}ms`);
+        return duration;
+    }
+
+    /**
+     * Check if debug mode is enabled
+     * @returns {boolean} Debug mode status
+     */
+    isDebugEnabled() {
+        // This will be overridden by main.js to connect to settings
+        return true; // Default during initialization
+    }
+
+    /**
+     * Clear all traces and performance data
+     */
+    clear() {
+        this.operationTraces.clear();
+        this.performanceMarks.clear();
+    }
+
+    /**
+     * Get performance summary
+     * @returns {Object} Performance statistics
+     */
+    getPerformanceSummary() {
+        return {
+            activeTimers: this.performanceMarks.size,
+            activeTraces: this.operationTraces.size,
+            modules: Array.from(this.modules.keys()),
+        };
+    }
+}
+
+// Create singleton instance
+const debugLogger = new DebugLogger();
+
+// Export the instance and key methods for easy access
+
+
+// Export functions instead of bound methods to avoid binding issues
+function createModuleLogger(moduleName) {
+    return debugLogger.createModuleLogger(moduleName);
+}
+
+function addTrace(moduleName, operationId, message) {
+    return debugLogger.addTrace(moduleName, operationId, message);
+}
+
+function startTimer(operationId) {
+    return debugLogger.startTimer(operationId);
+}
+
+function endTimer(operationId) {
+    return debugLogger.endTimer(operationId);
+}
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (debugLogger);
+
+
+/***/ },
+
+/***/ 825
+(module) {
+
+
+
+/* istanbul ignore next  */
+function apply(styleElement, options, obj) {
+  var css = "";
+  if (obj.supports) {
+    css += "@supports (".concat(obj.supports, ") {");
+  }
+  if (obj.media) {
+    css += "@media ".concat(obj.media, " {");
+  }
+  var needLayer = typeof obj.layer !== "undefined";
+  if (needLayer) {
+    css += "@layer".concat(obj.layer.length > 0 ? " ".concat(obj.layer) : "", " {");
+  }
+  css += obj.css;
+  if (needLayer) {
+    css += "}";
+  }
+  if (obj.media) {
+    css += "}";
+  }
+  if (obj.supports) {
+    css += "}";
+  }
+  var sourceMap = obj.sourceMap;
+  if (sourceMap && typeof btoa !== "undefined") {
+    css += "\n/*# sourceMappingURL=data:application/json;base64,".concat(btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))), " */");
+  }
+
+  // For old IE
+  /* istanbul ignore if  */
+  options.styleTagTransform(css, styleElement, options.options);
+}
+function removeStyleElement(styleElement) {
+  // istanbul ignore if
+  if (styleElement.parentNode === null) {
+    return false;
+  }
+  styleElement.parentNode.removeChild(styleElement);
+}
+
+/* istanbul ignore next  */
+function domAPI(options) {
+  if (typeof document === "undefined") {
+    return {
+      update: function update() {},
+      remove: function remove() {}
+    };
+  }
+  var styleElement = options.insertStyleElement(options);
+  return {
+    update: function update(obj) {
+      apply(styleElement, options, obj);
+    },
+    remove: function remove() {
+      removeStyleElement(styleElement);
+    }
+  };
+}
+module.exports = domAPI;
+
+/***/ },
+
+/***/ 854
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   ZD: () => (/* binding */ escapeHtml),
+/* harmony export */   cv: () => (/* binding */ generateUID),
+/* harmony export */   tx: () => (/* binding */ simpleHash)
+/* harmony export */ });
+/* unused harmony exports deepClone, debounce, throttle, isEmpty, normalizeName, calculateSimilarity, formatTimestamp, truncate */
+/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/**
+ * Utility functions for Name Tracker extension
+ * Common helpers and shared functionality
+ */
+
+
+
+const logger = _core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"].createModuleLogger */ .Ay.createModuleLogger('Utils');
+
+/**
+ * Simple hash function for generating unique identifiers
+ * @param {string} str - String to hash
+ * @returns {string} Hash value in base-36 format
+ */
+function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash.toString(36);
+}
+
+/**
+ * Escape HTML special characters to prevent XSS
+ * @param {string} text - Text to escape
+ * @returns {string} HTML-safe text
+ */
+function escapeHtml(text) {
+    if (typeof text !== 'string') {
+        return '';
+    }
+
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Generate unique identifier
+ * @returns {string} Unique ID
+ */
+function generateUID() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+/**
+ * Deep clone an object
+ * @param {any} obj - Object to clone
+ * @returns {any} Cloned object
+ */
+function deepClone(obj) {
+    if (obj === null || typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (obj instanceof Date) {
+        return new Date(obj.getTime());
+    }
+
+    if (obj instanceof Array) {
+        return obj.map(item => deepClone(item));
+    }
+
+    if (typeof obj === 'object') {
+        const cloned = {};
+        Object.keys(obj).forEach(key => {
+            cloned[key] = deepClone(obj[key]);
+        });
+        return cloned;
+    }
+
+    return obj;
+}
+
+/**
+ * Debounce function calls
+ * @param {Function} func - Function to debounce
+ * @param {number} wait - Wait time in milliseconds
+ * @returns {Function} Debounced function
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Throttle function calls
+ * @param {Function} func - Function to throttle
+ * @param {number} limit - Time limit in milliseconds
+ * @returns {Function} Throttled function
+ */
+function throttle(func, limit) {
+    let inThrottle;
+    return function executedFunction(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
+/**
+ * Check if a value is empty (null, undefined, empty string, empty array, empty object)
+ * @param {any} value - Value to check
+ * @returns {boolean} True if empty
+ */
+function isEmpty(value) {
+    if (value == null) return true;
+    if (typeof value === 'string') return value.trim() === '';
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === 'object') return Object.keys(value).length === 0;
+    return false;
+}
+
+/**
+ * Normalize character names (remove extra spaces, normalize case)
+ * @param {string} name - Name to normalize
+ * @returns {string} Normalized name
+ */
+function normalizeName(name) {
+    if (typeof name !== 'string') {
+        return '';
+    }
+
+    return name
+        .trim()
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+}
+
+/**
+ * Calculate similarity between two strings
+ * @param {string} str1 - First string
+ * @param {string} str2 - Second string
+ * @returns {number} Similarity score (0-1)
+ */
+function calculateSimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
+
+    const a = str1.toLowerCase();
+    const b = str2.toLowerCase();
+
+    if (a === b) return 1;
+
+    // Simple Levenshtein distance
+    const matrix = [];
+
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    matrix[i][j - 1] + 1,     // insertion
+                    matrix[i - 1][j] + 1,      // deletion
+                );
+            }
+        }
+    }
+
+    const maxLength = Math.max(a.length, b.length);
+    return 1 - (matrix[b.length][a.length] / maxLength);
+}
+
+/**
+ * Format timestamp for display
+ * @param {number} timestamp - Unix timestamp
+ * @returns {string} Formatted time string
+ */
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
+}
+
+/**
+ * Truncate text with ellipsis
+ * @param {string} text - Text to truncate
+ * @param {number} maxLength - Maximum length
+ * @returns {string} Truncated text
+ */
+function truncate(text, maxLength) {
+    if (typeof text !== 'string') return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength - 3) + '...';
+}
+
+logger.debug('Utils module loaded');
+
+/* unused harmony default export */ var __WEBPACK_DEFAULT_EXPORT__ = ({
+    simpleHash,
+    escapeHtml,
+    generateUID,
+    deepClone,
+    debounce,
+    throttle,
+    isEmpty,
+    normalizeName,
+    calculateSimilarity,
+    formatTimestamp,
+    truncate,
+});
+
+
+/***/ }
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			id: moduleId,
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/nonce */
+/******/ 	(() => {
+/******/ 		__webpack_require__.nc = undefined;
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+
+// UNUSED EXPORTS: default
+
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js
+var injectStylesIntoStyleTag = __webpack_require__(72);
+var injectStylesIntoStyleTag_default = /*#__PURE__*/__webpack_require__.n(injectStylesIntoStyleTag);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/styleDomAPI.js
+var styleDomAPI = __webpack_require__(825);
+var styleDomAPI_default = /*#__PURE__*/__webpack_require__.n(styleDomAPI);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/insertBySelector.js
+var insertBySelector = __webpack_require__(659);
+var insertBySelector_default = /*#__PURE__*/__webpack_require__.n(insertBySelector);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/setAttributesWithoutAttributes.js
+var setAttributesWithoutAttributes = __webpack_require__(56);
+var setAttributesWithoutAttributes_default = /*#__PURE__*/__webpack_require__.n(setAttributesWithoutAttributes);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/insertStyleElement.js
+var insertStyleElement = __webpack_require__(540);
+var insertStyleElement_default = /*#__PURE__*/__webpack_require__.n(insertStyleElement);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/styleTagTransform.js
+var styleTagTransform = __webpack_require__(113);
+var styleTagTransform_default = /*#__PURE__*/__webpack_require__.n(styleTagTransform);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js!./style.css
+var cjs_js_style = __webpack_require__(83);
+;// ./style.css
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+var options = {};
+
+options.styleTagTransform = (styleTagTransform_default());
+options.setAttributes = (setAttributesWithoutAttributes_default());
+options.insert = insertBySelector_default().bind(null, "head");
+options.domAPI = (styleDomAPI_default());
+options.insertStyleElement = (insertStyleElement_default());
+
+var update = injectStylesIntoStyleTag_default()(cjs_js_style/* default */.A, options);
+
+
+
+
+       /* harmony default export */ const style = (cjs_js_style/* default */.A && cjs_js_style/* default */.A.locals ? cjs_js_style/* default */.A.locals : undefined);
+
+// EXTERNAL MODULE: ./src/core/debug.js
+var debug = __webpack_require__(806);
+// EXTERNAL MODULE: ./src/core/errors.js
+var errors = __webpack_require__(462);
+// EXTERNAL MODULE: ./src/core/context.js
+var core_context = __webpack_require__(102);
+// EXTERNAL MODULE: ./src/core/settings.js
+var core_settings = __webpack_require__(548);
+// EXTERNAL MODULE: ./src/utils/notifications.js
+var notifications = __webpack_require__(695);
+// EXTERNAL MODULE: ./src/utils/helpers.js
+var helpers = __webpack_require__(854);
+// EXTERNAL MODULE: ./src/modules/characters.js
+var modules_characters = __webpack_require__(551);
+// EXTERNAL MODULE: ./src/modules/llm.js
+var llm = __webpack_require__(744);
+// EXTERNAL MODULE: ./src/modules/lorebook.js
+var lorebook = __webpack_require__(134);
+;// ./src/modules/ui.js
+/**
+ * UI Management Module
+ *
+ * Handles user interface components, settings panel management, character lists,
+ * modal dialogs, and progress indicators for the Name Tracker extension.
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+const ui_debug = (0,debug/* createModuleLogger */.Xv)('ui');
+const ui_notifications = new notifications/* NotificationManager */.h('UI Management');
+
+/**
+ * Update character list display in settings
+ * @returns {void}
+ */
+function updateCharacterList() {
+    return (0,errors/* withErrorBoundary */.Xc)('updateCharacterList', () => {
+        const $container = $('#name_tracker_character_list');
+        if ($container.length === 0) {
+            ui_debug.log();
+            return;
+        }
+
+        const characters = (0,core_settings/* getCharacters */.bg)();
+        const characterNames = Object.keys(characters);
+
+        if (characterNames.length === 0) {
+            $container.html(`
+                <div class="name_tracker_no_characters">
+                    <p style="text-align: center; color: var(--SmartThemeQuoteColor);">
+                        No characters tracked yet. Start a conversation and character information will be extracted automatically!
+                    </p>
+                </div>
+            `);
+            return;
+        }
+
+        // Sort characters: Main characters first, then alphabetically
+        const sortedCharacters = Object.values(characters).sort((a, b) => {
+            if (a.isMainChar && !b.isMainChar) return -1;
+            if (!a.isMainChar && b.isMainChar) return 1;
+            return a.preferredName.localeCompare(b.preferredName);
+        });
+
+        let html = '<div class="name_tracker_character_list">';
+
+        for (const character of sortedCharacters) {
+            const charIcon = character.isMainChar ? '<i class="fa-solid fa-user"></i>' : '';
+            const ignoreIcon = character.ignored ? '<span class="char-ignored-badge">IGNORED</span>' : '';
+            const reviewBadge = (0,modules_characters/* hasUnresolvedRelationships */.pp)(character) ? '<span class="char-review-badge">NEEDS REVIEW</span>' : '';
+
+            const aliasText = character.aliases && character.aliases.length > 0
+                ? `<div class="char-aliases">Aliases: ${(0,helpers/* escapeHtml */.ZD)(character.aliases.join(', '))}</div>`
+                : '';
+
+            const relationshipText = character.relationships && character.relationships.length > 0
+                ? `<div class="char-relationships">Relationships: ${(0,helpers/* escapeHtml */.ZD)(character.relationships.join('; '))}</div>`
+                : '';
+
+            const lastUpdated = character.lastUpdated
+                ? new Date(character.lastUpdated).toLocaleString()
+                : 'Never';
+
+            html += `
+                <div class="name_tracker_character_item" data-character="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}">
+                    <div class="char-header">
+                        <span class="char-name">
+                            ${charIcon}
+                            ${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}
+                            ${ignoreIcon}
+                            ${reviewBadge}
+                        </span>
+                        <div class="char-actions">
+                            <button class="char-action-btn char-action-edit" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="Edit lorebook entry">
+                                <i class="fa-solid fa-edit"></i>
+                            </button>
+                            <button class="char-action-btn char-action-view" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="View in lorebook">
+                                <i class="fa-solid fa-book"></i>
+                            </button>
+                            <button class="char-action-btn char-action-merge" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="Merge with another character">
+                                <i class="fa-solid fa-code-merge"></i>
+                            </button>
+                            <button class="char-action-btn char-action-ignore" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="${character.ignored ? 'Unignore' : 'Ignore'} character">
+                                <i class="fa-solid ${character.ignored ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${aliasText}
+                    ${relationshipText}
+                    <div class="char-metadata">
+                        <span>Confidence: ${character.confidence}%</span>
+                        <span>Updated: ${lastUpdated}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+        $container.html(html);
+    });
+}
+
+/**
+ * Update status display in settings
+ * @returns {void}
+ */
+function updateStatusDisplay() {
+    return (0,errors/* withErrorBoundary */.Xc)('updateStatusDisplay', () => {
+        const $statusContainer = $('#name_tracker_status_display');
+        if ($statusContainer.length === 0) {
+            return;
+        }
+
+        const characters = (0,core_settings/* getCharacters */.bg)();
+        const characterCount = Object.keys(characters).length;
+        const messageCounter = (0,core_settings/* getSetting */.PL)('messageCounter', 0);
+        const lastScannedId = (0,core_settings/* getSetting */.PL)('lastScannedMessageId', -1);
+        const messageFreq = (0,core_settings/* getSetting */.PL)('messageFrequency', 10);
+
+        const context = core_context.stContext.getContext();
+        const currentMessageId = context?.chat?.length || 0;
+        const pendingMessages = Math.max(0, currentMessageId - lastScannedId);
+        const progressText = messageCounter > 0 ? ` (${messageCounter} analyzed)` : '';
+        const currentChatLength = context.chat ? context.chat.length : 0;
+        const messagesToNextScan = Math.max(0, messageFreq - (currentChatLength - lastScannedId));
+
+        const statusHtml = `
+            <div class="name_tracker_status">
+                <div class="status-item">
+                    <strong>Characters tracked:</strong> ${characterCount}${progressText}
+                </div>
+                <div class="status-item">
+                    <strong>Messages in chat:</strong> ${currentChatLength}
+                </div>
+                <div class="status-item">
+                    <strong>Last scanned message:</strong> ${lastScannedId >= 0 ? lastScannedId + 1 : 'None'}
+                </div>
+                <div class="status-item">
+                    <strong>Pending messages:</strong> ${pendingMessages}
+                </div>
+                <div class="status-item">
+                    <strong>Messages until next scan:</strong> ${messagesToNextScan}
+                </div>
+            </div>
+        `;
+
+        $statusContainer.html(statusHtml);
+    });
+}
+
+/**
+ * Show character merge dialog
+ * @param {string} sourceName - Name of source character
+ * @returns {Promise<void>}
+ */
+async function showMergeDialog(sourceName) {
+    return (0,errors/* withErrorBoundary */.Xc)('showMergeDialog', async () => {
+        const characters = (0,core_settings/* getCharacters */.bg)();
+
+        // Create list of other characters
+        const otherChars = Object.keys(characters).filter(name => name !== sourceName);
+
+        if (otherChars.length === 0) {
+            ui_notifications.warning('No other characters to merge with');
+            return;
+        }
+
+        // Simple prompt for target character
+        const targetName = prompt(`Merge "${sourceName}" into which character? Available: ${otherChars.join(', ')}`);
+        if (targetName && characters[targetName]) {
+            await (0,modules_characters/* mergeCharacters */.lF)(sourceName, targetName);
+            updateCharacterList();
+            updateStatusDisplay();
+        } else if (targetName) {
+            ui_notifications.error('Invalid target character name');
+        }
+    });
+}
+
+/**
+ * Show character creation modal
+ * @returns {Promise<void>}
+ */
+async function showCreateCharacterModal() {
+    return (0,errors/* withErrorBoundary */.Xc)('showCreateCharacterModal', async () => {
+        const characterName = prompt('Enter character name:');
+
+        if (!characterName || !characterName.trim()) {
+            return;
+        }
+
+        try {
+            await (0,modules_characters/* createNewCharacter */.g9)(characterName.trim());
+            updateCharacterList();
+            updateStatusDisplay();
+        } catch (error) {
+            ui_notifications.error(error.message);
+        }
+    });
+}
+
+/**
+ * Show purge confirmation dialog
+ * @returns {Promise<void>}
+ */
+async function showPurgeConfirmation() {
+    return (0,errors/* withErrorBoundary */.Xc)('showPurgeConfirmation', async () => {
+        const characters = (0,core_settings/* getCharacters */.bg)();
+        const characterCount = Object.keys(characters).length;
+
+        if (characterCount === 0) {
+            ui_notifications.info('No characters to purge');
+            return;
+        }
+
+        const confirmed = confirm(`This will delete all ${characterCount} tracked characters and their lorebook entries.\\n\\nThis action cannot be undone!\\n\\nContinue?`);
+
+        if (confirmed) {
+            try {
+                const deletedCount = await (0,modules_characters/* purgeAllCharacters */.vu)();
+                updateCharacterList();
+                updateStatusDisplay();
+                ui_notifications.success(`Purged ${deletedCount} characters`);
+            } catch (error) {
+                ui_notifications.error(`Failed to purge characters: ${error.message}`);
+            }
+        }
+    });
+}
+
+/**
+ * Show system prompt editor modal
+ * @returns {Promise<void>}
+ */
+async function showSystemPromptEditor() {
+    return (0,errors/* withErrorBoundary */.Xc)('showSystemPromptEditor', async () => {
+        const currentPrompt = (0,core_settings/* getSetting */.PL)('systemPrompt') || '';
+
+        // Create modal dialog
+        const modal = $(`
+            <div class="nametracker-modal" style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: var(--SmartThemeBlurTintColor);
+                border: 1px solid var(--SmartThemeBorderColor);
+                border-radius: 10px;
+                padding: 20px;
+                max-width: 700px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                z-index: 9999;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            ">
+                <h3 style="margin-top: 0;">Edit System Prompt</h3>
+                <p>Customize the system prompt used for character analysis. Leave blank to use default.</p>
+                <textarea id="system_prompt_editor" rows="20" style="width: 100%; margin: 10px 0;" 
+                          placeholder="Enter custom system prompt or leave blank for default...">${(0,helpers/* escapeHtml */.ZD)(currentPrompt)}</textarea>
+                <div style="margin-top: 20px; text-align: right;">
+                    <button class="menu_button" id="system_prompt_save">Save</button>
+                    <button class="menu_button" id="system_prompt_reset">Reset to Default</button>
+                    <button class="menu_button" id="system_prompt_cancel">Cancel</button>
+                </div>
+            </div>
+        `);
+
+        const overlay = $(`
+            <div class="nametracker-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                z-index: 9998;
+            "></div>
+        `);
+
+        $('body').append(overlay).append(modal);
+
+        const removeModal = () => {
+            modal.remove();
+            overlay.remove();
+        };
+
+        modal.find('#system_prompt_save').on('click', () => {
+            const newPrompt = modal.find('#system_prompt_editor').val().trim();
+            (0,core_settings/* setSetting */.ZC)('systemPrompt', newPrompt || null);
+            ui_notifications.success('System prompt updated');
+            removeModal();
+        });
+
+        modal.find('#system_prompt_reset').on('click', () => {
+            modal.find('#system_prompt_editor').val('');
+            (0,core_settings/* setSetting */.ZC)('systemPrompt', null);
+            ui_notifications.success('Reset to default system prompt');
+            removeModal();
+        });
+
+        modal.find('#system_prompt_cancel').on('click', removeModal);
+        overlay.on('click', removeModal);
+    });
+}
+
+/**
+ * Show character list modal
+ * @returns {void}
+ */
+function showCharacterListModal() {
+    return (0,errors/* withErrorBoundary */.Xc)('showCharacterListModal', () => {
+        const characters = Object.values((0,core_settings/* getCharacters */.bg)() || {});
+
+        // Build character list HTML
+        let charactersHtml = '';
+
+        if (characters.length === 0) {
+            charactersHtml = '<p style="text-align: center; color: var(--SmartThemeQuoteColor);">No characters tracked yet</p>';
+        } else {
+            // Sort: Main characters first, then by name
+            characters.sort((a, b) => {
+                if (a.isMainChar && !b.isMainChar) return -1;
+                if (!a.isMainChar && b.isMainChar) return 1;
+                return a.preferredName.localeCompare(b.preferredName);
+            });
+
+            charactersHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+            for (const char of characters) {
+                const badges = [];
+                if (char.isMainChar) badges.push('<span style="background: var(--SmartThemeBodyColor); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">MAIN</span>');
+                if (char.ignored) badges.push('<span style="background: var(--black70a); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">IGNORED</span>');
+                if ((0,modules_characters/* hasUnresolvedRelationships */.pp)(char)) badges.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');
+
+                const aliasText = char.aliases && char.aliases.length > 0
+                    ? `<div style="font-size: 0.9em; color: var(--SmartThemeQuoteColor); margin-top: 3px;">Aliases: ${(0,helpers/* escapeHtml */.ZD)(char.aliases.join(', '))}</div>`
+                    : '';
+
+                charactersHtml += `
+                    <div style="padding: 10px; margin: 5px 0; background: var(--SmartThemeBlurTintColor); border: 1px solid var(--SmartThemeBorderColor); border-radius: 5px;">
+                        <div style="font-weight: bold;">
+                            ${char.isMainChar ? '<i class="fa-solid fa-user" style="margin-right: 5px;"></i>' : ''}
+                            ${(0,helpers/* escapeHtml */.ZD)(char.preferredName)}
+                            ${badges.join('')}
+                        </div>
+                        ${aliasText}
+                    </div>
+                `;
+            }
+            charactersHtml += '</div>';
+        }
+
+        // Create and show modal
+        const modalHtml = `
+            <div class="name-tracker-character-modal">
+                <h3 style="margin-top: 0;">Tracked Characters (${characters.length})</h3>
+                ${charactersHtml}
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="menu_button" onclick="$('#name_tracker_settings').find('.inline-drawer-toggle').click(); $(this).closest('.popup').remove();">
+                        <i class="fa-solid fa-gear"></i> Open Settings
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const context = core_context.stContext.getContext();
+        context.callGenericPopup(modalHtml, context.POPUP_TYPE.TEXT, '', { wider: true, okButton: 'Close' });
+    });
+}
+
+/**
+ * Initialize UI event handlers
+ * @returns {void}
+ */
+function initializeUIHandlers() {
+    return (0,errors/* withErrorBoundary */.Xc)('initializeUIHandlers', () => {
+        // Character action handlers
+        $(document).on('click', '.char-action-merge', async function() {
+            const sourceName = $(this).data('name');
+            await showMergeDialog(sourceName);
+        });
+
+        $(document).on('click', '.char-action-ignore', async function() {
+            const name = $(this).data('name');
+            await (0,modules_characters/* toggleIgnoreCharacter */.el)(name);
+            updateCharacterList();
+            updateStatusDisplay();
+        });
+
+        $(document).on('click', '.char-action-view', async function() {
+            const name = $(this).data('name');
+            await (0,lorebook/* viewInLorebook */._Z)(name);
+        });
+
+        $(document).on('click', '.char-action-edit', async function() {
+            const name = $(this).data('name');
+            await showEditLorebookModal(name);
+        });
+
+        ui_debug.log();
+    });
+}
+
+/**
+ * Show edit lorebook entry modal
+ * @param {string} characterName - Name of character to edit
+ * @returns {Promise<void>}
+ */
+async function showEditLorebookModal(characterName) {
+    return (0,errors/* withErrorBoundary */.Xc)('showEditLorebookModal', async () => {
+        const character = (0,core_settings/* getCharacter */.qN)(characterName);
+
+        if (!character) {
+            ui_notifications.error('Character not found');
+            return;
+        }
+
+        // Build edit dialog
+        const currentKeys = [characterName, ...(character.aliases || [])].join(', ');
+
+        const dialogHtml = `
+            <div class="lorebook-entry-editor">
+                <h3>Edit Lorebook Entry: ${(0,helpers/* escapeHtml */.ZD)(characterName)}</h3>
+                
+                <div class="editor-section">
+                    <label for="entry-keys">Keys (comma-separated):</label>
+                    <input type="text" id="entry-keys" class="text_pole" value="${(0,helpers/* escapeHtml */.ZD)(currentKeys)}" 
+                           placeholder="${(0,helpers/* escapeHtml */.ZD)(characterName)}, aliases, nicknames">
+                    <small>These words trigger this entry in the chat context</small>
+                </div>
+                
+                <div class="editor-section">
+                    <label for="entry-content">Entry Content:</label>
+                    <textarea id="entry-content" rows="10" class="text_pole" 
+                              placeholder="Description, personality, background, relationships...">${(0,helpers/* escapeHtml */.ZD)(character.notes || '')}</textarea>
+                    <small>This will be injected into context when keys are mentioned</small>
+                </div>
+                
+                <div class="editor-section">
+                    <label for="entry-relationships">Relationships:</label>
+                    <textarea id="entry-relationships" rows="3" class="text_pole" 
+                              placeholder="Friend of Alice; Enemy of Bob; Works for XYZ Corp">${(0,helpers/* escapeHtml */.ZD)((character.relationships || []).join('; '))}</textarea>
+                    <small>One relationship per line or semicolon-separated</small>
+                </div>
+            </div>
+        `;
+
+        // Create simple modal dialog
+        const modal = $(`
+            <div class="nametracker-modal" style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: var(--SmartThemeBlurTintColor);
+                border: 1px solid var(--SmartThemeBorderColor);
+                border-radius: 10px;
+                padding: 20px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                z-index: 9999;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            ">
+                ${dialogHtml}
+                <div style="margin-top: 20px; text-align: right;">
+                    <button class="menu_button" id="entry-save">Save</button>
+                    <button class="menu_button" id="entry-cancel">Cancel</button>
+                </div>
+            </div>
+        `);
+
+        const overlay = $(`
+            <div class="nametracker-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                z-index: 9998;
+            "></div>
+        `);
+
+        $('body').append(overlay).append(modal);
+
+        const removeModal = () => {
+            modal.remove();
+            overlay.remove();
+        };
+
+        modal.find('#entry-save').on('click', async () => {
+            const keys = modal.find('#entry-keys').val().split(',').map(k => k.trim()).filter(k => k);
+            const content = modal.find('#entry-content').val();
+            const relationships = modal.find('#entry-relationships').val()
+                .split(/[;\\n]/)
+                .map(r => r.trim())
+                .filter(r => r);
+
+            // Update character data
+            const preferredName = keys[0] || characterName;
+            const aliases = keys.slice(1);
+
+            character.preferredName = preferredName;
+            character.aliases = aliases;
+            character.notes = content;
+            character.relationships = relationships;
+
+            // If preferred name changed, need to update the key in settings
+            if (preferredName !== characterName) {
+                (0,core_settings/* removeCharacter */.sr)(characterName);
+            }
+            (0,core_settings/* setCharacter */.e7)(preferredName, character);
+
+            updateCharacterList();
+            updateStatusDisplay();
+
+            ui_notifications.success(`Updated lorebook entry for ${preferredName}`);
+            removeModal();
+        });
+
+        modal.find('#entry-cancel').on('click', removeModal);
+        overlay.on('click', removeModal);
+    });
+}
+
+/**
+ * Add a menu button to the extensions menu
+ * @param {string} text - Button text
+ * @param {string} faIcon - Font Awesome icon classes
+ * @param {Function} callback - Click handler
+ * @param {string} hover - Tooltip text
+ * @param {string} className - Optional additional CSS class
+ * @returns {void}
+ */
+function addMenuButton(text, faIcon, callback, hover = null, className = '') {
+    return (0,errors/* withErrorBoundary */.Xc)('addMenuButton', () => {
+        const $button = $(`
+            <div class="list-group-item flex-container flexGap5 interactable ${className}" title="${hover || text}" tabindex="0">
+                <i class="${faIcon}"></i>
+                <span>${text}</span>
+            </div>
+        `);
+
+        const $extensionsMenu = $('#extensionsMenu');
+        if (!$extensionsMenu.length) {
+            console.error('[Name Tracker] Could not find the extensions menu');
+            return;
+        }
+
+        $button.appendTo($extensionsMenu);
+        $button.on('click', () => callback());
+    });
+}
+
+/**
+ * Toggle auto-harvest on/off
+ * @returns {void}
+ */
+function toggleAutoHarvest() {
+    return (0,errors/* withErrorBoundary */.Xc)('toggleAutoHarvest', () => {
+        const currentValue = (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
+        (0,core_settings/* setSetting */.ZC)('autoAnalyze', !currentValue);
+
+        // Update the settings UI
+        $('#name_tracker_auto_analyze').prop('checked', !currentValue);
+
+        // Update menu button icon to reflect state
+        const $menuButton = $('#extensionsMenu .name-tracker-toggle-harvest');
+        if (!currentValue) {
+            $menuButton.find('i').removeClass('fa-toggle-off').addClass('fa-toggle-on');
+        } else {
+            $menuButton.find('i').removeClass('fa-toggle-on').addClass('fa-toggle-off');
+        }
+
+        updateStatusDisplay();
+
+        ui_notifications.success(
+            `Auto-harvest ${!currentValue ? 'enabled' : 'disabled'}`,
+        );
+    });
+}
+
+/**
+ * Open the chat lorebook in the World Info editor
+ * @returns {Promise<void>}
+ */
+async function openChatLorebook() {
+    return (0,errors/* withErrorBoundary */.Xc)('openChatLorebook', async () => {
+        const context = core_context.stContext.getContext();
+        const lorebookName = context.chatMetadata?.world_info;
+
+        if (!lorebookName) {
+            ui_notifications.warning('No active chat or lorebook');
+            return;
+        }
+
+        if (typeof context.openWorldInfoEditor === 'function') {
+            await context.openWorldInfoEditor(lorebookName);
+        } else {
+            // Fallback: show the world info panel
+            $('#WorldInfo').click();
+            ui_notifications.info(`Please select "${lorebookName}" from the World Info panel`);
+        }
+    });
+}
+
+/**
+ * Initialize extension menu buttons
+ * @returns {void}
+ */
+function initializeMenuButtons() {
+    return (0,errors/* withErrorBoundary */.Xc)('initializeMenuButtons', () => {
+        // Add toggle auto-harvest button with visual state
+        const autoAnalyze = (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
+        const toggleIcon = autoAnalyze ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
+        addMenuButton(
+            'Toggle Auto-Harvest',
+            toggleIcon,
+            toggleAutoHarvest,
+            'Toggle automatic character harvesting on/off',
+            'name-tracker-toggle-harvest',
+        );
+
+        // Add character list button
+        addMenuButton(
+            'View Characters',
+            'fa-solid fa-users',
+            showCharacterListModal,
+            'View all tracked characters',
+        );
+
+        // Add open lorebook button
+        addMenuButton(
+            'Open Chat Lorebook',
+            'fa-solid fa-book',
+            openChatLorebook,
+            'Open the Name Tracker chat lorebook in the World Info editor',
+        );
+
+        ui_debug.log();
+    });
+}
+
+/**
+ * Bind settings UI event handlers
+ * @returns {void}
+ */
+function bindSettingsHandlers() {
+    return (0,errors/* withErrorBoundary */.Xc)('bindSettingsHandlers', () => {
+        // Main settings handlers
+        $('#name_tracker_enabled').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('enabled', event.target.checked);
+            updateStatusDisplay();
+        });
+
+        $('#name_tracker_auto_analyze').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('autoAnalyze', event.target.checked);
+            updateStatusDisplay();
+        });
+
+        $('#name_tracker_message_frequency').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('messageFrequency', parseInt(event.target.value) || 10);
+            updateStatusDisplay();
+        });
+
+        $('#name_tracker_llm_source').on('change', (event) => {
+            (0,core_settings/* setSetting */.ZC)('llmSource', event.target.value);
+        });
+
+        $('#name_tracker_ollama_endpoint').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('ollamaEndpoint', event.target.value);
+        });
+
+        $('#name_tracker_ollama_model').on('change', (event) => {
+            (0,core_settings/* setSetting */.ZC)('ollamaModel', event.target.value);
+        });
+
+        $('#name_tracker_load_models').on('click', async () => {
+            try {
+                await (0,llm/* loadOllamaModels */.Bw)();
+                ui_notifications.success('Ollama models loaded');
+                // eslint-disable-next-line no-unused-vars
+            } catch (error) {
+                ui_debug.log();
+                ui_notifications.error('Failed to load Ollama models');
+            }
+        });
+
+        $('#name_tracker_confidence_threshold').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('confidenceThreshold', parseInt(event.target.value) || 70);
+        });
+
+        // Lorebook settings handlers
+        $('#name_tracker_lorebook_position').on('change', (event) => {
+            (0,core_settings/* setSetting */.ZC)('lorebookPosition', parseInt(event.target.value) || 0);
+        });
+
+        $('#name_tracker_lorebook_depth').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('lorebookDepth', parseInt(event.target.value) || 1);
+        });
+
+        $('#name_tracker_lorebook_cooldown').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('lorebookCooldown', parseInt(event.target.value) || 5);
+        });
+
+        $('#name_tracker_lorebook_probability').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('lorebookProbability', parseInt(event.target.value) || 100);
+        });
+
+        $('#name_tracker_lorebook_enabled').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('lorebookEnabled', event.target.checked);
+        });
+
+        $('#name_tracker_debug_mode').on('input', (event) => {
+            (0,core_settings/* setSetting */.ZC)('debugMode', event.target.checked);
+        });
+
+        // Action button handlers
+        $('#name_tracker_manual_analyze').on('click', async () => {
+            const messageFreq = (0,core_settings/* getSetting */.PL)('messageFrequency', 10);
+            await harvestMessages(messageFreq, true);
+            updateCharacterList();
+            updateStatusDisplay();
+        });
+
+        $('#name_tracker_scan_all').on('click', async () => {
+            await scanEntireChat();
+            updateCharacterList();
+            updateStatusDisplay();
+        });
+
+        $('#name_tracker_create_character').on('click', async () => {
+            await showCreateCharacterModal();
+        });
+
+        $('#name_tracker_clear_cache').on('click', () => {
+            clearProcessingQueue();
+            ui_notifications.info('Cache and processing queue cleared');
+        });
+
+        $('#name_tracker_undo_merge').on('click', async () => {
+            const { undoLastMerge } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 551));
+            const success = await undoLastMerge();
+            if (success) {
+                updateCharacterList();
+                updateStatusDisplay();
+            }
+        });
+
+        $('#name_tracker_purge_entries').on('click', async () => {
+            await showPurgeConfirmation();
+        });
+
+        $('#name_tracker_edit_prompt').on('click', async () => {
+            await showSystemPromptEditor();
+        });
+
+        $('#name_tracker_debug_status').on('click', async () => {
+            await showDebugStatus();
+        });
+
+        $('#name_tracker_dump_context').on('click', () => {
+            dumpContextToConsole();
+        });
+
+        ui_debug.log();
+    });
+}
+
+/**
+ * Show debug status popup with all relevant variables
+ * @returns {void}
+ */
+function showDebugStatus() {
+    return (0,errors/* withErrorBoundary */.Xc)('showDebugStatus', async () => {
+        const settings = (0,core_settings/* get_settings */.TJ)();
+        const characters = (0,core_settings/* getCharacters */.bg)();
+
+        // Reusable builder: compute debug info + HTML
+        const buildDebugContent = async () => {
+            // Get LLM context info
+            let maxPromptTokens = 4096;
+            let contextDetails = {};
+            let detectionMethod = 'unknown';
+
+            try {
+                const { getMaxPromptLength } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 744));
+                const { stContext } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 102));
+                const maxPromptResultObj = await getMaxPromptLength();
+                maxPromptTokens = maxPromptResultObj.maxPrompt;
+                detectionMethod = maxPromptResultObj.detectionMethod;
+
+                // Get raw context info (retry briefly if not yet ready)
+                let context = stContext.getContext();
+                if (!context || typeof context.maxContext === 'undefined') {
+                    for (let i = 0; i < 3; i++) {
+                        await new Promise(r => setTimeout(r, 200));
+                        context = stContext.getContext();
+                        if (context && typeof context.maxContext !== 'undefined') break;
+                    }
+                }
+
+                if (!context || typeof context.maxContext === 'undefined') {
+                    contextDetails = {
+                        totalContext: 'Not loaded yet (no chat active)',
+                        maxGeneration: 'N/A',
+                        maxGenerationNote: 'Context will be available after chat loads',
+                        modelName: context?.main_api || 'unknown',
+                    };
+                } else {
+                    const totalContext = context.maxContext;
+                    const extensionMaxTokens = Math.min(4096, Math.floor(totalContext * 0.15));
+
+                    contextDetails = {
+                        totalContext: totalContext,
+                        maxGeneration: extensionMaxTokens,
+                        maxGenerationNote: 'Extension-controlled (15% of context, max 4096)',
+                        modelName: context.main_api || 'unknown',
+                    };
+                }
+            } catch (_error) {
+                console.error('[NT-Debug] Error in buildDebugContent:', _error);
+                ui_debug.log('Could not load LLM config:', _error);
+                contextDetails = {
+                    totalContext: 'Error loading',
+                    maxGeneration: 'Error',
+                    maxGenerationNote: 'Check console for details',
+                    modelName: 'unknown',
+                };
+                detectionMethod = 'error';
+            }
+
+            // Get batch size constants from processing module
+            const batchConstants = {
+                MIN_MESSAGES_PER_BATCH: 5,
+                TARGET_MESSAGES_PER_BATCH: 30,
+                MAX_MESSAGES_PER_BATCH: 50,
+                CONTEXT_TARGET_PERCENT: 80,
+                MIN_CONTEXT_TARGET: 50,
+            };
+
+            const systemPromptTokens = 500;
+            const maxGenTokens = typeof contextDetails.maxGeneration === 'number' ? contextDetails.maxGeneration : 2048;
+            const safetyMargin = 500;
+            const reservedTokens = systemPromptTokens + maxGenTokens + safetyMargin;
+            const availableTokens = maxPromptTokens;
+
+            // Compile debug info
+            const debugInfo = {
+                'Extension Status': {
+                    'Enabled': settings.enabled !== false,
+                    'Debug Mode': settings.debugMode !== false,
+                    'LLM Source': settings.llmSource || 'sillytavern',
+                    'Model API': contextDetails.modelName,
+                    'Tracked Characters': Object.keys(characters).length,
+                },
+                'SillyTavern Context': {
+                    'Total Context Window': contextDetails.totalContext,
+                    'Extension Max Tokens': `${contextDetails.maxGeneration} (${contextDetails.maxGenerationNote})`,
+                    'System Prompt Reserve': systemPromptTokens,
+                    'Safety Margin': safetyMargin,
+                    'Total Reserved': reservedTokens,
+                },
+                'Max Context Detection': {
+                    'Detection Method': detectionMethod || 'unknown',
+                    'Detected Max Context': contextDetails.totalContext,
+                    'Final Max Prompt': maxPromptTokens,
+                },
+                'Usable Token Budget': {
+                    'Max Prompt Tokens': maxPromptTokens,
+                    'Context Target %': batchConstants.CONTEXT_TARGET_PERCENT,
+                    'Tokens to Use': Math.floor(availableTokens * (batchConstants.CONTEXT_TARGET_PERCENT / 100)),
+                },
+                'Batch Configuration': {
+                    'Min Messages/Batch': batchConstants.MIN_MESSAGES_PER_BATCH,
+                    'Target Messages/Batch': batchConstants.TARGET_MESSAGES_PER_BATCH,
+                    'Max Messages/Batch': batchConstants.MAX_MESSAGES_PER_BATCH,
+                    'Min Context Target': batchConstants.MIN_CONTEXT_TARGET,
+                },
+                'Analysis Settings': {
+                    'Message Frequency': settings.messageFrequency || 10,
+                    'Auto-Analyze': settings.autoAnalyze !== false,
+                    'Confidence Threshold': settings.confidenceThreshold || 70,
+                },
+                'Lorebook Settings': {
+                    'Position': ['After Char', 'Before Char', 'Top', 'Bottom'][settings.lorebookPosition || 0],
+                    'Depth': settings.lorebookDepth || 1,
+                    'Cooldown': settings.lorebookCooldown || 5,
+                    'Probability %': settings.lorebookProbability || 100,
+                    'Enabled': settings.lorebookEnabled !== false,
+                },
+            };
+
+            // Format for display
+            let htmlContent = '<div style="font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">';
+            for (const [section, values] of Object.entries(debugInfo)) {
+                htmlContent += '<div style="margin-bottom: 15px; border-bottom: 1px solid #666; padding-bottom: 10px;">';
+                htmlContent += `<strong style="color: #90EE90; font-size: 13px;">${section}</strong><br>`;
+                for (const [key, value] of Object.entries(values)) {
+                    const displayValue = value === true ? '✓' : (value === false ? '✗' : value);
+                    htmlContent += `<div style="margin-left: 10px; padding: 2px 0;">
+                        <span style="color: #87CEEB;">${key}:</span>
+                        <span style="color: #FFFF99;">${displayValue}</span>
+                    </div>`;
+                }
+                htmlContent += '</div>';
+            }
+            htmlContent += '</div>';
+
+            return { debugInfo, htmlContent };
+        };
+
+        // Initial content
+        const initial = await buildDebugContent();
+
+        // Show in modal
+        const modal = $(`
+            <div class="nametracker-modal" style="
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #1a1a1a;
+                border: 2px solid #90EE90;
+                border-radius: 10px;
+                padding: 20px;
+                max-width: 550px;
+                width: 90%;
+                max-height: 75vh;
+                overflow-y: auto;
+                z-index: 9999;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+            ">
+                <h3 style="margin-top: 0; color: #90EE90; border-bottom: 2px solid #90EE90; padding-bottom: 10px;">
+                    <i class="fa-solid fa-bug"></i> Debug Status
+                </h3>
+                <div id="nt-debug-content">${initial.htmlContent}</div>
+                <div style="margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #666; padding-top: 10px;">
+                    <button class="menu_button" id="debug-refresh" style="background: #2a2a2a; color: #FFFF99; border: 1px solid #90EE90;">Refresh</button>
+                    <button class="menu_button" id="debug-close" style="background: #2a2a2a; color: #90EE90; border: 1px solid #90EE90;">Close</button>
+                </div>
+            </div>
+        `);
+
+        const overlay = $(`
+            <div class="nametracker-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                z-index: 9998;
+            "></div>
+        `);
+
+        $('body').append(overlay).append(modal);
+
+        const removeModal = () => {
+            modal.remove();
+            overlay.remove();
+        };
+
+        modal.find('#debug-close').on('click', removeModal);
+        overlay.on('click', removeModal);
+
+        // Log initial to console
+        console.log('[NT-Debug]', initial.debugInfo);
+
+        // Refresh handler: recompute and update content in-place
+        modal.find('#debug-refresh').on('click', async () => {
+            try {
+                const refreshed = await buildDebugContent();
+                modal.find('#nt-debug-content').html(refreshed.htmlContent);
+                console.log('[NT-Debug]', refreshed.debugInfo);
+            } catch (e) {
+                console.error('[NT-Debug] Refresh failed:', e);
+            }
+        });
+    });
+}
+
+/**
+ * Load and inject settings HTML
+ * @param {string} extensionFolderPath - Path to extension folder
+ * @returns {Promise<void>}
+ */
+async function loadSettingsHTML(extensionFolderPath) {
+    return withErrorBoundary('loadSettingsHTML', async () => {
+        try {
+            // Load the settings HTML
+            const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+
+            // Append to the extensions settings panel
+            $('#extensions_settings').append(settingsHtml);
+
+            ui_debug.log();
+        } catch (error) {
+            console.error('Failed to load settings HTML:', error);
+            throw new NameTrackerError(`Failed to load settings HTML: ${error.message}`);
+        }
+    });
+}
+
+/**
+ * Dump entire SillyTavern context to console for debugging
+ * Shows all properties, values, and structure in readable format
+ * @returns {void}
+ */
+function dumpContextToConsole() {
+    return (0,errors/* withErrorBoundary */.Xc)('dumpContextToConsole', () => {
+        try {
+            const dump = core_context.stContext.dumpContextToConsole();
+            ui_notifications.success('Context dumped to console - Press F12 to view', 'Context Dump');
+
+            // Also show a brief summary in a dialog
+            const summary = {
+                'Total Properties': dump.availableProperties.length,
+                'Key Properties Found': Object.keys(dump.detailedBreakdown).filter(k => k in dump.detailedBreakdown).length,
+                'Timestamp': dump.timestamp,
+            };
+
+            console.log('%c[Name Tracker] QUICK SUMMARY:', 'color: #ffaa00; font-weight: bold; font-size: 12px;');
+            console.table(summary);
+
+        } catch (error) {
+            ui_debug.log(`Failed to dump context: ${error.message}`);
+            ui_notifications.error(`Failed to dump context: ${error.message}`, 'Context Dump');
+        }
+    });
+}
+
+/**
+ * Update UI elements based on current settings
+ * @returns {void}
+ */
+function updateUI() {
+    return (0,errors/* withErrorBoundary */.Xc)('updateUI', () => {
+        // Update all form elements with current settings
+        $('#name_tracker_enabled').prop('checked', (0,core_settings/* getSetting */.PL)('enabled', true));
+        $('#name_tracker_auto_analyze').prop('checked', (0,core_settings/* getSetting */.PL)('autoAnalyze', true));
+        $('#name_tracker_message_frequency').val((0,core_settings/* getSetting */.PL)('messageFrequency', 10));
+        $('#name_tracker_llm_source').val((0,core_settings/* getSetting */.PL)('llmSource', 'sillytavern'));
+        $('#name_tracker_ollama_endpoint').val((0,core_settings/* getSetting */.PL)('ollamaEndpoint', 'http://localhost:11434'));
+        $('#name_tracker_ollama_model').val((0,core_settings/* getSetting */.PL)('ollamaModel', ''));
+        $('#name_tracker_confidence_threshold').val((0,core_settings/* getSetting */.PL)('confidenceThreshold', 70));
+        $('#name_tracker_lorebook_position').val((0,core_settings/* getSetting */.PL)('lorebookPosition', 0));
+        $('#name_tracker_lorebook_depth').val((0,core_settings/* getSetting */.PL)('lorebookDepth', 1));
+        $('#name_tracker_lorebook_cooldown').val((0,core_settings/* getSetting */.PL)('lorebookCooldown', 5));
+        $('#name_tracker_lorebook_probability').val((0,core_settings/* getSetting */.PL)('lorebookProbability', 100));
+        $('#name_tracker_lorebook_enabled').prop('checked', (0,core_settings/* getSetting */.PL)('lorebookEnabled', true));
+        $('#name_tracker_debug_mode').prop('checked', (0,core_settings/* getSetting */.PL)('debugMode', false));
+
+        // Update character list and status
+        updateCharacterList();
+        updateStatusDisplay();
+
+        ui_debug.log();
+    });
+}
+
+;// ./src/modules/processing.js
+/**
+ * Message Processing Module
+ *
+ * Handles two-phase character detection (lightweight name scan → focused LLM processing),
+ * batch processing with character-specific context windows, and SillyTavern event integration.
+ */
+
+
+
+
+
+
+
+
+
+
+
+const processing_debug = (0,debug/* createModuleLogger */.Xv)('processing');
+const processing_notifications = new notifications/* NotificationManager */.h('Message Processing');
+
+// ============================================================================
+// DEBUG CONFIGURATION
+// ============================================================================
+const DEBUG_LOGGING = true; // Set to false in production after testing
+
+function debugLog(message, data = null) {
+    if (DEBUG_LOGGING) {
+        console.log(`[NT-Processing] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// CONFIGURATION CONSTANTS - Core processing parameters
+// ============================================================================
+// These values drive the processing pipeline. Future user-exposed settings
+// should reference these constant names for easy discovery and updates.
+
+// Context Management
+const CONTEXT_TARGET_PERCENT = 80;      // Target percentage of context window to use
+const OVERLAP_SIZE = 3;                 // Messages to overlap between batches for continuity
+const MIN_CONTEXT_TARGET = 50;          // Minimum allowed context target (floor for auto-reduction)
+
+// Name Detection
+const CAPITALIZED_WORD_REGEX = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g;  // Matches capitalized names
+const QUOTED_NAME_REGEX = /"([^"]+)"/g;  // Matches quoted names
+const POSSESSIVE_REGEX = /(\b[A-Z][a-z]+)'s\b/g;  // Matches possessive forms
+
+// Processing Control
+// const BATCH_TIMEOUT_MS = 30000;         // Maximum time for a single batch to process (reserved for future)
+const MAX_RETRY_ATTEMPTS = 3;           // Maximum retries before halting processing
+const CONTEXT_REDUCTION_STEP = 5;       // Percentage to reduce context target on each failure
+
+// Batch Size Constraints (token-based, but with message-count limits for safety)
+const MIN_MESSAGES_PER_BATCH = 5;       // Never create batches smaller than this (unless last batch)
+const MAX_MESSAGES_PER_BATCH = 50;      // Cap batches at this size even if tokens allow more
+const TARGET_MESSAGES_PER_BATCH = 30;   // Aim for this size when possible (balance: not too small, not too large)
+const TARGET_MESSAGE_PERCENT = 35;      // Use 35% of max context for message data (conservative)
+
+// Error Recovery
+const ENABLE_AUTO_RECOVERY = true;      // Enable automatic context reduction on failure
+// const PRESERVE_PROCESSING_STATE = true; // Always save character state even on errors (reserved for future)
+
+// ============================================================================
+// SHARED HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Calculate available token budget for message data
+ * @param {number} maxPromptTokens - Maximum tokens available from context
+ * @returns {number} Available tokens for message content
+ */
+function calculateAvailableTokens(maxPromptTokens) {
+    // Use only 35% of max context for messages (conservative to avoid overwhelming the model)
+    // This leaves room for: system prompt (~1000 tokens) + response (up to 4000 tokens)
+    return Math.floor(maxPromptTokens * (TARGET_MESSAGE_PERCENT / 100));
+}
+
+/**
+ * Create batches of messages based on token limits
+ * @param {Array} messages - Messages to batch
+ * @param {number} availableTokens - Token budget per batch
+ * @param {boolean} enforceMessageLimit - Whether to enforce MAX_MESSAGES_PER_BATCH
+ * @returns {Promise<Array>} Array of message batches
+ */
+async function createMessageBatches(messages, availableTokens, enforceMessageLimit = true) {
+    const batches = [];
+    let currentBatch = [];
+    let currentTokens = 0;
+
+    for (const msg of messages) {
+        const msgTokens = await (0,llm/* calculateMessageTokens */.au)([msg]);
+
+        // Check if batch would exceed limits
+        const wouldExceedTokens = currentTokens + msgTokens > availableTokens;
+        const wouldExceedMessageCount = enforceMessageLimit && currentBatch.length >= MAX_MESSAGES_PER_BATCH;
+
+        if ((wouldExceedTokens || wouldExceedMessageCount) && currentBatch.length > 0) {
+            // Current batch is full, start new one
+            batches.push(currentBatch);
+            currentBatch = [msg];
+            currentTokens = msgTokens;
+        } else {
+            // Add to current batch
+            currentBatch.push(msg);
+            currentTokens += msgTokens;
+        }
+    }
+
+    // Add final batch
+    if (currentBatch.length > 0) {
+        batches.push(currentBatch);
+    }
+
+    return batches;
+}
+
+// Processing state
+let processingQueue = [];
+let isProcessing = false;
+let abortScan = false;
+const currentProcessingState = {
+    totalBatches: 0,
+    currentBatch: 0,
+    failedCharacters: [],
+    lastError: null,
+    contextTarget: CONTEXT_TARGET_PERCENT,
+};
+
+/**
+ * Process analysis results from LLM
+ * @param {Array} analyzedCharacters - Array of character data from LLM
+ * @returns {Promise<void>}
+ */
+async function processAnalysisResults(analyzedCharacters) {
+    return (0,errors/* withErrorBoundary */.Xc)('processAnalysisResults', async () => {
+        console.log('[NT-Processing] 🔄 processAnalysisResults called');
+        console.log('[NT-Processing]    Input type:', typeof analyzedCharacters);
+        console.log('[NT-Processing]    Is array?:', Array.isArray(analyzedCharacters));
+        console.log('[NT-Processing]    Length:', analyzedCharacters?.length);
+
+        if (!analyzedCharacters || !Array.isArray(analyzedCharacters)) {
+            console.warn('[NT-Processing] ⚠️  Invalid input - not an array:', analyzedCharacters);
+            processing_debug.log();
+            return;
+        }
+
+        console.log('[NT-Processing] ✅ Processing', analyzedCharacters.length, 'characters');
+        processing_debug.log();
+
+        for (const analyzedChar of analyzedCharacters) {
+            try {
+                console.log('[NT-Processing] 📝 Processing character:', analyzedChar.name);
+                await processCharacterData(analyzedChar);
+                console.log('[NT-Processing] ✅ Character processed:', analyzedChar.name);
+            } catch (error) {
+                console.error(`[NT-Processing] ❌ Error processing character ${analyzedChar.name}:`, error);
+                console.error('[NT-Processing] Error stack:', error.stack);
+                // Continue with other characters
+            }
+        }
+
+        console.log('[NT-Processing] 🎉 All characters processed');
+
+        // Update the character list UI after processing all characters
+        console.log('[NT-Processing] 🖥️  Updating character list UI');
+        updateCharacterList();
+    });
+}
+
+/**
+ * Process individual character data from LLM analysis
+ * @param {Object} analyzedChar - Character data from LLM
+ * @returns {Promise<void>}
+ */
+async function processCharacterData(analyzedChar) {
+    return (0,errors/* withErrorBoundary */.Xc)('processCharacterData', async () => {
+        console.log('[NT-CharData] 🔍 Processing character data for:', analyzedChar.name);
+
+        if (!analyzedChar.name || analyzedChar.name.trim() === '') {
+            console.warn('[NT-CharData] ⚠️  Character has no name, skipping');
+            processing_debug.log();
+            return;
+        }
+
+        const characterName = analyzedChar.name.trim();
+        console.log('[NT-CharData]    Character name:', characterName);
+
+        // Check if character is ignored
+        const isIgnored = await (0,modules_characters/* isIgnoredCharacter */.eY)(characterName);
+        if (isIgnored) {
+            console.log('[NT-CharData] ⏭️  Character is ignored, skipping:', characterName);
+            processing_debug.log();
+            return;
+        }
+
+        // Check for main character detection
+        const isMainChar = characterName.toLowerCase().includes('{{char}}') ||
+                          analyzedChar.isMainCharacter === true ||
+                          analyzedChar.role === 'main';
+        console.log('[NT-CharData]    Is main char?:', isMainChar);
+
+        // Check if character already exists
+        const existingChar = await (0,modules_characters/* findExistingCharacter */._$)(characterName);
+        console.log('[NT-CharData]    Existing character found?:', !!existingChar);
+
+        if (existingChar) {
+            // Update existing character
+            console.log('[NT-CharData] 🔄 Updating existing character:', existingChar.preferredName);
+            await (0,modules_characters/* updateCharacter */.t9)(existingChar, analyzedChar, false, isMainChar);
+            console.log('[NT-CharData] 📚 Updating lorebook entry...');
+            await (0,lorebook/* updateLorebookEntry */.TQ)(existingChar, existingChar.preferredName);
+            console.log('[NT-CharData] ✅ Existing character updated');
+            processing_debug.log();
+        } else {
+            // Check for potential matches (similar names)
+            console.log('[NT-CharData] 🔍 Checking for potential matches...');
+            const potentialMatch = await (0,modules_characters/* findPotentialMatch */.rL)(analyzedChar);
+            console.log('[NT-CharData]    Potential match found?:', !!potentialMatch);
+
+            if (potentialMatch) {
+                // Update potential match and add as alias
+                console.log('[NT-CharData] 🔄 Updating potential match:', potentialMatch.preferredName);
+                await (0,modules_characters/* updateCharacter */.t9)(potentialMatch, analyzedChar, true, isMainChar);
+                console.log('[NT-CharData] 📚 Updating lorebook entry...');
+                await (0,lorebook/* updateLorebookEntry */.TQ)(potentialMatch, potentialMatch.preferredName);
+                console.log('[NT-CharData] ✅ Potential match updated');
+                processing_debug.log();
+            } else {
+                // Create new character
+                console.log('[NT-CharData] 🆕 Creating new character:', characterName);
+                const newCharacter = await (0,modules_characters/* createCharacter */.OW)(analyzedChar, isMainChar);
+                console.log('[NT-CharData] ✅ Character created:', newCharacter.preferredName);
+                console.log('[NT-CharData] 📚 Creating lorebook entry...');
+                await (0,lorebook/* updateLorebookEntry */.TQ)(newCharacter, newCharacter.preferredName);
+                console.log('[NT-CharData] ✅ New character complete');
+                processing_debug.log();
+            }
+        }
+    });
+}
+
+// ============================================================================
+// TWO-PHASE DETECTION SYSTEM
+// ============================================================================
+
+/**
+ * PHASE 1: Lightweight name extraction from message batch
+ * Uses regex patterns to find all potential character names without LLM
+ * @param {Array} messages - Messages to scan for names
+ * @returns {Array} Array of unique name candidates found
+ */
+function scanForNewNames(messages) {
+    return withErrorBoundary('scanForNewNames', () => {
+        debugLog(`[PHASE 1] Starting name scan on ${messages.length} messages`);
+
+        if (!Array.isArray(messages) || messages.length === 0) {
+            debugLog('[PHASE 1] No messages to scan');
+            return [];
+        }
+
+        const foundNames = new Set();
+        const existingCharacters = getCharacters();
+        const existingNames = new Set();
+
+        debugLog(`[PHASE 1] Existing characters in memory: ${Object.keys(existingCharacters).length}`);
+
+        // Build set of existing character names and aliases
+        for (const char of Object.values(existingCharacters)) {
+            existingNames.add(char.preferredName.toLowerCase());
+            if (char.aliases && Array.isArray(char.aliases)) {
+                char.aliases.forEach(alias => existingNames.add(alias.toLowerCase()));
+            }
+        }
+
+        const capitalizedFound = [];
+        const quotedFound = [];
+        const possessiveFound = [];
+
+        // Scan messages for potential names
+        for (const msg of messages) {
+            if (!msg.mes || typeof msg.mes !== 'string') continue;
+
+            const text = msg.mes;
+
+            // Extract capitalized words (names)
+            const capitalizedMatches = text.match(CAPITALIZED_WORD_REGEX) || [];
+            capitalizedMatches.forEach(match => {
+                const normalized = match.toLowerCase();
+                if (!existingNames.has(normalized) && match.length > 1) {
+                    foundNames.add(match);
+                    capitalizedFound.push(match);
+                }
+            });
+
+            // Extract quoted names
+            const quotedMatches = text.match(QUOTED_NAME_REGEX) || [];
+            quotedMatches.forEach(match => {
+                const name = match.slice(1, -1); // Remove quotes
+                const normalized = name.toLowerCase();
+                if (!existingNames.has(normalized) && name.length > 1) {
+                    foundNames.add(name);
+                    quotedFound.push(name);
+                }
+            });
+
+            // Extract possessive forms
+            const possessiveMatches = text.match(POSSESSIVE_REGEX) || [];
+            possessiveMatches.forEach(match => {
+                const name = match.replace(/'s$/, '');
+                const normalized = name.toLowerCase();
+                if (!existingNames.has(normalized)) {
+                    foundNames.add(name);
+                    possessiveFound.push(name);
+                }
+            });
+        }
+
+        debugLog(`[PHASE 1] Capitalized names found: ${capitalizedFound.join(', ')}`);
+        debugLog(`[PHASE 1] Quoted names found: ${quotedFound.join(', ')}`);
+        debugLog(`[PHASE 1] Possessive forms found: ${possessiveFound.join(', ')}`);
+        debugLog(`[PHASE 1] Total unique names to process: ${foundNames.size}`);
+
+        return Array.from(foundNames);
+    }, []);
+}
+
+/**
+ * PHASE 2: Focused LLM analysis for new characters and existing character updates
+ * Processes new names individually and updates existing characters that were mentioned
+ * @param {Array} newNames - New character names to analyze
+ * @param {Array} messages - Message context for character details
+ * @param {Array} existingMentions - Names of existing characters mentioned in messages
+ * @returns {Promise<Object>} Results of processing with success/error details
+ */
+async function processPhaseTwoAnalysis(newNames, messages, existingMentions = []) {
+    return withErrorBoundary('processPhaseTwoAnalysis', async () => {
+        debugLog('[PHASE 2] Starting focused LLM analysis');
+        debugLog(`[PHASE 2] New characters: ${newNames.length}, Existing mentions: ${existingMentions.length}`);
+        debugLog(`[PHASE 2] Current context target: ${currentProcessingState.contextTarget}%`);
+
+        const results = {
+            newCharactersCreated: [],
+            existingCharactersUpdated: [],
+            failedCharacters: [],
+            mergesDetected: [],
+        };
+
+        if (!Array.isArray(messages) || messages.length === 0) {
+            debugLog('[PHASE 2] No messages provided, returning empty results');
+            return results;
+        }
+
+        try {
+            // Process new characters
+            if (newNames && newNames.length > 0) {
+                debugLog(`[PHASE 2] Processing ${newNames.length} new characters`);
+
+                for (const newName of newNames) {
+                    if (abortScan) {
+                        debugLog(`[PHASE 2] Processing aborted by user at character: ${newName}`);
+                        break;
+                    }
+
+                    try {
+                        await processNewCharacter(newName, messages, results);
+                    } catch (error) {
+                        debugLog(`[PHASE 2] Failed to process new character ${newName}: ${error.message}`);
+                        results.failedCharacters.push({ name: newName, error: error.message });
+                        currentProcessingState.failedCharacters.push(newName);
+                        currentProcessingState.lastError = error;
+
+                        // If ENABLE_AUTO_RECOVERY, attempt to reduce context and retry
+                        if (ENABLE_AUTO_RECOVERY && currentProcessingState.contextTarget > MIN_CONTEXT_TARGET) {
+                            currentProcessingState.contextTarget -= CONTEXT_REDUCTION_STEP;
+                            debugLog(`[PHASE 2] Auto-reducing context target to ${currentProcessingState.contextTarget}%`);
+                        } else if (results.failedCharacters.length >= MAX_RETRY_ATTEMPTS) {
+                            // Halt processing after max retries
+                            throw new NameTrackerError(
+                                `Processing halted: Maximum retries exceeded. Last error: ${error.message}`,
+                                'PROCESSING_MAX_RETRIES',
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Update existing characters mentioned in messages
+            if (existingMentions && existingMentions.length > 0) {
+                processing_debug.log(`Phase 2: Updating ${existingMentions.length} existing characters`);
+
+                for (const charName of existingMentions) {
+                    if (abortScan) break;
+
+                    try {
+                        const existingChar = await findExistingCharacter(charName);
+                        if (existingChar) {
+                            await processExistingCharacter(existingChar, messages, results);
+                        }
+                    } catch (error) {
+                        processing_debug.log(`Failed to update character ${charName}: ${error.message}`);
+                        results.failedCharacters.push({ name: charName, error: error.message });
+                    }
+                }
+            }
+
+        } catch (error) {
+            processing_debug.log(`Phase 2 analysis error: ${error.message}`);
+            throw error;
+        }
+
+        return results;
+    }, { newCharactersCreated: [], existingCharactersUpdated: [], failedCharacters: [], mergesDetected: [] });
+}
+
+/**
+ * Process a new character: LLM analysis → create entry → check for merges
+ * @private
+ */
+async function processNewCharacter(name, messages, results) {
+    debugLog(`[P2-NewChar] Processing: ${name}`);
+
+    // Build context with 3-message overlap for this character
+    const characterContext = buildCharacterContext(name, messages, OVERLAP_SIZE);
+    debugLog(`[P2-NewChar] Context window size: ${characterContext ? characterContext.length : 0} chars`);
+
+    if (!characterContext || characterContext.length === 0) {
+        debugLog(`[P2-NewChar] FAILED: No context for ${name}`);
+        throw new NameTrackerError(`No context found for character: ${name}`, 'NO_CONTEXT');
+    }
+
+    // Analyze the character with LLM
+    debugLog(`[P2-NewChar] Calling LLM for ${name}`);
+    const characterData = await callLLMAnalysis([{ mes: characterContext }], [name], currentProcessingState.contextTarget);
+
+    if (!characterData || characterData.length === 0) {
+        debugLog(`[P2-NewChar] FAILED: LLM returned no data for ${name}`);
+        throw new NameTrackerError(`LLM returned no data for character: ${name}`, 'LLM_EMPTY_RESPONSE');
+    }
+
+    debugLog(`[P2-NewChar] LLM returned data: ${JSON.stringify(characterData[0]).substring(0, 200)}...`);
+
+    // Create the character
+    const newCharacter = await createCharacter(characterData[0], false);
+    await updateLorebookEntry(newCharacter, newCharacter.preferredName);
+
+    results.newCharactersCreated.push(newCharacter.preferredName);
+    debugLog(`[P2-NewChar] Successfully created: ${newCharacter.preferredName}`);
+
+    // Re-check merge opportunities now that the character exists in the cache
+    const potentialMerges = await detectMergeOpportunities(newCharacter.preferredName);
+    if (potentialMerges && potentialMerges.length > 0) {
+        debugLog(`[P2-NewChar] Merge opportunities: ${potentialMerges.map(m => `${m.targetName} (${Math.round(m.confidence * 100)}%)`).join(', ')}`);
+        results.mergesDetected.push({ source: newCharacter.preferredName, targets: potentialMerges });
+
+        for (const opportunity of potentialMerges) {
+            if (opportunity.targetName === newCharacter.preferredName) {
+                continue;
+            }
+
+            if (opportunity.confidence >= 0.9) {
+                await mergeCharacters(newCharacter.preferredName, opportunity.targetName);
+                processing_notifications.success(`Auto-merged "${newCharacter.preferredName}" into "${opportunity.targetName}" (${Math.round(opportunity.confidence * 100)}% match)`, 'Character Merged');
+                break; // stop after first high-confidence merge
+            }
+
+            if (opportunity.confidence >= 0.7) {
+                processing_notifications.info(`Possible duplicate: "${newCharacter.preferredName}" ≈ "${opportunity.targetName}" (${Math.round(opportunity.confidence * 100)}%). Review in settings if needed.`, 'Merge Suggested');
+            }
+        }
+    }
+}
+
+/**
+ * Process existing character: build context from last processed message → update entry
+ * @private
+ */
+async function processExistingCharacter(existingChar, messages, results) {
+    processing_debug.log(`Updating existing character: ${existingChar.preferredName}`);
+
+    // Build fresh context for this character from the current message window
+    const characterContext = buildCharacterContext(existingChar.preferredName, messages, OVERLAP_SIZE);
+
+    if (!characterContext || characterContext.length === 0) {
+        processing_debug.log(`No new context for character ${existingChar.preferredName} since last processing`);
+        return;
+    }
+
+    // Analyze updated context for this character
+    debugLog(`[P2-Existing] Calling LLM for ${existingChar.preferredName}`);
+    const characterData = await callLLMAnalysis([{ mes: characterContext }], [existingChar.preferredName], currentProcessingState.contextTarget);
+
+    if (!characterData || characterData.length === 0) {
+        debugLog(`[P2-Existing] FAILED: LLM returned no data for ${existingChar.preferredName}`);
+        throw new NameTrackerError(`LLM returned no data for character: ${existingChar.preferredName}`, 'LLM_EMPTY_RESPONSE');
+    }
+
+    // Update the character with new information
+    await updateCharacter(existingChar, characterData[0], true, existingChar.isMainChar);
+    await updateLorebookEntry(existingChar, existingChar.preferredName);
+
+    results.existingCharactersUpdated.push(existingChar.preferredName);
+    debugLog(`[P2-Existing] Successfully updated: ${existingChar.preferredName}`);
+}
+
+/**
+ * Build contextual text window for a character from a set of messages.
+ * Includes an overlap of messages before and after any detected mentions.
+ * @param {string} characterName - Name of the character to search for
+ * @param {Array} messages - Array of chat message objects ({ mes: string })
+ * @param {number} overlapSize - Number of messages to include before/after mentions
+ * @returns {string} Joined context text or empty string if no mentions
+ */
+function buildCharacterContext(characterName, messages, overlapSize) {
+    if (!characterName || !Array.isArray(messages) || messages.length === 0) {
+        return '';
+    }
+
+    const nameLower = String(characterName).toLowerCase();
+    const mentionIndices = [];
+
+    for (let i = 0; i < messages.length; i++) {
+        const text = messages[i]?.mes || '';
+        if (typeof text === 'string' && text.toLowerCase().includes(nameLower)) {
+            mentionIndices.push(i);
+        }
+    }
+
+    if (mentionIndices.length === 0) {
+        return '';
+    }
+
+    const minIdx = Math.max(0, Math.min(...mentionIndices) - overlapSize);
+    const maxIdx = Math.min(messages.length - 1, Math.max(...mentionIndices) + overlapSize);
+
+    const windowTexts = [];
+    for (let i = minIdx; i <= maxIdx; i++) {
+        const text = messages[i]?.mes;
+        if (text) {
+            windowTexts.push(text);
+        }
+    }
+
+    return windowTexts.join('\n\n');
+}
+
+/**
+ * Build context starting from a specific message point (for continuing character updates)
+ * @private
+ */
+// Note: Deprecated helper removed; continuing updates now use buildCharacterContext()
+
+/**
+ * Harvest and analyze messages
+ * @param {number} messageCount - Number of recent messages to analyze
+ * @param {boolean} showProgress - Whether to show progress notifications
+ * @returns {Promise<void>}
+ */
+async function harvestMessages(messageCount, showProgress = true) {
+    return (0,errors/* withErrorBoundary */.Xc)('harvestMessages', async () => {
+        if (!(0,core_settings/* get_settings */.TJ)('enabled', true)) {
+            processing_debug.log();
+            return;
+        }
+
+        // Check API connection for SillyTavern mode
+        const llmConfig = (0,core_settings/* getLLMConfig */.eU)();
+        if (llmConfig.source === 'sillytavern') {
+            const context = core_context.stContext.getContext();
+            if (!context.onlineStatus) {
+                processing_notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
+                return;
+            }
+        }
+
+        const context = core_context.stContext.getContext();
+        if (!context.chat || context.chat.length === 0) {
+            processing_debug.log();
+            processing_notifications.info('No messages in chat to analyze');
+            return;
+        }
+
+        // Get the messages to analyze - count forward and check token limits
+        const endIdx = context.chat.length;
+        const startIdx = Math.max(0, endIdx - messageCount);
+        const messagesToAnalyze = context.chat.slice(startIdx, endIdx);
+
+        debugLog(`[Batching] Message selection: startIdx=${startIdx}, endIdx=${endIdx}, requesting ${messageCount} messages, got ${messagesToAnalyze.length} messages`);
+
+        // Check if messages fit in context window
+        const maxPromptResult = await (0,llm.getMaxPromptLength)();
+        const maxPromptTokens = maxPromptResult.maxPrompt;
+        const availableTokens = calculateAvailableTokens(maxPromptTokens);
+
+        debugLog(`[Batching] Token budget: maxPromptTokens=${maxPromptTokens}, targetPercent=${TARGET_MESSAGE_PERCENT}%, availableTokens=${availableTokens}`);
+        debugLog(`[Batching] Context target: ${currentProcessingState.contextTarget}%`);
+        debugLog(`[Batching] Estimated reserves: systemPrompt=~1000tok, response=~4000tok, messages=${availableTokens}tok`);
+
+        // Calculate actual token count for the requested messages
+        const messageTokens = await (0,llm/* calculateMessageTokens */.au)(messagesToAnalyze);
+
+        debugLog(`[Batching] Total tokens for ${messagesToAnalyze.length} messages: ${messageTokens} tokens`);
+
+        // If too large, split into batches
+        if (messageTokens > availableTokens) {
+            debugLog(`[Batching] Messages exceed token limit (${messageTokens} > ${availableTokens}), creating batches`);
+
+            // Create batches using shared helper
+            const batches = await createMessageBatches(messagesToAnalyze, availableTokens, true);
+
+            // Log batch details for debugging
+            const batchDetails = await Promise.all(batches.map(async (batch, i) => {
+                const tokens = await (0,llm/* calculateMessageTokens */.au)(batch);
+                return `Batch ${i + 1}: ${batch.length}msg/${tokens}tok`;
+            }));
+
+            debugLog(`[Batching] Created ${batches.length} total batches: ${batchDetails.join(' | ')}`);
+            debugLog(`[Batching] Constraints applied: MIN=${MIN_MESSAGES_PER_BATCH}, TARGET=${TARGET_MESSAGES_PER_BATCH}, MAX=${MAX_MESSAGES_PER_BATCH}, TokenLimit=${availableTokens}`);
+
+            // Reset abort flag
+            abortScan = false;
+
+            // Calculate average batch size for user notification
+            const avgBatchSize = Math.round(messagesToAnalyze.length / batches.length);
+            const notification = `Analyzing ${messagesToAnalyze.length} messages in ${batches.length} batches (~${avgBatchSize} messages each). This may take a while. Continue?`;
+
+            if (showProgress) {
+                // Ask user before proceeding with large analysis
+                const shouldProceed = confirm(notification);
+                if (!shouldProceed) {
+                    debugLog('[Batching] User cancelled batch processing');
+                    abortScan = true;
+                    return;
+                }
+            }
+
+            // Show progress bar
+            showProgressBar(0, batches.length, 'Starting analysis...');
+
+            let successfulBatches = 0;
+            let failedBatches = 0;
+            const uniqueCharacters = new Set();
+
+            debugLog(`[Batching] Starting batch processing loop: ${batches.length} batches`);
+
+            // Process each batch
+            for (let i = 0; i < batches.length; i++) {
+                // Check if user aborted
+                if (abortScan) {
+                    debugLog(`[BatchProcessing] User aborted at batch ${i + 1}/${batches.length}`);
+                    hideProgressBar();
+                    processing_notifications.warning('Analysis aborted');
+                    return;
+                }
+
+                const batch = batches[i];
+
+                // Calculate actual message range for this batch
+                const batchStartMsg = batches.slice(0, i).reduce((sum, b) => sum + b.length, 0);
+                const batchStart = startIdx + batchStartMsg;
+                const batchEnd = batchStart + batch.length;
+
+                debugLog(`[BatchProcessing] Processing batch ${i + 1}/${batches.length}: messages ${batchStart}-${batchEnd - 1} (${batch.length} messages)`);
+
+                try {
+                    showProgressBar(i + 1, batches.length, `Analyzing messages ${batchStart + 1}-${batchEnd}...`);
+
+                    // Build roster of characters found so far
+                    const characterRoster = (0,llm/* buildCharacterRoster */.fR)();
+
+                    // Call LLM for analysis
+                    const analysis = await (0,llm/* callLLMAnalysis */.Kr)(batch, characterRoster);
+
+                    console.log('[NT-Batch] 📊 LLM analysis returned');
+                    console.log('[NT-Batch]    Type:', typeof analysis);
+                    console.log('[NT-Batch]    Value:', analysis);
+                    console.log('[NT-Batch]    Has characters?:', analysis && 'characters' in analysis);
+                    console.log('[NT-Batch]    Characters type:', typeof analysis?.characters);
+                    console.log('[NT-Batch]    Characters is Array?:', Array.isArray(analysis?.characters));
+                    console.log('[NT-Batch]    Characters length:', analysis?.characters?.length);
+
+                    // Process the analysis
+                    if (analysis.characters && Array.isArray(analysis.characters)) {
+                        console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
+                        await processAnalysisResults(analysis.characters);
+                        analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                    } else {
+                        console.warn('[NT-Batch] ⚠️  Condition failed - not processing results');
+                        console.warn('[NT-Batch]    analysis:', analysis);
+                        console.warn('[NT-Batch]    analysis.characters:', analysis?.characters);
+                    }
+
+                    successfulBatches++;
+
+                    // Small delay between batches to avoid rate limiting
+                    if (i < batches.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+
+                } catch (error) {
+                    debugLog(`[BatchProcessing] ERROR in batch ${i + 1}: ${error.message}`);
+                    debugLog(`[BatchProcessing] Context: messages ${batchStart}-${batchEnd - 1}, batch size ${batch.length}, token count calc error`);
+                    console.error(`Error processing batch ${i + 1}:`, error);
+                    failedBatches++;
+
+                    // Ask user if they want to continue
+                    const continueOnError = confirm(`Batch ${i + 1} failed.
+
+Error: ${error.message}
+
+Continue with remaining batches?`);
+                    if (!continueOnError) {
+                        debugLog(`[BatchProcessing] User chose not to continue after error on batch ${i + 1}/${batches.length}`);
+                        break;
+                    } else {
+                        debugLog(`[BatchProcessing] User chose to continue despite error on batch ${i + 1}/${batches.length}`);
+                    }
+                }
+            }
+
+            // Hide progress bar
+            hideProgressBar();
+
+            // Show summary
+            const summary = `Analysis complete!
+
+Batches processed: ${successfulBatches}/${batches.length}
+Unique characters found: ${uniqueCharacters.size}
+Failed batches: ${failedBatches}`;
+
+            debugLog(`[BatchProcessing] Batch analysis complete: ${successfulBatches}/${batches.length} successful, ${failedBatches} failed, ${uniqueCharacters.size} characters found`);
+
+            if (failedBatches > 0) {
+                processing_notifications.warning(summary, 'Batch Analysis', { timeOut: 8000 });
+            } else {
+                processing_notifications.success(summary, 'Batch Analysis', { timeOut: 8000 });
+            }
+
+            return;
+        }
+
+        // Messages fit in one batch - process normally
+        if (showProgress) {
+            processing_notifications.info(`Analyzing ${messagesToAnalyze.length} messages for character information...`);
+        }
+
+        try {
+            // Build roster of characters found so far
+            const characterRoster = (0,llm/* buildCharacterRoster */.fR)();
+
+            // Call LLM for analysis with character context
+            const analysis = await (0,llm/* callLLMAnalysis */.Kr)(messagesToAnalyze, characterRoster);
+
+            processing_debug.log();
+
+            // Process the analysis
+            if (analysis.characters && Array.isArray(analysis.characters)) {
+                await processAnalysisResults(analysis.characters);
+
+                if (showProgress) {
+                    processing_notifications.success(`Found ${analysis.characters.length} character(s) in messages`);
+                }
+            } else {
+                processing_debug.log();
+            }
+
+        } catch (error) {
+            console.error('Error during harvest:', error);
+            processing_notifications.error(`Analysis failed: ${error.message}`);
+        }
+    });
+}
+
+/**
+ * Handle new message event
+ * @param {number} messageId - ID of the new message
+ * @returns {Promise<void>}
+ */
+async function onMessageReceived(messageId) {
+    return (0,errors/* withErrorBoundary */.Xc)('onMessageReceived', async () => {
+        if (!(0,core_settings/* get_settings */.TJ)('enabled', true) || !(0,core_settings/* get_settings */.TJ)('autoAnalyze', true)) {
+            return;
+        }
+
+        const context = core_context.stContext.getContext();
+        const chat = context.chat;
+
+        if (!chat || chat.length === 0) {
+            return;
+        }
+
+        // Get the current message index
+        const currentMessageIndex = chat.length - 1;
+
+        // Check if this message was already scanned
+        const lastScannedId = (0,core_settings/* get_settings */.TJ)('lastScannedMessageId', -1);
+        if (currentMessageIndex <= lastScannedId) {
+            processing_debug.log();
+            return;
+        }
+
+        // Detect if messages were deleted (current index jumped backwards)
+        if (lastScannedId >= 0 && currentMessageIndex < lastScannedId) {
+            processing_debug.log();
+
+            // Prompt user for rescan decision
+            const shouldRescan = await showRescanModal(currentMessageIndex, lastScannedId);
+
+            if (shouldRescan.rescan) {
+                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', shouldRescan.fromMessage - 1);
+
+                // Queue a full scan from the specified message
+                addToQueue(async () => {
+                    await harvestMessages(currentMessageIndex - shouldRescan.fromMessage + 1, true);
+                });
+
+                return;
+            } else {
+                // Reset to current position without scanning
+                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
+                return;
+            }
+        }
+
+        // Check if we've reached the next scan milestone
+        const messageFreq = (0,core_settings/* get_settings */.TJ)('messageFrequency', 10);
+        const messagesSinceLastScan = currentMessageIndex - lastScannedId;
+
+        if (messagesSinceLastScan >= messageFreq) {
+            processing_debug.log();
+
+            // Queue harvest
+            addToQueue(async () => {
+                await harvestMessages(messageFreq, true);
+                // Update last scanned message ID after successful harvest
+                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
+            });
+        }
+    });
+}
+
+/**
+ * Show rescan modal when message deletion is detected
+ * @param {number} currentMessageIndex - Current message index
+ * @param {number} lastScannedId - Last scanned message ID
+ * @returns {Promise<Object>} Rescan decision
+ */
+async function showRescanModal(currentMessageIndex, lastScannedId) {
+    return new Promise((resolve) => {
+        const modal = $(`
+            <div class="name-tracker-rescan-modal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--SmartThemeBodyColor); border: 2px solid var(--SmartThemeBorderColor); padding: 20px; border-radius: 10px; z-index: 9999; max-width: 500px;">
+                <h3>Message History Changed</h3>
+                <p>Messages have been deleted or edited. Would you like to rescan the chat?</p>
+                <p>Current last scanned message: ${lastScannedId}<br>
+                Current message index: ${currentMessageIndex}</p>
+                <div style="margin-top: 15px;">
+                    <label>Rescan from message: <input type="number" id="rescan-from" value="0" min="0" max="${currentMessageIndex}" style="width: 80px; margin-left: 10px;"></label>
+                </div>
+                <div style="margin-top: 15px; text-align: right;">
+                    <button id="rescan-yes" class="menu_button">Rescan</button>
+                    <button id="rescan-no" class="menu_button">Skip</button>
+                </div>
+            </div>
+        `);
+
+        $('body').append(modal);
+
+        modal.find('#rescan-yes').on('click', () => {
+            const fromMessage = parseInt(modal.find('#rescan-from').val()) || 0;
+            modal.remove();
+            resolve({ rescan: true, fromMessage });
+        });
+
+        modal.find('#rescan-no').on('click', () => {
+            modal.remove();
+            resolve({ rescan: false });
+        });
+    });
+}
+
+/**
+ * Show progress bar for batch scanning
+ * @param {number} current - Current batch number (1-indexed)
+ * @param {number} total - Total number of batches
+ * @param {string} status - Status message
+ */
+function showProgressBar(current, total, status = '') {
+    const progressBarId = 'name_tracker_progress';
+    const $existing = $(`.${progressBarId}`);
+
+    if ($existing.length > 0) {
+        // Update existing progress bar
+        if (status) $existing.find('.title').text(status);
+        $existing.find('.progress').text(current);
+        $existing.find('.total').text(total);
+        $existing.find('progress').val(current).attr('max', total);
+        return;
+    }
+
+    // Create new progress bar
+    const bar = $(`
+        <div class="${progressBarId} name_tracker_progress_bar flex-container justifyspacebetween alignitemscenter" style="
+            padding: 10px;
+            margin: 5px 0;
+            background: var(--SmartThemeBlurTintColor);
+            border: 1px solid var(--SmartThemeBorderColor);
+            border-radius: 5px;
+        ">
+            <div class="title" style="flex: 1; font-weight: bold;">${status || 'Name Tracker Scan'}</div>
+            <div style="margin: 0 10px;">(<span class="progress">${current}</span> / <span class="total">${total}</span>)</div>
+            <progress value="${current}" max="${total}" style="flex: 2; margin: 0 10px;"></progress>
+            <button class="menu_button fa-solid fa-stop" title="Abort scan" style="padding: 5px 10px;"></button>
+        </div>
+    `);
+
+    // Add click event to abort the scan
+    bar.find('button').on('click', function() {
+        abortScan = true;
+        hideProgressBar();
+        processing_notifications.warning('Scan aborted by user');
+    });
+
+    // Append to the main chat area (#sheld)
+    $('#sheld').append(bar);
+}
+
+/**
+ * Hide and remove progress bar
+ */
+function hideProgressBar() {
+    const progressBarId = 'name_tracker_progress';
+    const $existing = $(`.${progressBarId}`);
+    if ($existing.length > 0) {
+        $existing.fadeOut(300, function() {
+            $(this).remove();
+        });
+    }
+}
+
+/**
+ * Scan entire chat in batches from oldest to newest
+ * @returns {Promise<void>}
+ */
+async function scanEntireChat() {
+    return (0,errors/* withErrorBoundary */.Xc)('scanEntireChat', async () => {
+        // CRITICAL: Ensure lorebook is initialized BEFORE processing
+        console.log('[NT-Processing] 🔧 Ensuring lorebook is initialized before scan...');
+        const { initializeLorebook } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 134));
+        await initializeLorebook();
+        console.log('[NT-Processing] ✅ Lorebook initialization complete');
+
+        const context = core_context.stContext.getContext();
+
+        if (!context.chat || context.chat.length === 0) {
+            processing_notifications.warning('No chat messages to scan');
+            return;
+        }
+
+        // Check API connection for SillyTavern mode
+        const llmConfig = (0,core_settings/* getLLMConfig */.eU)();
+        if (llmConfig.source === 'sillytavern') {
+            if (!context.onlineStatus) {
+                processing_notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
+                return;
+            }
+        }
+
+        const totalMessages = context.chat.length;
+
+        // Calculate optimal batch size based on context window
+        const maxPromptResult = await (0,llm.getMaxPromptLength)();
+        const maxPromptTokens = maxPromptResult.maxPrompt;
+        const availableTokens = calculateAvailableTokens(maxPromptTokens);
+
+        // Build batches using shared helper
+        const batches = await createMessageBatches(context.chat, availableTokens, false);
+
+        const numBatches = batches.length;
+
+        const confirmed = confirm(`This will analyze all ${totalMessages} messages in ${numBatches} batches. This may take a while. Continue?`);
+
+        if (!confirmed) {
+            return;
+        }
+
+        // Reset abort flag
+        abortScan = false;
+
+        // Show progress bar
+        showProgressBar(0, numBatches, 'Starting batch scan...');
+
+        let successfulBatches = 0;
+        let failedBatches = 0;
+        const uniqueCharacters = new Set(); // Track unique character names
+
+        // Process from oldest to newest
+        for (let i = 0; i < numBatches; i++) {
+            // Check if user aborted
+            if (abortScan) {
+                processing_debug.log();
+                break;
+            }
+
+            const batchMessages = batches[i];
+
+            // Calculate message range for progress display
+            const startIdx = batches.slice(0, i).reduce((sum, b) => sum + b.length, 0);
+            const endIdx = startIdx + batchMessages.length;
+
+            try {
+                showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + 1}-${endIdx}...`);
+
+                // Build roster of characters found so far
+                const characterRoster = (0,llm/* buildCharacterRoster */.fR)();
+
+                // Call LLM for analysis with character context
+                const analysis = await (0,llm/* callLLMAnalysis */.Kr)(batchMessages, characterRoster);
+
+                // Process the analysis
+                if (analysis.characters && Array.isArray(analysis.characters)) {
+                    await processAnalysisResults(analysis.characters);
+                    // Track unique characters
+                    analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                }
+
+                successfulBatches++;
+
+                // Small delay between batches
+                if (i < numBatches - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+            } catch (error) {
+                console.error(`Error processing batch ${i + 1}:`, error);
+                failedBatches++;
+
+                // Auto-retry logic could be added here
+                const continueOnError = confirm(`Batch ${i + 1} failed.
+
+Error: ${error.message}
+
+Continue with remaining batches?`);
+                if (!continueOnError) {
+                    break;
+                }
+            }
+        }
+
+        // Hide progress bar
+        hideProgressBar();
+
+        // Update scan completion status
+        (0,core_settings/* set_settings */.nT)('lastScannedMessageId', totalMessages - 1);
+
+        // Show summary
+        const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
+
+        // Ensure summary is a string (defense against undefined values)
+        const safeSummary = String(summary || 'Scan completed');
+
+        if (failedBatches > 0) {
+            processing_notifications.warning(safeSummary, 'Scan Complete', { timeOut: 10000 });
+        } else {
+            processing_notifications.success(safeSummary, 'Scan Complete', { timeOut: 10000 });
+        }
+    });
+}
+
+/**
+ * Add task to processing queue
+ * @param {Function} task - Async function to execute
+ * @returns {Promise<void>}
+ */
+async function addToQueue(task) {
+    return (0,errors/* withErrorBoundary */.Xc)('addToQueue', async () => {
+        processingQueue.push(task);
+
+        if (!isProcessing) {
+            await processQueue();
+        }
+    });
+}
+
+/**
+ * Process queued tasks
+ * @returns {Promise<void>}
+ */
+async function processQueue() {
+    return (0,errors/* withErrorBoundary */.Xc)('processQueue', async () => {
+        if (isProcessing || processingQueue.length === 0) {
+            return;
+        }
+
+        isProcessing = true;
+
+        while (processingQueue.length > 0) {
+            const task = processingQueue.shift();
+            try {
+                await task();
+            } catch (error) {
+                console.error('Error processing queue task:', error);
+            }
+        }
+
+        isProcessing = false;
+    });
+}
+
+/**
+ * Handle chat changed event
+ * @returns {Promise<void>}
+ */
+async function onChatChanged() {
+    return withErrorBoundary('onChatChanged', async () => {
+        processing_debug.log();
+
+        // Clear processing state
+        processingQueue = [];
+        isProcessing = false;
+        abortScan = false;
+
+        // Reset scan state
+        set_settings('lastScannedMessageId', -1);
+        set_settings('messageCounter', 0);
+
+        processing_debug.log();
+    });
+}
+
+/**
+ * Clear the processing queue
+ */
+function clearProcessingQueue() {
+    processingQueue = [];
+    isProcessing = false;
+    processing_debug.log();
+}
+
+/**
+ * Get processing status
+ * @returns {Object} Processing status information
+ */
+function getProcessingStatus() {
+    return {
+        isProcessing,
+        queueLength: processingQueue.length,
+        abortScan,
+    };
+}
+
+/**
+ * Abort current scan operation
+ */
+function abortCurrentScan() {
+    abortScan = true;
+    hideProgressBar();
+    processing_debug.log();
+}
+
+;// ./src/index.js
+/**
+ * Name Tracker Extension for SillyTavern - Modular Version
+ * Main entry point and orchestration
+ */
+
+// Import CSS
+
+
+// Core infrastructure
+
+
+
+
+
+// Utilities
+
+
+
+// Feature modules
+
+
+// initializeLorebook is now called lazily when needed, not during extension load
+
+
+
+// Immediate import validation
+console.log('[STnametracker] Main index.js: Import validation');
+console.log('[STnametracker] Main index.js: initializeUIHandlers import =', typeof initializeUIHandlers, initializeUIHandlers);
+console.log('[STnametracker] Main index.js: initializeMenuButtons import =', typeof initializeMenuButtons, initializeMenuButtons);
+console.log('[STnametracker] Main index.js: bindSettingsHandlers import =', typeof bindSettingsHandlers, bindSettingsHandlers);
+console.log('[STnametracker] Main index.js: updateUI import =', typeof updateUI, updateUI);
+
+// Extension name constant - MUST match manifest
+const extensionName = 'STnametracker';
+const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+
+/**
+ * Get extension settings - Required for SillyTavern integration
+ * This is the pattern that SillyTavern expects
+ * @returns {Object} Extension settings object
+ */
+// Kept for potential future use with SillyTavern API
+// eslint-disable-next-line no-unused-vars
+function getExtensionSettings() {
+    // Use global extension_settings that SillyTavern provides
+    return window.extension_settings?.[extensionName] || {};
+}
+
+// Create the logger AFTER the getSettings function is defined
+const logger = debug/* default.createModuleLogger */.Ay.createModuleLogger('Main');
+
+/**
+ * Name Tracker Extension main class
+ */
+class NameTrackerExtension {
+    constructor() {
+        this.initialized = false;
+        this.modules = new Map();
+    }
+
+    /**
+     * Initialize the extension
+     * @returns {Promise<void>}
+     */
+    async initialize() {
+        console.log('[STnametracker] Enter initialize() method');
+        return errors/* errorHandler */.r_.withErrorBoundary('Main', async () => {
+            console.log('[STnametracker] Inside error boundary');
+            if (this.initialized) {
+                console.log('[STnametracker] Already initialized, skipping');
+                return;
+            }
+
+            console.log('[STnametracker] Starting initialization sequence');
+            logger.log('Starting Name Tracker Extension v2.1.0');
+
+            // Initialize core systems
+            console.log('[STnametracker] Step 1: Initializing core systems...');
+            await this.initializeCore();
+            console.log('[STnametracker] Step 1: Core systems completed');
+
+            // Initialize feature modules
+            console.log('[STnametracker] Step 2: Initializing feature modules...');
+            await this.initializeModules();
+            console.log('[STnametracker] Step 2: Feature modules completed');
+
+            // Setup UI
+            console.log('[STnametracker] Step 3: Initializing UI...');
+            await this.initializeUI();
+            console.log('[STnametracker] Step 3: UI completed');
+
+            // Register event listeners
+            console.log('[STnametracker] Step 4: Registering event listeners...');
+            this.registerEventListeners();
+            console.log('[STnametracker] Step 4: Event listeners completed');
+
+            this.initialized = true;
+            console.log('[STnametracker] Marking as initialized');
+            logger.log('Name Tracker Extension initialized successfully');
+            console.log('[STnametracker] Full initialization sequence completed successfully');
+
+        }, {
+            retries: 2,
+            fallback: async (error) => {
+                logger.error('Failed to initialize extension:', error);
+                notifications/* default */.A.error('Failed to initialize', 'Extension Error');
+                return false;
+            },
+        });
+    }
+
+    /**
+     * Initialize core infrastructure
+     * @returns {Promise<void>}
+     */
+    async initializeCore() {
+        console.log('[STnametracker] initializeCore: Starting...');
+        logger.debug('Initializing core systems...');
+
+        // Connect debug system to settings
+        console.log('[STnametracker] initializeCore: Connecting debug system...');
+        debug/* default */.Ay.isDebugEnabled = () => (0,core_settings/* getSetting */.PL)('debugMode', false);
+        console.log('[STnametracker] initializeCore: Debug system connected');
+
+        // Settings are auto-initialized when accessed
+        console.log('[STnametracker] initializeCore: Settings ready');
+
+        // Setup error recovery strategies
+        this.setupErrorRecovery();
+
+        logger.debug('Core systems initialized');
+    }
+
+    /**
+     * Initialize feature modules
+     * @returns {Promise<void>}
+     */
+    async initializeModules() {
+        logger.debug('Initializing feature modules...');
+        console.log('[STnametracker] initializeModules: Module initialization skipped');
+        console.log('[STnametracker] initializeModules: Lorebook will be initialized when first needed');
+
+        // Note: We no longer initialize lorebook during extension load because
+        // context.chatId is undefined at that point. Instead, lorebook initialization
+        // happens automatically when scanEntireChat() or other processing functions
+        // are called, at which point a chat is guaranteed to be active.
+
+        logger.debug('Feature modules ready (lazy initialization)');
+    }
+
+    /**
+     * Initialize UI components
+     * @returns {Promise<void>}
+     */
+    async initializeUI() {
+        console.log('[STnametracker] initializeUI: Starting UI initialization...');
+        logger.debug('Initializing UI...');
+
+        try {
+            // Load settings HTML using proper jQuery pattern
+            console.log('[STnametracker] initializeUI: Loading settings HTML from:', `${extensionFolderPath}/settings.html`);
+            const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+            console.log('[STnametracker] initializeUI: Settings HTML loaded, length:', settingsHtml.length);
+
+            console.log('[STnametracker] initializeUI: Finding #extensions_settings element...');
+            const targetElement = $('#extensions_settings');
+            console.log('[STnametracker] initializeUI: Target element found:', targetElement.length > 0);
+
+            targetElement.append(settingsHtml);
+            console.log('[STnametracker] initializeUI: Settings HTML appended');
+
+            // Initialize UI handlers
+            console.log('[STnametracker] initializeUI: Initializing UI handlers...');
+            initializeUIHandlers();
+            console.log('[STnametracker] initializeUI: UI handlers initialized');
+
+            console.log('[STnametracker] initializeUI: Initializing menu buttons...');
+            initializeMenuButtons();
+            console.log('[STnametracker] initializeUI: Menu buttons initialized');
+
+            // Bind settings form handlers
+            console.log('[STnametracker] initializeUI: Binding settings handlers...');
+            bindSettingsHandlers();
+            console.log('[STnametracker] initializeUI: Settings handlers bound');
+
+            // Update UI to reflect current settings
+            console.log('[STnametracker] initializeUI: Updating UI...');
+            updateUI();
+            console.log('[STnametracker] initializeUI: UI updated');
+
+            logger.debug('UI initialized');
+        } catch (error) {
+            logger.error('Failed to initialize UI:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Register SillyTavern event listeners
+     */
+    registerEventListeners() {
+        logger.debug('Registering event listeners...');
+
+        try {
+            // Get event objects from SillyTavern context
+            const context = core_context/* default */.A.getContext();
+            const eventSource = context.eventSource;
+            const event_types = context.event_types;
+
+            if (!eventSource || !event_types) {
+                logger.warn('SillyTavern event system not available');
+                return;
+            }
+
+            // Register for SillyTavern events
+            eventSource.on(event_types.MESSAGE_RECEIVED, async (messageId) => {
+                logger.debug('Message received event:', messageId);
+                await onMessageReceived(messageId);
+            });
+
+            eventSource.on(event_types.MESSAGE_SENT, async (messageId) => {
+                logger.debug('Message sent event:', messageId);
+                await onMessageReceived(messageId);
+            });
+
+            eventSource.on(event_types.CHAT_CHANGED, async () => {
+                logger.debug('Chat changed event received');
+                // Reset chat-level data when chat changes
+                await (0,core_settings/* setChatData */.nF)({ characters: {}, lastScannedMessageId: -1 });
+            });
+
+            logger.debug('Event listeners registered');
+        } catch (error) {
+            logger.error('Failed to register event listeners:', error);
+        }
+    }
+    /**
+     * Setup error recovery strategies
+     */
+    setupErrorRecovery() {
+        // Network error recovery
+        errors/* errorHandler */.r_.registerRecoveryStrategy('NETWORK_ERROR', async (error) => {
+            logger.warn('Attempting network error recovery');
+            await errors/* errorHandler */.r_.delay(2000);
+            notifications/* default */.A.info('Retrying network operation...');
+            return null; // Signal to retry original operation
+        });
+
+        // Data format error recovery
+        errors/* errorHandler */.r_.registerRecoveryStrategy('DATA_FORMAT_ERROR', async (error) => {
+            logger.warn('Data format error, clearing cache');
+            // TODO: Clear relevant caches when modules are implemented
+            return null;
+        });
+
+        // Critical error handler
+        errors/* errorHandler */.r_.onCriticalError((error) => {
+            logger.error('Critical error occurred:', error);
+            // TODO: Save state for debugging when modules are implemented
+        });
+    }
+
+    /**
+     * Get extension status for debugging
+     * @returns {Object} Status information
+     */
+    getStatus() {
+        return {
+            initialized: this.initialized,
+            context: core_context/* default */.A.getStatus(),
+            settings: { initialized: true, moduleCount: Object.keys((0,core_settings/* get_settings */.TJ)()).length },
+            debug: debug/* default */.Ay.getPerformanceSummary(),
+            errors: errors/* errorHandler */.r_.getRecentErrors(5).length,
+        };
+    }
+
+    /**
+     * Shutdown the extension
+     * @returns {Promise<void>}
+     */
+    async shutdown() {
+        return errors/* errorHandler */.r_.withErrorBoundary('Main', async () => {
+            logger.log('Shutting down Name Tracker Extension');
+
+            // TODO: Cleanup modules
+            // TODO: Remove event listeners
+            // TODO: Save state
+
+            this.initialized = false;
+            debug/* default */.Ay.clear();
+
+            logger.log('Extension shutdown complete');
+        }, { silent: true });
+    }
+}
+
+// Create extension instance
+const nameTrackerExtension = new NameTrackerExtension();
+
+// Initialize extension when jQuery is ready - SillyTavern pattern
+jQuery(async () => {
+    console.log('[STnametracker] jQuery ready, starting extension load...');
+    try {
+        console.log('[STnametracker] Logger available, initializing...');
+        logger.log('Name Tracker Extension loading...');
+
+        // Initialize extension_settings for this extension
+        console.log('[STnametracker] Setting up extension_settings...');
+        if (!window.extension_settings) {
+            console.log('[STnametracker] Creating window.extension_settings');
+            window.extension_settings = {};
+        }
+        console.log('[STnametracker] Current extension_settings keys:', Object.keys(window.extension_settings));
+        window.extension_settings[extensionName] = window.extension_settings[extensionName] || {};
+
+        // Call get_settings() to trigger default merge
+        console.log('[STnametracker] Initializing defaults...');
+        const initialSettings = (0,core_settings/* get_settings */.TJ)();
+        console.log('[STnametracker] Settings initialized with defaults. llmSource:', initialSettings.llmSource);
+        console.log('[STnametracker] Extension settings keys after init:', Object.keys(window.extension_settings[extensionName]));
+
+        console.log('[STnametracker] Starting main initialization...');
+        await nameTrackerExtension.initialize();
+        console.log('[STnametracker] Main initialization completed');
+
+        // Make extension available globally for debugging
+        window.nameTrackerExtension = nameTrackerExtension;
+
+        // Add debug commands to browser console
+        window.ntDebug = {
+            status: () => nameTrackerExtension.getStatus(),
+            errors: () => errors/* errorHandler */.r_.getRecentErrors(),
+            settings: () => (0,core_settings/* get_settings */.TJ)(),
+            chatData: () => (0,core_settings/* getChatData */.zB)(),
+            clear: () => debug/* default */.Ay.clear(),
+        };
+
+        logger.log('Name Tracker Extension loaded successfully');
+        console.log('[STnametracker] Extension loaded. Use ntDebug.status() for diagnostics.');
+
+    } catch (error) {
+        console.error('[STnametracker] Failed to initialize:', error);
+        notifications/* default */.A.error('Extension failed to load', 'Critical Error');
+    }
+});
+
+/* harmony default export */ const src = ((/* unused pure expression or super */ null && (nameTrackerExtension)));
+
+/******/ })()
+;
 //# sourceMappingURL=index.js.map

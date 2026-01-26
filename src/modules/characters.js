@@ -57,14 +57,12 @@ let undoHistory = []; // Store last 3 merge operations
  * @property {string} sexuality - Sexual orientation/preferences
  * @property {string} raceEthnicity - Race/ethnicity information
  * @property {string} roleSkills - Role and skills description
- * @property {string} lastInteraction - Last interaction with user
  * @property {string[]} relationships - Relationships with other characters
  * @property {boolean} ignored - Whether character is ignored
  * @property {number} confidence - Confidence score (0-100)
  * @property {string|null} lorebookEntryId - Associated lorebook entry ID
  * @property {number} lastUpdated - Timestamp of last update
  * @property {boolean} isMainChar - Whether this is the main character
- * @property {number} lastMessageProcessed - ID of last message processed for this character
  */
 
 /**
@@ -410,14 +408,12 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
             sexuality: analyzedChar.sexuality || '',
             raceEthnicity: analyzedChar.raceEthnicity || '',
             roleSkills: analyzedChar.roleSkills || '',
-            lastInteraction: analyzedChar.lastInteraction || '',
             relationships: analyzedChar.relationships || [],
             ignored: false,
             confidence: analyzedChar.confidence || 50,
             lorebookEntryId: null,
             lastUpdated: Date.now(),
             isMainChar: isMainChar || false,
-            lastMessageProcessed: -1,  // Track processing state per character
         };
 
         debug.log();
@@ -432,32 +428,6 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
 
         return character;
     });
-}
-
-/**
- * Update character's lastMessageProcessed tracking field
- * Called after successful processing of a character to track progress
- * @param {string} characterName - Name of the character
- * @param {number} messageId - ID of the last processed message for this character
- * @returns {boolean} True if successfully updated
- */
-export function updateCharacterProcessingState(characterName, messageId) {
-    return withErrorBoundary('updateCharacterProcessingState', async () => {
-        const character = await findExistingCharacter(characterName);
-
-        if (!character) {
-            debug.log(`Character not found for state update: ${characterName}`);
-            return false;
-        }
-
-        character.lastMessageProcessed = messageId;
-        character.lastUpdated = Date.now();
-
-        await setCharacter(character.preferredName, character);
-
-        debug.log(`Updated processing state for ${characterName}: messageId=${messageId}`);
-        return true;
-    }, false);
 }
 
 /**
@@ -497,9 +467,6 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
         if (analyzedChar.sexuality) existingChar.sexuality = analyzedChar.sexuality;
         if (analyzedChar.raceEthnicity) existingChar.raceEthnicity = analyzedChar.raceEthnicity;
         if (analyzedChar.roleSkills) existingChar.roleSkills = analyzedChar.roleSkills;
-
-        // lastInteraction is always updated (most recent)
-        if (analyzedChar.lastInteraction) existingChar.lastInteraction = analyzedChar.lastInteraction;
 
         // Merge relationships array - deduplicate
         if (analyzedChar.relationships && Array.isArray(analyzedChar.relationships)) {
@@ -581,7 +548,6 @@ export async function mergeCharacters(sourceName, targetName) {
         if (sourceChar.sexuality && !targetChar.sexuality) targetChar.sexuality = sourceChar.sexuality;
         if (sourceChar.raceEthnicity && !targetChar.raceEthnicity) targetChar.raceEthnicity = sourceChar.raceEthnicity;
         if (sourceChar.roleSkills && !targetChar.roleSkills) targetChar.roleSkills = sourceChar.roleSkills;
-        if (sourceChar.lastInteraction && !targetChar.lastInteraction) targetChar.lastInteraction = sourceChar.lastInteraction;
 
         // Merge relationships
         for (const rel of sourceChar.relationships) {
@@ -695,7 +661,6 @@ export async function createNewCharacter(characterName) {
             sexuality: '',
             raceEthnicity: '',
             roleSkills: '',
-            lastInteraction: '',
             relationships: [],
             confidence: 100, // Manually created = 100% confidence
         };

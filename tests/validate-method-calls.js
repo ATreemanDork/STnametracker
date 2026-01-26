@@ -253,7 +253,12 @@ function validateMethodCalls() {
     // Enhanced validation with known SillyTavern patterns
     const knownInterfaces = {
         'stContext': {
-            methods: ['getContext', 'getChatMetadata', 'getChatId', 'clearCache'],
+            methods: [
+                'getContext', 'getChat', 'getChatMetadata', 'getChatId', 'getCharacterId', 'getCharacters', 'getUserName',
+                'getExtensionSettings', 'saveExtensionSettings', 'saveChatMetadata', 'generateQuietPrompt',
+                'loadWorldInfo', 'saveWorldInfo', 'saveWorldInfoEntry', 'setSelectedWorldInfo',
+                'getEventSource', 'getEventTypes', 'isContextAvailable', 'getStatus', 'clearCache', 'dumpContextToConsole'
+            ],
             commonErrors: {
                 'getSillyTavernContext': 'getContext',
                 'getChatData': 'getChatMetadata'

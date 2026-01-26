@@ -53,7 +53,7 @@ export async function initializeLorebook() {
     console.log('╔═══════════════════════════════════════════════════════════════════════════');
     console.log('║ [NT-Lorebook] initializeLorebook() CALLED');
     console.log('╚═══════════════════════════════════════════════════════════════════════════');
-    
+
     return withErrorBoundary('initializeLorebook', async () => {
         console.log('║ [NT-Lorebook] Inside withErrorBoundary, getting context...');
         const context = stContext.getContext();
@@ -92,7 +92,7 @@ export async function initializeLorebook() {
             console.log('║ Module Variable Set: YES');
             console.log('╚═══════════════════════════════════════════════════════════════════════════');
             debug.log(`Using existing chat lorebook: ${lorebookName}`);
-            
+
             // Lorebook is already bound in chatMetadata - no additional selection needed
             return lorebookName;
         }
@@ -132,14 +132,14 @@ export async function initializeLorebook() {
                 console.log(`[NT-Lorebook] 📝 Creating empty lorebook file: ${lorebookName}`);
                 debug.log();
                 await context.saveWorldInfo(lorebookName, { entries: {} }, true);
-                console.log(`[NT-Lorebook] ✅ Lorebook file created successfully`);
+                console.log('[NT-Lorebook] ✅ Lorebook file created successfully');
             } else {
                 console.log(`[NT-Lorebook] ℹ️  Lorebook file already exists with ${Object.keys(worldInfo.entries || {}).length} entries`);
             }
 
             // Notify user
             notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
-            console.log(`[NT-Lorebook] 🎉 Chat lorebook initialization complete`);
+            console.log('[NT-Lorebook] 🎉 Chat lorebook initialization complete');
         } catch (error) {
             console.error('Failed to initialize lorebook:', error);
             lorebookName = null;
@@ -168,7 +168,7 @@ export async function updateLorebookEntry(character, characterName) {
         console.log('║ lorebookName is undefined?:', lorebookName === undefined);
         console.log('║ lorebookName is falsy?:', !lorebookName);
         console.log('╚════════════════════════════════════════════════════════════════');
-        
+
         if (!lorebookName) {
             console.error('╔════════════════════════════════════════════════════════════════');
             console.error('║ [NT-Lorebook] ❌ CRITICAL ERROR: NO LOREBOOK INITIALIZED!');
@@ -180,7 +180,7 @@ export async function updateLorebookEntry(character, characterName) {
             debug.log('No lorebook initialized, skipping entry update');
             return;
         }
-        
+
         console.log('╔════════════════════════════════════════════════════════════════');
         console.log('║ [NT-Lorebook] ✅ Lorebook IS initialized');
         console.log('╠════════════════════════════════════════════════════════════════');
@@ -189,7 +189,7 @@ export async function updateLorebookEntry(character, characterName) {
         console.log('║ Has lorebookEntryId?:', !!character.lorebookEntryId);
         console.log('║ Existing Entry ID:', character.lorebookEntryId || 'NONE');
         console.log('╚════════════════════════════════════════════════════════════════');
-        
+
         debug.log(`updateLorebookEntry called for: ${characterName}`);
         debug.log('  Character data:', character);
 
@@ -232,11 +232,6 @@ export async function updateLorebookEntry(character, characterName) {
             contentParts.push(`\n**Role & Skills:**\n${character.roleSkills}`);
         }
 
-        // Last Interaction
-        if (character.lastInteraction) {
-            contentParts.push(`\n**Last Interaction with {{user}}:**\n${character.lastInteraction}`);
-        }
-
         // Relationships
         if (character.relationships && character.relationships.length > 0) {
             contentParts.push('\n**Relationships:**');
@@ -270,27 +265,27 @@ export async function updateLorebookEntry(character, characterName) {
         const orphanedUids = [];
         for (const [uid, entry] of Object.entries(worldInfo.entries)) {
             if (!entry.key || !Array.isArray(entry.key)) continue;
-            
+
             // Check if any of this entry's keys match our character's primary name or aliases
-            const hasMatchingKey = entry.key.some(k => 
+            const hasMatchingKey = entry.key.some(k =>
                 k.toLowerCase() === characterName.toLowerCase() ||
-                (character.aliases && character.aliases.some(alias => 
-                    k.toLowerCase() === alias.toLowerCase()
-                ))
+                (character.aliases && character.aliases.some(alias =>
+                    k.toLowerCase() === alias.toLowerCase(),
+                )),
             );
-            
+
             // If this entry has matching keys but isn't our current entry, mark it for removal
             if (hasMatchingKey && uid !== character.lorebookEntryId) {
                 console.log(`[NT-Lorebook]    Removing orphaned entry: ${uid} (keys: ${entry.key.join(', ')})`);
                 orphanedUids.push(uid);
             }
         }
-        
+
         // Remove orphaned entries
         for (const uid of orphanedUids) {
             delete worldInfo.entries[uid];
         }
-        
+
         if (orphanedUids.length > 0) {
             console.log(`[NT-Lorebook] ✅ Removed ${orphanedUids.length} orphaned entries`);
         }
@@ -326,7 +321,7 @@ export async function updateLorebookEntry(character, characterName) {
         } else {
             // Create new entry
             const newUid = generateUID();
-            
+
             console.log('╔════════════════════════════════════════════════════════════════');
             console.log('║ [NT-Lorebook] CREATING NEW ENTRY');
             console.log('╠════════════════════════════════════════════════════════════════');
@@ -341,7 +336,7 @@ export async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: `Auto-generated entry for ${character.preferredName}`,
+                comment: character.preferredName,
                 content: content,
                 constant: false,
                 selective: true,
@@ -388,7 +383,7 @@ export async function updateLorebookEntry(character, characterName) {
             console.log(`[NT-Lorebook]    Content length: ${content.length} chars`);
             console.log(`[NT-Lorebook]    Enabled: ${lorebookConfig.enabled}`);
             console.log(`[NT-Lorebook]    Position: ${lorebookConfig.position}`);
-            
+
             // Save the character with the new lorebook entry ID
             console.log('╔════════════════════════════════════════════════════════════════');
             console.log('║ [NT-Lorebook] SAVING CHARACTER WITH ENTRY ID');
@@ -397,16 +392,16 @@ export async function updateLorebookEntry(character, characterName) {
             console.log('║ Character Object BEFORE save:', JSON.stringify(character, null, 2));
             console.log('║ Lorebook Entry ID:', newUid);
             console.log('╚════════════════════════════════════════════════════════════════');
-            
+
             await setCharacter(characterName, character);
-            
+
             console.log('╔════════════════════════════════════════════════════════════════');
             console.log('║ [NT-Lorebook] CHARACTER SAVE COMPLETE');
             console.log('╠════════════════════════════════════════════════════════════════');
             console.log('║ Character Name:', characterName);
             console.log('║ Entry ID Saved:', character.lorebookEntryId);
             console.log('╚════════════════════════════════════════════════════════════════');
-            
+
             debug.log();
         }
 
@@ -424,13 +419,13 @@ export async function updateLorebookEntry(character, characterName) {
                 sampleEntry: Object.values(worldInfo.entries)[0] ? {
                     uid: Object.values(worldInfo.entries)[0].uid,
                     key: Object.values(worldInfo.entries)[0].key,
-                    contentLength: Object.values(worldInfo.entries)[0].content.length
-                } : 'NONE'
+                    contentLength: Object.values(worldInfo.entries)[0].content.length,
+                } : 'NONE',
             }, null, 2));
             console.log('╚════════════════════════════════════════════════════════════════');
-            
+
             await context.saveWorldInfo(lorebookName, worldInfo, true);
-            
+
             console.log('╔════════════════════════════════════════════════════════════════');
             console.log('║ [NT-Lorebook] LOREBOOK SAVE COMPLETE');
             console.log('╠════════════════════════════════════════════════════════════════');
@@ -444,7 +439,7 @@ export async function updateLorebookEntry(character, characterName) {
             console.log('╠════════════════════════════════════════════════════════════════');
             console.log('║ Reloading:', lorebookName);
             console.log('╚════════════════════════════════════════════════════════════════');
-            
+
             const verifyWorldInfo = await context.loadWorldInfo(lorebookName);
             const targetUid = existingUid || character.lorebookEntryId;
 
@@ -456,14 +451,14 @@ export async function updateLorebookEntry(character, characterName) {
             console.log('║ Has Entries Object?:', !!verifyWorldInfo?.entries);
             console.log('║ Available Entry UIDs:', Object.keys(verifyWorldInfo?.entries || {}));
             console.log('║ Target Entry Found?:', !!(verifyWorldInfo?.entries?.[targetUid]));
-            
+
             if (verifyWorldInfo && verifyWorldInfo.entries && verifyWorldInfo.entries[targetUid]) {
                 console.log('║ ✅ VERIFICATION: SUCCESS');
                 console.log('║ Entry Data:', JSON.stringify({
                     uid: verifyWorldInfo.entries[targetUid].uid,
                     key: verifyWorldInfo.entries[targetUid].key,
                     enabled: verifyWorldInfo.entries[targetUid].enabled,
-                    contentLength: verifyWorldInfo.entries[targetUid].content.length
+                    contentLength: verifyWorldInfo.entries[targetUid].content.length,
                 }, null, 2));
                 console.log('╚════════════════════════════════════════════════════════════════');
                 debug.log();
@@ -652,7 +647,11 @@ export async function adoptExistingEntries() {
                 const primaryName = entry.key[0];
 
                 // Check if this entry represents a character we should track
-                if (!characters[primaryName] && entry.comment?.includes('Auto-generated entry for')) {
+                const managedByExtension = entry.comment?.includes('Auto-generated entry for')
+                    || entry.comment === primaryName
+                    || entry.comment === `Auto-generated entry for ${primaryName}`;
+
+                if (!characters[primaryName] && managedByExtension) {
                     // Try to parse the content to recreate character data
                     const character = {
                         preferredName: primaryName,
@@ -662,7 +661,6 @@ export async function adoptExistingEntries() {
                         sexuality: '',
                         raceEthnicity: '',
                         roleSkills: '',
-                        lastInteraction: '',
                         relationships: [],
                         ignored: false,
                         confidence: 50,

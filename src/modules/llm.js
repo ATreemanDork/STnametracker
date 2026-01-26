@@ -81,28 +81,36 @@ REQUIRED JSON structure (copy this exact format):
 {
   "characters": [
     {
-      "name": "Character name",
-      "aliases": ["Other names"],
-      "physicalAge": "Age if mentioned",
-      "mentalAge": "Mental age if different",
-      "physical": "Physical description",
-      "personality": "Personality traits",
-      "sexuality": "Sexual orientation if mentioned",
-      "raceEthnicity": "Race/ethnicity if mentioned",
-      "roleSkills": "Job/role/skills",
-      "lastInteraction": "Recent interaction with user",
-      "relationships": ["Relationships with other characters"],
-      "confidence": 75
+            "name": "Full character name (one person only)",
+            "aliases": ["Other names and nicknames for THIS SAME person"],
+            "physicalAge": "Age if mentioned",
+            "mentalAge": "Mental age if different",
+            "physical": "Physical description",
+            "personality": "Personality traits",
+            "sexuality": "Sexual orientation if mentioned",
+            "raceEthnicity": "Race/ethnicity if mentioned",
+            "roleSkills": "Job/role/skills",
+            "relationships": ["Relationships with other characters"],
+            "confidence": 75
     }
   ]
 }
 
 Rules:
-- Only extract clearly named speaking characters
-- Skip generic references ("the waiter", "a woman")
-- Use most recent information for conflicts
+- One entry per distinct person. NEVER combine two different people into one entry.
+- If the same person is referred by variants ("John", "John Blackwell", "Scout"), make ONE entry with name = best full name ("John Blackwell") and put other names in aliases.
+- Do NOT create names like "Jade/Jesse" or "Sarah and Maya". Instead, create separate entries: [{name:"Jade"}, {name:"Jesse"}].
+- Only extract clearly named speaking characters.
+- Skip generic references ("the waiter", "a woman").
+- Use most recent information for conflicts.
 - Empty array if no clear characters: {"characters":[]}
-- Confidence: 90+ (explicit), 70-89 (clear), 50-69 (mentioned), <50 (vague)
+- Confidence: 90+ (explicit), 70-89 (clear), 50-69 (mentioned), <50 (vague).
+
+Examples (correct vs wrong):
+- ✅ {"name":"John Blackwell","aliases":["John","Scout"]}
+- ❌ {"name":"John/Scout"}
+- ✅ [{"name":"Jade"},{"name":"Jesse"}]
+- ❌ {"name":"Jade and Jesse"}
 
 Your response must start with { immediately.`;
 
@@ -118,32 +126,38 @@ function getSystemPrompt() {
 }
 
 /**
- * Load available Ollama models
+ * Load available Ollama models from the configured endpoint and cache them.
  * @returns {Promise<Array>} Array of available models
  */
 export async function loadOllamaModels() {
     return withErrorBoundary('loadOllamaModels', async () => {
         const ollamaEndpoint = get_settings('ollamaEndpoint', 'http://localhost:11434');
-        debugLog(`[OllamaModels] Loading models from ${ollamaEndpoint}`);
 
         try {
             const response = await fetch(`${ollamaEndpoint}/api/tags`);
 
             if (!response.ok) {
-                throw new Error(`Failed to connect to Ollama: ${response.statusText}`);
+                throw new Error(`Failed to load Ollama models: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
-            ollamaModels = data.models || [];
+            ollamaModels = Array.isArray(data?.models) ? data.models : [];
             debugLog(`[OllamaModels] Found ${ollamaModels.length} models: ${ollamaModels.map(m => m.name).join(', ')}`);
-
-            return ollamaModels;
+            return [...ollamaModels];
         } catch (error) {
             console.error('Error loading Ollama models:', error);
             notifications.error('Failed to load Ollama models. Check endpoint and try again.');
             throw error;
         }
     });
+}
+
+/**
+ * Get cached Ollama models
+ * @returns {Array} Array of available models
+ */
+export function getOllamaModels() {
+    return [...ollamaModels];
 }
 
 /**
@@ -261,13 +275,13 @@ export async function getMaxPromptLength() {
                 maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
                 detectionMethod = 'ollama';
             } else {
-                logEntry(`Using SillyTavern context`);
+                logEntry('Using SillyTavern context');
                 // Use SillyTavern's context
                 let context = null;
-                
+
                 try {
                     context = stContext.getContext();
-                    logEntry(`Successfully retrieved SillyTavern context`);
+                    logEntry('Successfully retrieved SillyTavern context');
                 } catch (error) {
                     logEntry(`ERROR: Failed to get context: ${error.message}`);
                     context = null;
@@ -277,11 +291,11 @@ export async function getMaxPromptLength() {
                 if (context) {
                     try {
                         const contextKeys = Object.keys(context);
-                        const relevantKeys = contextKeys.filter(k => 
-                            k.toLowerCase().includes('max') || 
+                        const relevantKeys = contextKeys.filter(k =>
+                            k.toLowerCase().includes('max') ||
                             k.toLowerCase().includes('context') ||
                             k.toLowerCase().includes('token') ||
-                            k.toLowerCase().includes('prompt')
+                            k.toLowerCase().includes('prompt'),
                         );
                         logEntry(`Available context properties: ${relevantKeys.join(', ')}`);
                     } catch (e) {
@@ -293,65 +307,65 @@ export async function getMaxPromptLength() {
                 let detectedMaxContext = null;
 
                 // Method 1: Direct maxContext property (PRIMARY)
-                logEntry(`Method 1: Checking context.maxContext...`);
+                logEntry('Method 1: Checking context.maxContext...');
                 if (context && typeof context.maxContext === 'number' && context.maxContext > 0) {
                     detectedMaxContext = context.maxContext;
                     logEntry(`✓ Method 1 SUCCESS: context.maxContext = ${detectedMaxContext}`);
                     detectionMethod = 'context.maxContext';
                 } else {
-                    const reason = !context ? 'context is null' : 
-                                   typeof context.maxContext !== 'number' ? `type is ${typeof context.maxContext}` :
-                                   context.maxContext <= 0 ? `value is ${context.maxContext}` : 'unknown';
+                    const reason = !context ? 'context is null' :
+                        typeof context.maxContext !== 'number' ? `type is ${typeof context.maxContext}` :
+                            context.maxContext <= 0 ? `value is ${context.maxContext}` : 'unknown';
                     logEntry(`✗ Method 1 FAILED: ${reason}`);
                 }
 
                 // Method 2: extensionSettings.common.maxContext path
                 if (!detectedMaxContext) {
-                    logEntry(`Method 2: Checking context.extensionSettings.common.maxContext...`);
+                    logEntry('Method 2: Checking context.extensionSettings.common.maxContext...');
                     if (context?.extensionSettings?.common) {
                         if (typeof context.extensionSettings.common.maxContext === 'number' && context.extensionSettings.common.maxContext > 0) {
                             detectedMaxContext = context.extensionSettings.common.maxContext;
                             logEntry(`✓ Method 2 SUCCESS: extensionSettings.common.maxContext = ${detectedMaxContext}`);
                             detectionMethod = 'extensionSettings.common.maxContext';
                         } else {
-                            logEntry(`✗ Method 2 FAILED: extensionSettings.common exists but maxContext is invalid`);
+                            logEntry('✗ Method 2 FAILED: extensionSettings.common exists but maxContext is invalid');
                         }
                     } else {
-                        logEntry(`✗ Method 2 FAILED: extensionSettings.common path does not exist`);
+                        logEntry('✗ Method 2 FAILED: extensionSettings.common path does not exist');
                     }
                 }
 
                 // Method 3: chat.maxContextSize path
                 if (!detectedMaxContext) {
-                    logEntry(`Method 3: Checking context.chat.maxContextSize...`);
+                    logEntry('Method 3: Checking context.chat.maxContextSize...');
                     if (context?.chat && typeof context.chat === 'object' && !Array.isArray(context.chat)) {
                         if (typeof context.chat.maxContextSize === 'number' && context.chat.maxContextSize > 0) {
                             detectedMaxContext = context.chat.maxContextSize;
                             logEntry(`✓ Method 3 SUCCESS: chat.maxContextSize = ${detectedMaxContext}`);
                             detectionMethod = 'chat.maxContextSize';
                         } else {
-                            logEntry(`✗ Method 3 FAILED: chat exists but maxContextSize is invalid`);
+                            logEntry('✗ Method 3 FAILED: chat exists but maxContextSize is invalid');
                         }
                     } else {
-                        logEntry(`✗ Method 3 FAILED: chat path does not exist or is an array`);
+                        logEntry('✗ Method 3 FAILED: chat path does not exist or is an array');
                     }
                 }
 
                 // Method 4: token_limit
                 if (!detectedMaxContext) {
-                    logEntry(`Method 4: Checking context.token_limit...`);
+                    logEntry('Method 4: Checking context.token_limit...');
                     if (context && typeof context.token_limit === 'number' && context.token_limit > 0) {
                         detectedMaxContext = context.token_limit;
                         logEntry(`✓ Method 4 SUCCESS: token_limit = ${detectedMaxContext}`);
                         detectionMethod = 'token_limit';
                     } else {
-                        logEntry(`✗ Method 4 FAILED: token_limit is not valid`);
+                        logEntry('✗ Method 4 FAILED: token_limit is not valid');
                     }
                 }
 
                 // Method 5: amount_gen (maximum generation tokens)
                 if (!detectedMaxContext) {
-                    logEntry(`Method 5: Checking context.amount_gen (fallback)...`);
+                    logEntry('Method 5: Checking context.amount_gen (fallback)...');
                     if (context && typeof context.amount_gen === 'number' && context.amount_gen > 0) {
                         // amount_gen is typically small (generation limit), not context size
                         // Use as indicator if no other value found
@@ -359,23 +373,23 @@ export async function getMaxPromptLength() {
                         logEntry(`✓ Method 5 FALLBACK: amount_gen = ${context.amount_gen}, estimated context = ${detectedMaxContext}`);
                         detectionMethod = 'amount_gen_estimate';
                     } else {
-                        logEntry(`✗ Method 5 FAILED: amount_gen is not valid`);
+                        logEntry('✗ Method 5 FAILED: amount_gen is not valid');
                     }
                 }
 
                 // Method 6: Check settings object directly
                 if (!detectedMaxContext) {
-                    logEntry(`Method 6: Checking context.settings.max_context...`);
+                    logEntry('Method 6: Checking context.settings.max_context...');
                     if (context && typeof context.settings === 'object') {
                         if (typeof context.settings.max_context === 'number' && context.settings.max_context > 0) {
                             detectedMaxContext = context.settings.max_context;
                             logEntry(`✓ Method 6 SUCCESS: settings.max_context = ${detectedMaxContext}`);
                             detectionMethod = 'settings.max_context';
                         } else {
-                            logEntry(`✗ Method 6 FAILED: settings exists but max_context is invalid`);
+                            logEntry('✗ Method 6 FAILED: settings exists but max_context is invalid');
                         }
                     } else {
-                        logEntry(`✗ Method 6 FAILED: settings path does not exist`);
+                        logEntry('✗ Method 6 FAILED: settings path does not exist');
                     }
                 }
 
@@ -387,7 +401,7 @@ export async function getMaxPromptLength() {
 
                 // Check if context is fully loaded
                 if (!context || !detectedMaxContext) {
-                    logEntry(`WARNING: Could not detect maxContext from any path, using fallback (4096)`);
+                    logEntry('WARNING: Could not detect maxContext from any path, using fallback (4096)');
                     logEntry(`Context exists: ${!!context}, detectedMaxContext: ${detectedMaxContext}`);
                     if (context) {
                         try {
@@ -428,18 +442,18 @@ export async function getMaxPromptLength() {
                 maxPrompt: finalValue,
                 detectionMethod: detectionMethod,
                 maxContext: maxContext,
-                debugLog: detectionLog.join('\n')
+                debugLog: detectionLog.join('\n'),
             };
         } catch (error) {
             const errorMsg = `ERROR in getMaxPromptLength: ${error.message}`;
             logEntry(errorMsg);
-            console.error(`[NT-MaxContext] Stack:`, error.stack);
+            console.error('[NT-MaxContext] Stack:', error.stack);
             // Return conservative fallback on any error with details
             return {
                 maxPrompt: 3276, // Based on default 4096 context with reserves
                 detectionMethod: 'error',
                 maxContext: 4096,
-                debugLog: detectionLog.join('\n') + '\nFATAL ERROR: ' + error.message
+                debugLog: detectionLog.join('\n') + '\nFATAL ERROR: ' + error.message,
             };
         }
     });
@@ -572,25 +586,25 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
 
                 console.log('[NT-ST-Call] Raw result type:', typeof result);
                 console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
-                
+
                 // Extract text from chat completion response
                 // Chat format: { choices: [{ message: { content: "..." } }] }
                 // Text format: { choices: [{ text: "..." }] }
                 let resultText = result;
-                
+
                 if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
                     // Try chat completion format first
                     if (result.choices[0]?.message?.content) {
                         console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
                         resultText = result.choices[0].message.content;
-                    } 
+                    }
                     // Fall back to text completion format
                     else if (result.choices[0]?.text) {
                         console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
                         resultText = result.choices[0].text;
                     }
                 }
-                
+
                 console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
                 console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
                 if (resultText && typeof resultText === 'string') {
@@ -610,18 +624,18 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                 if (prefill) {
                     console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
                     resultText = prefill + resultText;
-                    
+
                     // If the prefill opened an object but response doesn't close it, add closing brace
                     // Count braces to see if balanced
                     const openBraces = (resultText.match(/{/g) || []).length;
                     const closeBraces = (resultText.match(/}/g) || []).length;
-                    
+
                     if (openBraces > closeBraces) {
                         const missing = openBraces - closeBraces;
                         console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
                         resultText += '}'.repeat(missing);
                     }
-                    
+
                     console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
                 }
 
@@ -640,7 +654,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                 lastError = error;
                 console.error(`[NT-ST-Call] ❌ Attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
                 console.error('[NT-ST-Call] Error details:', error);
-                
+
                 if (attempt < MAX_RETRIES) {
                     console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms before retry...`);
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
@@ -652,7 +666,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
         const shouldContinue = confirm(
             `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
             `Last error: ${lastError.message}\n\n` +
-            `Check console for detailed logs. Continue processing remaining batches?`
+            'Check console for detailed logs. Continue processing remaining batches?',
         );
 
         if (!shouldContinue) {
@@ -731,24 +745,24 @@ export function parseJSONResponse(text) {
         console.log('[NT-Parse] Input type:', typeof text);
         console.log('[NT-Parse] Input is null?:', text === null);
         console.log('[NT-Parse] Input is undefined?:', text === undefined);
-        
+
         if (typeof text === 'object' && text !== null) {
             console.log('[NT-Parse] Input is an OBJECT (not string). Keys:', Object.keys(text));
             console.log('[NT-Parse] Full object:', JSON.stringify(text).substring(0, 500));
-            
+
             // If it's already an object with characters, return it
             if (text.characters && Array.isArray(text.characters)) {
                 console.log('[NT-Parse] Object already has characters array, returning as-is');
                 return text;
             }
         }
-        
+
         console.log('[NT-Parse] Input length:', text ? text.length : 'null');
         if (text && typeof text === 'string') {
             console.log('[NT-Parse] First 300 chars:', text.substring(0, 300));
             console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
         }
-        
+
         if (!text || typeof text !== 'string') {
             console.error('[NT-Parse] ❌ INVALID: Response is not a string:', typeof text);
             console.error('[NT-Parse] ❌ Response value:', text);
@@ -781,11 +795,11 @@ export function parseJSONResponse(text) {
             const beforeText = text.substring(0, firstBrace);
             const jsonText = text.substring(firstBrace, lastBrace + 1);
             const afterText = text.substring(lastBrace + 1);
-            
+
             console.log('[NT-Parse] Text before JSON:', beforeText.substring(0, 100));
             console.log('[NT-Parse] Extracted JSON length:', jsonText.length);
             console.log('[NT-Parse] Text after JSON:', afterText.substring(0, 100));
-            
+
             text = jsonText;
         }
 
@@ -807,7 +821,7 @@ export function parseJSONResponse(text) {
             console.log('[NT-Parse] Parsed type:', typeof parsed);
             console.log('[NT-Parse] Parsed keys:', Object.keys(parsed));
             console.log('[NT-Parse] Full parsed object:', JSON.stringify(parsed).substring(0, 500));
-            
+
             // Validate structure
             if (!parsed.characters) {
                 console.warn('[NT-Parse] ⚠️  parsed.characters is undefined or null');
@@ -816,7 +830,7 @@ export function parseJSONResponse(text) {
                 console.warn('[NT-Parse] ⚠️  parsed.characters exists but is NOT an array. Type:', typeof parsed.characters);
                 console.warn('[NT-Parse] Value:', parsed.characters);
             }
-            
+
             if (!parsed.characters || !Array.isArray(parsed.characters)) {
                 console.warn('[NT-Parse] ❌ Response missing characters array, returning empty');
                 console.warn('[NT-Parse] Full parsed object:', parsed);
@@ -884,18 +898,21 @@ export function parseJSONResponse(text) {
 
 /**
  * Call LLM for character analysis with automatic batch splitting if prompt is too long
+ * and adaptive splitting when parse/output failures occur.
  * @param {Array} messageObjs - Array of message objects (with .mes property) or strings
  * @param {string} knownCharacters - Roster of previously identified characters
  * @param {number} depth - Recursion depth (for logging)
- * @param {number} retryCount - Number of retries attempted
+ * @param {number} retryCount - Number of retries attempted (simple backoff)
+ * @param {number} splitAttempts - Number of times this failing batch has been split
  * @returns {Promise<Object>} Analysis result with merged characters
  */
-export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, retryCount = 0) {
+export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, retryCount = 0, splitAttempts = 0) {
     return withErrorBoundary('callLLMAnalysis', async () => {
         const llmConfig = getLLMConfig();
         const maxPromptResult = await getMaxPromptLength(); // Dynamic based on API context window
         const maxPromptTokens = maxPromptResult.maxPrompt;
-        const MAX_RETRIES = 3;
+        const MAX_SIMPLE_RETRIES = 1;   // retry count after first failure (total 2 attempts)
+        const MAX_SPLIT_ATTEMPTS = 2;   // how many times we can split on failure (up to 4 chunks)
 
         debug.log();
 
@@ -918,48 +935,48 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
 
         // Build the prompt
         const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\\n${msg}`).join('\\n\\n');
-        
+
         // Get system prompt and ensure it's a string
         let systemPrompt = getSystemPrompt();
         console.log('[NT-Prompt] getSystemPrompt() returned type:', typeof systemPrompt);
-        
+
         // Handle if it's a Promise
         if (systemPrompt && typeof systemPrompt === 'object' && typeof systemPrompt.then === 'function') {
             console.warn('[NT-Prompt] getSystemPrompt returned Promise, awaiting...');
             systemPrompt = await systemPrompt;
             console.log('[NT-Prompt] After await, type:', typeof systemPrompt);
         }
-        
+
         // Handle if it's still an object after await
         if (typeof systemPrompt !== 'string') {
             console.warn('[NT-Prompt] systemPrompt is not a string, using default. Type:', typeof systemPrompt, 'Value:', systemPrompt);
             systemPrompt = DEFAULT_SYSTEM_PROMPT;
         }
-        
+
         // Get character roster and ensure it's a string
         let rosterStr = knownCharacters || '';
         console.log('[NT-Prompt] knownCharacters type:', typeof rosterStr);
-        
+
         // Handle if it's a Promise
         if (rosterStr && typeof rosterStr === 'object' && typeof rosterStr.then === 'function') {
             console.warn('[NT-Prompt] knownCharacters is Promise, awaiting...');
             rosterStr = await rosterStr;
             console.log('[NT-Prompt] After await, type:', typeof rosterStr);
         }
-        
+
         // Ensure it's a string
         rosterStr = String(rosterStr || '');
-        
+
         console.log('[NT-Prompt] Final systemPrompt length:', systemPrompt.length);
         console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
         console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
-        
+
         // Build system message with instructions and roster
         const systemMessage = systemPrompt + (rosterStr ? '\n\n' + rosterStr : '');
-        
+
         // Build user prompt with data
         const userPrompt = '[DATA TO ANALYZE]\n' + messagesText;
-        
+
         // No prefill - let model generate complete JSON from system prompt guidance
         const prefill = '';
 
@@ -969,7 +986,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         try {
             promptTokens = await calculateMessageTokens([{ mes: combinedText }]);
             debug.log();
-        } catch (tokenError) {
+        } catch {
             debug.log();
             // Fallback to character-based estimate
             promptTokens = Math.ceil(combinedText.length / 4);
@@ -977,7 +994,6 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
 
         // If prompt is too long, split into sub-batches
         if (promptTokens > maxPromptTokens && messageObjs.length > 1) {
-            const indent = '  '.repeat(depth);
             debug.log();
 
             // Split roughly in half
@@ -989,8 +1005,8 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
 
             // Analyze both halves in parallel
             const [result1, result2] = await Promise.all([
-                callLLMAnalysis(firstHalf, knownCharacters, depth + 1),
-                callLLMAnalysis(secondHalf, knownCharacters, depth + 1),
+                callLLMAnalysis(firstHalf, knownCharacters, depth + 1, 0, splitAttempts),
+                callLLMAnalysis(secondHalf, knownCharacters, depth + 1, 0, splitAttempts),
             ]);
 
             // Merge the results
@@ -1018,7 +1034,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         console.log('='.repeat(80));
         console.log('PREFILL:', prefill);
         console.log('='.repeat(80));
-        
+
         let result;
 
         try {
@@ -1030,23 +1046,40 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
                 result = await callSillyTavern(systemMessage, userPrompt, prefill);
             }
         } catch (error) {
-            // Retry on JSON parsing errors or empty responses
-            if (retryCount < MAX_RETRIES &&
-                (error.message.includes('JSON') ||
-                 error.message.includes('empty') ||
-                 error.message.includes('truncated'))) {
+            const isRetryable = error.message.includes('JSON')
+                || error.message.includes('empty')
+                || error.message.includes('truncated');
 
+            // First retry: try the same batch once with backoff
+            if (isRetryable && retryCount < MAX_SIMPLE_RETRIES) {
                 debug.log();
 
-                // Add exponential backoff delay
-                const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+                const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
                 await new Promise(resolve => setTimeout(resolve, delay));
 
-                // Retry the same call
-                return await callLLMAnalysis(messageObjs, knownCharacters, depth, retryCount + 1);
+                return await callLLMAnalysis(messageObjs, knownCharacters, depth, retryCount + 1, splitAttempts);
             }
 
-            // Max retries exceeded or non-retryable error
+            // Subsequent retries: split the current failing batch into halves (up to 4 chunks total)
+            if (isRetryable && messageObjs.length > 1 && splitAttempts < MAX_SPLIT_ATTEMPTS) {
+                const midpoint = Math.floor(messageObjs.length / 2);
+                const firstHalf = messageObjs.slice(0, midpoint);
+                const secondHalf = messageObjs.slice(midpoint);
+
+                const [result1, result2] = await Promise.all([
+                    callLLMAnalysis(firstHalf, knownCharacters, depth + 1, 0, splitAttempts + 1),
+                    callLLMAnalysis(secondHalf, knownCharacters, depth + 1, 0, splitAttempts + 1),
+                ]);
+
+                return {
+                    characters: [
+                        ...(result1.characters || []),
+                        ...(result2.characters || []),
+                    ],
+                };
+            }
+
+            // Max retries/splits exceeded or non-retryable error
             throw error;
         }
 
@@ -1089,10 +1122,4 @@ export function getCacheStats() {
     };
 }
 
-/**
- * Get available Ollama models
- * @returns {Array} Array of available models
- */
-export function getOllamaModels() {
-    return [...ollamaModels];
-}
+// End of module

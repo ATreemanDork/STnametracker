@@ -165,9 +165,9 @@ All settings are fully configurable in the GUI and respected by the extension.
 
 ### Confidence Threshold
 
-**Note**: Confidence threshold is currently not used in v2.1.0. Merging is manual only.
-- Future versions may reintroduce automatic similarity detection
-- For now, use the manual merge feature to combine duplicates
+- Used for duplicate detection: 90%+ auto-merges, 70–89% surfaces a notification for manual review
+- Tune lower to be more aggressive with merges; raise to avoid unwanted merges
+- Manual merge UI remains available for full control
 
 ## Usage
 
@@ -241,7 +241,6 @@ Each character is tracked with 7 consolidated fields stored in lorebook entries:
   "sexuality": "Orientation, preferences, kinks, experience (1-2 paragraphs)",
   "raceEthnicity": "Species/ethnicity (e.g., High Elf, Caucasian, etc.)",
   "roleSkills": "Occupation, abilities, talents (3-5 key attributes)",
-  "lastInteraction": "Most recent interaction with {{user}}",
   "relationships": [
     "Character is John's sister",
     "Character works for ???"
@@ -276,9 +275,9 @@ The system prompt can be customized via "Edit System Prompt" button in settings.
 - **Long roleplay**: 20-50 messages
 
 ### Confidence Threshold
-- Start at 70% and adjust based on results
-- Lower if getting too many duplicates
-- Raise if getting incorrect merges
+- Auto-merge triggers at 90%+; 70–89% shows a merge suggestion toast
+- Start at 80–90% for safer merges; lower if you prefer more auto-merges
+- Raise if you see incorrect merges; drop to 70–79% if duplicates persist
 
 ### LLM Selection
 - **SillyTavern**: Best for cloud models with large context
