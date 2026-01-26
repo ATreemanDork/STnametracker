@@ -651,6 +651,11 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                     jsonSchema: CHARACTER_EXTRACTION_SCHEMA,  // Structured output
                 });
 
+                console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
+                console.log('[NT-ST-Call] Response type:', typeof result);
+                console.log(JSON.stringify(result, null, 2));
+                console.log('[NT-ST-Call] ========== RAW API RESPONSE END ==========');
+
                 console.log('[NT-ST-Call] Raw result type:', typeof result);
                 console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
                 
@@ -685,6 +690,25 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                 // The result should be a string
                 if (!resultText || typeof resultText !== 'string') {
                     throw new NameTrackerError('Empty or invalid response from SillyTavern LLM');
+                }
+
+                // If we used a prefill, prepend it to complete the JSON
+                if (prefill) {
+                    console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
+                    resultText = prefill + resultText;
+                    
+                    // If the prefill opened an object but response doesn't close it, add closing brace
+                    // Count braces to see if balanced
+                    const openBraces = (resultText.match(/{/g) || []).length;
+                    const closeBraces = (resultText.match(/}/g) || []).length;
+                    
+                    if (openBraces > closeBraces) {
+                        const missing = openBraces - closeBraces;
+                        console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
+                        resultText += '}'.repeat(missing);
+                    }
+                    
+                    console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
                 }
 
                 const parsed = parseJSONResponse(resultText);
