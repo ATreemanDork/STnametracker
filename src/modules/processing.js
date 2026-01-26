@@ -933,6 +933,12 @@ function hideProgressBar() {
  */
 export async function scanEntireChat() {
     return withErrorBoundary('scanEntireChat', async () => {
+        // CRITICAL: Ensure lorebook is initialized BEFORE processing
+        console.log('[NT-Processing] 🔧 Ensuring lorebook is initialized before scan...');
+        const { initializeLorebook } = await import('./lorebook.js');
+        await initializeLorebook();
+        console.log('[NT-Processing] ✅ Lorebook initialization complete');
+        
         const context = stContext.getContext();
 
         if (!context.chat || context.chat.length === 0) {
