@@ -19,7 +19,7 @@ const notifications = new NotificationManager('LLM Integration');
 // ============================================================================
 // DEBUG CONFIGURATION
 // ============================================================================
-const DEBUG_LOGGING = true; // Set to false in production after testing
+const DEBUG_LOGGING = false; // Default off to reduce console noise
 
 function debugLog(message, data = null) {
     if (DEBUG_LOGGING) {
@@ -520,28 +520,30 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
             throw new NameTrackerError('No API connection available. Please connect to an API first.');
         }
 
-        console.log('[NT-ST-Call] Starting SillyTavern LLM call');
-        console.log('[NT-ST-Call] System prompt length:', systemPrompt.length, 'characters');
-        console.log('[NT-ST-Call] User prompt length:', prompt.length, 'characters');
-        if (prefill) console.log('[NT-ST-Call] Prefill:', prefill);
-        console.log('[NT-ST-Call] ========== PROMPT STRUCTURE START ==========');
-        console.log('SYSTEM:', systemPrompt);
-        console.log('USER:', prompt);
-        if (prefill) console.log('PREFILL:', prefill);
-        console.log('[NT-ST-Call] ========== PROMPT STRUCTURE END ==========');
+        if (DEBUG_LOGGING) {
+            console.log('[NT-ST-Call] Starting SillyTavern LLM call');
+            console.log('[NT-ST-Call] System prompt length:', systemPrompt.length, 'characters');
+            console.log('[NT-ST-Call] User prompt length:', prompt.length, 'characters');
+            if (prefill) console.log('[NT-ST-Call] Prefill:', prefill);
+            console.log('[NT-ST-Call] ========== PROMPT STRUCTURE START ==========');
+            console.log('SYSTEM:', systemPrompt);
+            console.log('USER:', prompt);
+            if (prefill) console.log('PREFILL:', prefill);
+            console.log('[NT-ST-Call] ========== PROMPT STRUCTURE END ==========');
+        }
 
         // Get token count for combined text
         const combinedText = systemPrompt + '\n\n' + prompt + (prefill ? '\n' + prefill : '');
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(combinedText);
-            console.log('[NT-ST-Call] Token count:', promptTokens);
+            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Token count:', promptTokens);
             debug.log();
         } catch (_error) {
-            console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
+            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
             debug.log();
             promptTokens = Math.ceil(combinedText.length / 4);
-            console.log('[NT-ST-Call] Estimated tokens:', promptTokens);
+            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Estimated tokens:', promptTokens);
             debug.log();
         }
 
@@ -549,7 +551,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
         const maxContext = context.maxContext || 4096;
         const calculatedMaxTokens = Math.floor(maxContext * 0.25);
         const maxTokens = Math.max(4000, calculatedMaxTokens);
-        console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
+        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
         debug.log();
 
         // Retry logic: attempt up to 3 times with 2s delay
@@ -559,14 +561,16 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                console.log(`[NT-ST-Call] Attempt ${attempt}/${MAX_RETRIES}`);
-                console.log('[NT-ST-Call] Calling generateRaw with params:', {
-                    temperature: GENERATION_TEMPERATURE,
-                    top_p: GENERATION_TOP_P,
-                    top_k: GENERATION_TOP_K,
-                    rep_pen: GENERATION_REP_PEN,
-                    responseLength: maxTokens,
-                });
+                if (DEBUG_LOGGING) {
+                    console.log(`[NT-ST-Call] Attempt ${attempt}/${MAX_RETRIES}`);
+                    console.log('[NT-ST-Call] Calling generateRaw with params:', {
+                        temperature: GENERATION_TEMPERATURE,
+                        top_p: GENERATION_TOP_P,
+                        top_k: GENERATION_TOP_K,
+                        rep_pen: GENERATION_REP_PEN,
+                        responseLength: maxTokens,
+                    });
+                }
 
                 const result = await context.generateRaw({
                     systemPrompt,
@@ -579,13 +583,15 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                     responseLength: maxTokens, // SillyTavern uses responseLength for text completion length
                 });
 
-                console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
-                console.log('[NT-ST-Call] Response type:', typeof result);
-                console.log(JSON.stringify(result, null, 2));
-                console.log('[NT-ST-Call] ========== RAW API RESPONSE END ==========');
+                if (DEBUG_LOGGING) {
+                    console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
+                    console.log('[NT-ST-Call] Response type:', typeof result);
+                    console.log(JSON.stringify(result, null, 2));
+                    console.log('[NT-ST-Call] ========== RAW API RESPONSE END ==========');
 
-                console.log('[NT-ST-Call] Raw result type:', typeof result);
-                console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
+                    console.log('[NT-ST-Call] Raw result type:', typeof result);
+                    console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
+                }
 
                 // Extract text from chat completion response
                 // Chat format: { choices: [{ message: { content: "..." } }] }
@@ -595,24 +601,26 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                 if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
                     // Try chat completion format first
                     if (result.choices[0]?.message?.content) {
-                        console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
+                        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
                         resultText = result.choices[0].message.content;
                     }
                     // Fall back to text completion format
                     else if (result.choices[0]?.text) {
-                        console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
+                        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
                         resultText = result.choices[0].text;
                     }
                 }
 
-                console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
-                console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
-                if (resultText && typeof resultText === 'string') {
-                    console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
+                if (DEBUG_LOGGING) {
+                    console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
+                    console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
+                    if (resultText && typeof resultText === 'string') {
+                        console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
+                    }
+                    console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
+                    console.log(resultText);
+                    console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
                 }
-                console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
-                console.log(resultText);
-                console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
                 debug.log();
 
                 // The result should be a string
@@ -622,7 +630,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
 
                 // If we used a prefill, prepend it to complete the JSON
                 if (prefill) {
-                    console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
+                    if (DEBUG_LOGGING) console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
                     resultText = prefill + resultText;
 
                     // If the prefill opened an object but response doesn't close it, add closing brace
@@ -632,11 +640,11 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
 
                     if (openBraces > closeBraces) {
                         const missing = openBraces - closeBraces;
-                        console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
+                        if (DEBUG_LOGGING) console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
                         resultText += '}'.repeat(missing);
                     }
 
-                    console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
+                    if (DEBUG_LOGGING) console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
                 }
 
                 const parsed = await parseJSONResponse(resultText);

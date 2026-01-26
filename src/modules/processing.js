@@ -21,7 +21,7 @@ const notifications = new NotificationManager('Message Processing');
 // ============================================================================
 // DEBUG CONFIGURATION
 // ============================================================================
-const DEBUG_LOGGING = true; // Set to false in production after testing
+const DEBUG_LOGGING = false; // Default off to reduce console noise
 
 function debugLog(message, data = null) {
     if (DEBUG_LOGGING) {
@@ -133,10 +133,11 @@ const currentProcessingState = {
  */
 export async function processAnalysisResults(analyzedCharacters) {
     return withErrorBoundary('processAnalysisResults', async () => {
-        console.log('[NT-Processing] 🔄 processAnalysisResults called');
-        console.log('[NT-Processing]    Input type:', typeof analyzedCharacters);
-        console.log('[NT-Processing]    Is array?:', Array.isArray(analyzedCharacters));
-        console.log('[NT-Processing]    Length:', analyzedCharacters?.length);
+        debugLog('processAnalysisResults', {
+            inputType: typeof analyzedCharacters,
+            isArray: Array.isArray(analyzedCharacters),
+            length: analyzedCharacters?.length,
+        });
 
         if (!analyzedCharacters || !Array.isArray(analyzedCharacters)) {
             console.warn('[NT-Processing] ⚠️  Invalid input - not an array:', analyzedCharacters);
@@ -144,14 +145,11 @@ export async function processAnalysisResults(analyzedCharacters) {
             return;
         }
 
-        console.log('[NT-Processing] ✅ Processing', analyzedCharacters.length, 'characters');
-        debug.log();
+        debugLog(`Processing ${analyzedCharacters.length} characters`);
 
         for (const analyzedChar of analyzedCharacters) {
             try {
-                console.log('[NT-Processing] 📝 Processing character:', analyzedChar.name);
                 await processCharacterData(analyzedChar);
-                console.log('[NT-Processing] ✅ Character processed:', analyzedChar.name);
             } catch (error) {
                 console.error(`[NT-Processing] ❌ Error processing character ${analyzedChar.name}:`, error);
                 console.error('[NT-Processing] Error stack:', error.stack);
@@ -159,10 +157,7 @@ export async function processAnalysisResults(analyzedCharacters) {
             }
         }
 
-        console.log('[NT-Processing] 🎉 All characters processed');
-
-        // Update the character list UI after processing all characters
-        console.log('[NT-Processing] 🖥️  Updating character list UI');
+        debugLog('All characters processed');
         updateCharacterList();
         updateStatusDisplay();
     });
@@ -175,7 +170,7 @@ export async function processAnalysisResults(analyzedCharacters) {
  */
 async function processCharacterData(analyzedChar) {
     return withErrorBoundary('processCharacterData', async () => {
-        console.log('[NT-CharData] 🔍 Processing character data for:', analyzedChar.name);
+        debugLog('Processing character data', analyzedChar?.name);
 
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
             console.warn('[NT-CharData] ⚠️  Character has no name, skipping');
@@ -184,56 +179,45 @@ async function processCharacterData(analyzedChar) {
         }
 
         const characterName = analyzedChar.name.trim();
-        console.log('[NT-CharData]    Character name:', characterName);
+        debugLog('Character name', characterName);
 
         // Check if character is ignored
         const isIgnored = await isIgnoredCharacter(characterName);
         if (isIgnored) {
-            console.log('[NT-CharData] ⏭️  Character is ignored, skipping:', characterName);
+            debugLog('Character ignored, skipping', characterName);
             debug.log();
             return;
         }
 
         // Check for main character detection
         const isMainChar = characterName.toLowerCase().includes('{{char}}') ||
-                          analyzedChar.isMainCharacter === true ||
-                          analyzedChar.role === 'main';
-        console.log('[NT-CharData]    Is main char?:', isMainChar);
+                  analyzedChar.isMainCharacter === true ||
+                  analyzedChar.role === 'main';
+        debugLog('Is main char', isMainChar);
 
         // Check if character already exists
         const existingChar = await findExistingCharacter(characterName);
-        console.log('[NT-CharData]    Existing character found?:', !!existingChar);
+        debugLog('Existing character found', !!existingChar);
 
         if (existingChar) {
             // Update existing character
-            console.log('[NT-CharData] 🔄 Updating existing character:', existingChar.preferredName);
             await updateCharacter(existingChar, analyzedChar, false, isMainChar);
-            console.log('[NT-CharData] 📚 Updating lorebook entry...');
             await updateLorebookEntry(existingChar, existingChar.preferredName);
-            console.log('[NT-CharData] ✅ Existing character updated');
             debug.log();
         } else {
             // Check for potential matches (similar names)
-            console.log('[NT-CharData] 🔍 Checking for potential matches...');
             const potentialMatch = await findPotentialMatch(analyzedChar);
-            console.log('[NT-CharData]    Potential match found?:', !!potentialMatch);
+            debugLog('Potential match found', !!potentialMatch);
 
             if (potentialMatch) {
                 // Update potential match and add as alias
-                console.log('[NT-CharData] 🔄 Updating potential match:', potentialMatch.preferredName);
                 await updateCharacter(potentialMatch, analyzedChar, true, isMainChar);
-                console.log('[NT-CharData] 📚 Updating lorebook entry...');
                 await updateLorebookEntry(potentialMatch, potentialMatch.preferredName);
-                console.log('[NT-CharData] ✅ Potential match updated');
                 debug.log();
             } else {
                 // Create new character
-                console.log('[NT-CharData] 🆕 Creating new character:', characterName);
                 const newCharacter = await createCharacter(analyzedChar, isMainChar);
-                console.log('[NT-CharData] ✅ Character created:', newCharacter.preferredName);
-                console.log('[NT-CharData] 📚 Creating lorebook entry...');
                 await updateLorebookEntry(newCharacter, newCharacter.preferredName);
-                console.log('[NT-CharData] ✅ New character complete');
                 debug.log();
             }
         }

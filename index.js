@@ -2135,6 +2135,14 @@ module.exports = insertStyleElement;
 const MODULE_NAME = 'STnametracker';
 const debug = (0,_debug_js__WEBPACK_IMPORTED_MODULE_1__/* .createModuleLogger */ .Xv)('Settings');
 
+function getContextSettings() {
+    const context = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getContext();
+    return {
+        extSettings: context?.extension_settings,
+        saveSettings: context?.saveSettingsDebounced,
+    };
+}
+
 // Default settings structure
 const DEFAULT_SETTINGS = Object.freeze({
     enabled: true,
@@ -2177,19 +2185,19 @@ const DEFAULT_CHAT_DATA = Object.freeze({
  */
 function get_settings() {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
-        // Ensure extension_settings exists
-        if (typeof extension_settings === 'undefined') {
+        const { extSettings } = getContextSettings();
+        if (!extSettings) {
             console.warn('[STnametracker] extension_settings not available');
             return { ...DEFAULT_SETTINGS };
         }
 
         // Initialize if not exists
-        if (!extension_settings[MODULE_NAME]) {
-            extension_settings[MODULE_NAME] = { ...DEFAULT_SETTINGS };
+        if (!extSettings[MODULE_NAME]) {
+            extSettings[MODULE_NAME] = { ...DEFAULT_SETTINGS };
         }
 
         // Merge with defaults to ensure all properties exist
-        const settings = { ...DEFAULT_SETTINGS, ...extension_settings[MODULE_NAME] };
+        const settings = { ...DEFAULT_SETTINGS, ...extSettings[MODULE_NAME] };
         return settings;
     }, { ...DEFAULT_SETTINGS });
 }
@@ -2200,23 +2208,23 @@ function get_settings() {
  */
 function set_settings(newSettings) {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
-        // Ensure extension_settings exists
-        if (typeof extension_settings === 'undefined') {
+        const { extSettings, saveSettings } = getContextSettings();
+        if (!extSettings) {
             console.warn('[STnametracker] extension_settings not available for saving');
             return;
         }
 
         // Initialize if not exists
-        if (!extension_settings[MODULE_NAME]) {
-            extension_settings[MODULE_NAME] = { ...DEFAULT_SETTINGS };
+        if (!extSettings[MODULE_NAME]) {
+            extSettings[MODULE_NAME] = { ...DEFAULT_SETTINGS };
         }
 
         // Update settings
-        Object.assign(extension_settings[MODULE_NAME], newSettings);
+        Object.assign(extSettings[MODULE_NAME], newSettings);
 
         // Save to SillyTavern
-        if (typeof saveSettingsDebounced !== 'undefined') {
-            saveSettingsDebounced();
+        if (typeof saveSettings === 'function') {
+            saveSettings();
         }
     });
 }
@@ -2407,8 +2415,10 @@ async function setCharacter(name, character) {
 function getLLMConfig() {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
         const llmSource = getSetting('llmSource');
-        console.log('[NT-LLMConfig] llmSource setting:', llmSource);
-        console.log('[NT-LLMConfig] All extension_settings keys:', Object.keys(extension_settings.sillytavern_nametracker || {}));
+        const { extSettings } = getContextSettings();
+        const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
+            debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
+            debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
         return {
             source: llmSource,
             ollamaEndpoint: getSetting('ollamaEndpoint'),
@@ -3619,7 +3629,7 @@ const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__/*
 // ============================================================================
 // DEBUG CONFIGURATION
 // ============================================================================
-const DEBUG_LOGGING = true; // Set to false in production after testing
+const DEBUG_LOGGING = false; // Default off to reduce console noise
 
 function debugLog(message, data = null) {
     if (DEBUG_LOGGING) {
@@ -4120,28 +4130,30 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
             throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('No API connection available. Please connect to an API first.');
         }
 
-        console.log('[NT-ST-Call] Starting SillyTavern LLM call');
-        console.log('[NT-ST-Call] System prompt length:', systemPrompt.length, 'characters');
-        console.log('[NT-ST-Call] User prompt length:', prompt.length, 'characters');
-        if (prefill) console.log('[NT-ST-Call] Prefill:', prefill);
-        console.log('[NT-ST-Call] ========== PROMPT STRUCTURE START ==========');
-        console.log('SYSTEM:', systemPrompt);
-        console.log('USER:', prompt);
-        if (prefill) console.log('PREFILL:', prefill);
-        console.log('[NT-ST-Call] ========== PROMPT STRUCTURE END ==========');
+        if (DEBUG_LOGGING) {
+            console.log('[NT-ST-Call] Starting SillyTavern LLM call');
+            console.log('[NT-ST-Call] System prompt length:', systemPrompt.length, 'characters');
+            console.log('[NT-ST-Call] User prompt length:', prompt.length, 'characters');
+            if (prefill) console.log('[NT-ST-Call] Prefill:', prefill);
+            console.log('[NT-ST-Call] ========== PROMPT STRUCTURE START ==========');
+            console.log('SYSTEM:', systemPrompt);
+            console.log('USER:', prompt);
+            if (prefill) console.log('PREFILL:', prefill);
+            console.log('[NT-ST-Call] ========== PROMPT STRUCTURE END ==========');
+        }
 
         // Get token count for combined text
         const combinedText = systemPrompt + '\n\n' + prompt + (prefill ? '\n' + prefill : '');
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(combinedText);
-            console.log('[NT-ST-Call] Token count:', promptTokens);
+            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Token count:', promptTokens);
             debug.log();
         } catch (_error) {
-            console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
+            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
             debug.log();
             promptTokens = Math.ceil(combinedText.length / 4);
-            console.log('[NT-ST-Call] Estimated tokens:', promptTokens);
+            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Estimated tokens:', promptTokens);
             debug.log();
         }
 
@@ -4149,7 +4161,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
         const maxContext = context.maxContext || 4096;
         const calculatedMaxTokens = Math.floor(maxContext * 0.25);
         const maxTokens = Math.max(4000, calculatedMaxTokens);
-        console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
+        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
         debug.log();
 
         // Retry logic: attempt up to 3 times with 2s delay
@@ -4159,14 +4171,16 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                console.log(`[NT-ST-Call] Attempt ${attempt}/${MAX_RETRIES}`);
-                console.log('[NT-ST-Call] Calling generateRaw with params:', {
-                    temperature: GENERATION_TEMPERATURE,
-                    top_p: GENERATION_TOP_P,
-                    top_k: GENERATION_TOP_K,
-                    rep_pen: GENERATION_REP_PEN,
-                    responseLength: maxTokens,
-                });
+                if (DEBUG_LOGGING) {
+                    console.log(`[NT-ST-Call] Attempt ${attempt}/${MAX_RETRIES}`);
+                    console.log('[NT-ST-Call] Calling generateRaw with params:', {
+                        temperature: GENERATION_TEMPERATURE,
+                        top_p: GENERATION_TOP_P,
+                        top_k: GENERATION_TOP_K,
+                        rep_pen: GENERATION_REP_PEN,
+                        responseLength: maxTokens,
+                    });
+                }
 
                 const result = await context.generateRaw({
                     systemPrompt,
@@ -4179,13 +4193,15 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                     responseLength: maxTokens, // SillyTavern uses responseLength for text completion length
                 });
 
-                console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
-                console.log('[NT-ST-Call] Response type:', typeof result);
-                console.log(JSON.stringify(result, null, 2));
-                console.log('[NT-ST-Call] ========== RAW API RESPONSE END ==========');
+                if (DEBUG_LOGGING) {
+                    console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
+                    console.log('[NT-ST-Call] Response type:', typeof result);
+                    console.log(JSON.stringify(result, null, 2));
+                    console.log('[NT-ST-Call] ========== RAW API RESPONSE END ==========');
 
-                console.log('[NT-ST-Call] Raw result type:', typeof result);
-                console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
+                    console.log('[NT-ST-Call] Raw result type:', typeof result);
+                    console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
+                }
 
                 // Extract text from chat completion response
                 // Chat format: { choices: [{ message: { content: "..." } }] }
@@ -4195,24 +4211,26 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                 if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
                     // Try chat completion format first
                     if (result.choices[0]?.message?.content) {
-                        console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
+                        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
                         resultText = result.choices[0].message.content;
                     }
                     // Fall back to text completion format
                     else if (result.choices[0]?.text) {
-                        console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
+                        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
                         resultText = result.choices[0].text;
                     }
                 }
 
-                console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
-                console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
-                if (resultText && typeof resultText === 'string') {
-                    console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
+                if (DEBUG_LOGGING) {
+                    console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
+                    console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
+                    if (resultText && typeof resultText === 'string') {
+                        console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
+                    }
+                    console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
+                    console.log(resultText);
+                    console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
                 }
-                console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
-                console.log(resultText);
-                console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
                 debug.log();
 
                 // The result should be a string
@@ -4222,7 +4240,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
 
                 // If we used a prefill, prepend it to complete the JSON
                 if (prefill) {
-                    console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
+                    if (DEBUG_LOGGING) console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
                     resultText = prefill + resultText;
 
                     // If the prefill opened an object but response doesn't close it, add closing brace
@@ -4232,11 +4250,11 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
 
                     if (openBraces > closeBraces) {
                         const missing = openBraces - closeBraces;
-                        console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
+                        if (DEBUG_LOGGING) console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
                         resultText += '}'.repeat(missing);
                     }
 
-                    console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
+                    if (DEBUG_LOGGING) console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
                 }
 
                 const parsed = await parseJSONResponse(resultText);
@@ -5407,9 +5425,11 @@ function updateCharacterList() {
         let $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
             // Fallback: create a minimal container if settings HTML wasn't loaded
-            const $settings = $('#extensions_settings');
-            if ($settings.length > 0) {
-                $settings.append('<div id="name_tracker_character_list"></div>');
+            const settingsRoot = document.getElementById('extensions_settings');
+            if (settingsRoot) {
+                const placeholder = document.createElement('div');
+                placeholder.id = 'name_tracker_character_list';
+                settingsRoot.appendChild(placeholder);
                 $container = $('#name_tracker_character_list');
             } else {
                 ui_debug.log();
@@ -5500,7 +5520,7 @@ function updateCharacterList() {
  * Update status display in settings
  * @returns {void}
  */
-function updateStatusDisplay() {
+function ui_updateStatusDisplay() {
     return (0,errors/* withErrorBoundary */.Xc)('updateStatusDisplay', () => {
         const $statusContainer = $('#name_tracker_status_display');
         if ($statusContainer.length === 0) {
@@ -5566,7 +5586,7 @@ async function showMergeDialog(sourceName) {
         if (targetName && characters[targetName]) {
             await (0,modules_characters/* mergeCharacters */.lF)(sourceName, targetName);
             updateCharacterList();
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
         } else if (targetName) {
             ui_notifications.error('Invalid target character name');
         }
@@ -5588,7 +5608,7 @@ async function showCreateCharacterModal() {
         try {
             await (0,modules_characters/* createNewCharacter */.g9)(characterName.trim());
             updateCharacterList();
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
         } catch (error) {
             ui_notifications.error(error.message);
         }
@@ -5615,7 +5635,7 @@ async function showPurgeConfirmation() {
             try {
                 const deletedCount = await (0,modules_characters/* purgeAllCharacters */.vu)();
                 updateCharacterList();
-                updateStatusDisplay();
+                ui_updateStatusDisplay();
                 ui_notifications.success(`Purged ${deletedCount} characters`);
             } catch (error) {
                 ui_notifications.error(`Failed to purge characters: ${error.message}`);
@@ -5780,7 +5800,7 @@ function initializeUIHandlers() {
             const name = $(this).data('name');
             await (0,modules_characters/* toggleIgnoreCharacter */.el)(name);
             updateCharacterList();
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
         });
 
         $(document).on('click', '.char-action-view', async function() {
@@ -5910,7 +5930,7 @@ async function showEditLorebookModal(characterName) {
             (0,core_settings/* setCharacter */.e7)(preferredName, character);
 
             updateCharacterList();
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
 
             ui_notifications.success(`Updated lorebook entry for ${preferredName}`);
             removeModal();
@@ -5970,7 +5990,7 @@ function toggleAutoHarvest() {
             $menuButton.find('i').removeClass('fa-toggle-on').addClass('fa-toggle-off');
         }
 
-        updateStatusDisplay();
+        ui_updateStatusDisplay();
 
         ui_notifications.success(
             `Auto-harvest ${!currentValue ? 'enabled' : 'disabled'}`,
@@ -6048,17 +6068,17 @@ function bindSettingsHandlers() {
         // Main settings handlers
         $('#name_tracker_enabled').on('input', (event) => {
             (0,core_settings/* setSetting */.ZC)('enabled', event.target.checked);
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
         });
 
         $('#name_tracker_auto_analyze').on('input', (event) => {
             (0,core_settings/* setSetting */.ZC)('autoAnalyze', event.target.checked);
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
         });
 
         $('#name_tracker_message_frequency').on('input', (event) => {
             (0,core_settings/* setSetting */.ZC)('messageFrequency', parseInt(event.target.value) || 10);
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
         });
 
         $('#name_tracker_llm_source').on('change', (event) => {
@@ -6118,13 +6138,13 @@ function bindSettingsHandlers() {
             const messageFreq = (0,core_settings/* getSetting */.PL)('messageFrequency', 10);
             await harvestMessages(messageFreq, true);
             updateCharacterList();
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
         });
 
         $('#name_tracker_scan_all').on('click', async () => {
             await scanEntireChat();
             updateCharacterList();
-            updateStatusDisplay();
+            ui_updateStatusDisplay();
         });
 
         $('#name_tracker_create_character').on('click', async () => {
@@ -6141,7 +6161,7 @@ function bindSettingsHandlers() {
             const success = await undoLastMerge();
             if (success) {
                 updateCharacterList();
-                updateStatusDisplay();
+                ui_updateStatusDisplay();
             }
         });
 
@@ -6451,7 +6471,7 @@ function updateUI() {
 
         // Update character list and status
         updateCharacterList();
-        updateStatusDisplay();
+        ui_updateStatusDisplay();
 
         ui_debug.log();
     });
@@ -6481,7 +6501,7 @@ const processing_notifications = new notifications/* NotificationManager */.h('M
 // ============================================================================
 // DEBUG CONFIGURATION
 // ============================================================================
-const DEBUG_LOGGING = true; // Set to false in production after testing
+const DEBUG_LOGGING = false; // Default off to reduce console noise
 
 function debugLog(message, data = null) {
     if (DEBUG_LOGGING) {
@@ -6593,10 +6613,11 @@ const currentProcessingState = {
  */
 async function processAnalysisResults(analyzedCharacters) {
     return (0,errors/* withErrorBoundary */.Xc)('processAnalysisResults', async () => {
-        console.log('[NT-Processing] 🔄 processAnalysisResults called');
-        console.log('[NT-Processing]    Input type:', typeof analyzedCharacters);
-        console.log('[NT-Processing]    Is array?:', Array.isArray(analyzedCharacters));
-        console.log('[NT-Processing]    Length:', analyzedCharacters?.length);
+        debugLog('processAnalysisResults', {
+            inputType: typeof analyzedCharacters,
+            isArray: Array.isArray(analyzedCharacters),
+            length: analyzedCharacters?.length,
+        });
 
         if (!analyzedCharacters || !Array.isArray(analyzedCharacters)) {
             console.warn('[NT-Processing] ⚠️  Invalid input - not an array:', analyzedCharacters);
@@ -6604,14 +6625,11 @@ async function processAnalysisResults(analyzedCharacters) {
             return;
         }
 
-        console.log('[NT-Processing] ✅ Processing', analyzedCharacters.length, 'characters');
-        processing_debug.log();
+        debugLog(`Processing ${analyzedCharacters.length} characters`);
 
         for (const analyzedChar of analyzedCharacters) {
             try {
-                console.log('[NT-Processing] 📝 Processing character:', analyzedChar.name);
                 await processCharacterData(analyzedChar);
-                console.log('[NT-Processing] ✅ Character processed:', analyzedChar.name);
             } catch (error) {
                 console.error(`[NT-Processing] ❌ Error processing character ${analyzedChar.name}:`, error);
                 console.error('[NT-Processing] Error stack:', error.stack);
@@ -6619,11 +6637,9 @@ async function processAnalysisResults(analyzedCharacters) {
             }
         }
 
-        console.log('[NT-Processing] 🎉 All characters processed');
-
-        // Update the character list UI after processing all characters
-        console.log('[NT-Processing] 🖥️  Updating character list UI');
+        debugLog('All characters processed');
         updateCharacterList();
+        ui_updateStatusDisplay();
     });
 }
 
@@ -6634,7 +6650,7 @@ async function processAnalysisResults(analyzedCharacters) {
  */
 async function processCharacterData(analyzedChar) {
     return (0,errors/* withErrorBoundary */.Xc)('processCharacterData', async () => {
-        console.log('[NT-CharData] 🔍 Processing character data for:', analyzedChar.name);
+        debugLog('Processing character data', analyzedChar?.name);
 
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
             console.warn('[NT-CharData] ⚠️  Character has no name, skipping');
@@ -6643,56 +6659,45 @@ async function processCharacterData(analyzedChar) {
         }
 
         const characterName = analyzedChar.name.trim();
-        console.log('[NT-CharData]    Character name:', characterName);
+        debugLog('Character name', characterName);
 
         // Check if character is ignored
         const isIgnored = await (0,modules_characters/* isIgnoredCharacter */.eY)(characterName);
         if (isIgnored) {
-            console.log('[NT-CharData] ⏭️  Character is ignored, skipping:', characterName);
+            debugLog('Character ignored, skipping', characterName);
             processing_debug.log();
             return;
         }
 
         // Check for main character detection
         const isMainChar = characterName.toLowerCase().includes('{{char}}') ||
-                          analyzedChar.isMainCharacter === true ||
-                          analyzedChar.role === 'main';
-        console.log('[NT-CharData]    Is main char?:', isMainChar);
+                  analyzedChar.isMainCharacter === true ||
+                  analyzedChar.role === 'main';
+        debugLog('Is main char', isMainChar);
 
         // Check if character already exists
         const existingChar = await (0,modules_characters/* findExistingCharacter */._$)(characterName);
-        console.log('[NT-CharData]    Existing character found?:', !!existingChar);
+        debugLog('Existing character found', !!existingChar);
 
         if (existingChar) {
             // Update existing character
-            console.log('[NT-CharData] 🔄 Updating existing character:', existingChar.preferredName);
             await (0,modules_characters/* updateCharacter */.t9)(existingChar, analyzedChar, false, isMainChar);
-            console.log('[NT-CharData] 📚 Updating lorebook entry...');
             await (0,lorebook/* updateLorebookEntry */.TQ)(existingChar, existingChar.preferredName);
-            console.log('[NT-CharData] ✅ Existing character updated');
             processing_debug.log();
         } else {
             // Check for potential matches (similar names)
-            console.log('[NT-CharData] 🔍 Checking for potential matches...');
             const potentialMatch = await (0,modules_characters/* findPotentialMatch */.rL)(analyzedChar);
-            console.log('[NT-CharData]    Potential match found?:', !!potentialMatch);
+            debugLog('Potential match found', !!potentialMatch);
 
             if (potentialMatch) {
                 // Update potential match and add as alias
-                console.log('[NT-CharData] 🔄 Updating potential match:', potentialMatch.preferredName);
                 await (0,modules_characters/* updateCharacter */.t9)(potentialMatch, analyzedChar, true, isMainChar);
-                console.log('[NT-CharData] 📚 Updating lorebook entry...');
                 await (0,lorebook/* updateLorebookEntry */.TQ)(potentialMatch, potentialMatch.preferredName);
-                console.log('[NT-CharData] ✅ Potential match updated');
                 processing_debug.log();
             } else {
                 // Create new character
-                console.log('[NT-CharData] 🆕 Creating new character:', characterName);
                 const newCharacter = await (0,modules_characters/* createCharacter */.OW)(analyzedChar, isMainChar);
-                console.log('[NT-CharData] ✅ Character created:', newCharacter.preferredName);
-                console.log('[NT-CharData] 📚 Creating lorebook entry...');
                 await (0,lorebook/* updateLorebookEntry */.TQ)(newCharacter, newCharacter.preferredName);
-                console.log('[NT-CharData] ✅ New character complete');
                 processing_debug.log();
             }
         }
@@ -7046,6 +7051,8 @@ async function harvestMessages(messageCount, showProgress = true) {
 
         debugLog(`[Batching] Message selection: startIdx=${startIdx}, endIdx=${endIdx}, requesting ${messageCount} messages, got ${messagesToAnalyze.length} messages`);
 
+        let processedMessages = 0;
+
         // Check if messages fit in context window
         const maxPromptResult = await (0,llm.getMaxPromptLength)();
         const maxPromptTokens = maxPromptResult.maxPrompt;
@@ -7143,6 +7150,7 @@ async function harvestMessages(messageCount, showProgress = true) {
                         console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
                         await processAnalysisResults(analysis.characters);
                         analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                        processedMessages += batch.length;
                     } else {
                         console.warn('[NT-Batch] ⚠️  Condition failed - not processing results');
                         console.warn('[NT-Batch]    analysis:', analysis);
@@ -7161,19 +7169,8 @@ async function harvestMessages(messageCount, showProgress = true) {
                     debugLog(`[BatchProcessing] Context: messages ${batchStart}-${batchEnd - 1}, batch size ${batch.length}, token count calc error`);
                     console.error(`Error processing batch ${i + 1}:`, error);
                     failedBatches++;
-
-                    // Ask user if they want to continue
-                    const continueOnError = confirm(`Batch ${i + 1} failed.
-
-Error: ${error.message}
-
-Continue with remaining batches?`);
-                    if (!continueOnError) {
-                        debugLog(`[BatchProcessing] User chose not to continue after error on batch ${i + 1}/${batches.length}`);
-                        break;
-                    } else {
-                        debugLog(`[BatchProcessing] User chose to continue despite error on batch ${i + 1}/${batches.length}`);
-                    }
+                    processing_notifications.error(`Batch ${i + 1} failed: ${error.message}`);
+                    // Continue to next batch automatically to avoid blocking popups
                 }
             }
 
@@ -7193,6 +7190,14 @@ Failed batches: ${failedBatches}`;
                 processing_notifications.warning(summary, 'Batch Analysis', { timeOut: 8000 });
             } else {
                 processing_notifications.success(summary, 'Batch Analysis', { timeOut: 8000 });
+            }
+
+            // Persist scan progress and update UI
+            if (processedMessages > 0) {
+                const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
+                (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
+                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
+                ui_updateStatusDisplay();
             }
 
             return;
@@ -7215,6 +7220,7 @@ Failed batches: ${failedBatches}`;
             // Process the analysis
             if (analysis.characters && Array.isArray(analysis.characters)) {
                 await processAnalysisResults(analysis.characters);
+                processedMessages += messagesToAnalyze.length;
 
                 if (showProgress) {
                     processing_notifications.success(`Found ${analysis.characters.length} character(s) in messages`);
@@ -7226,6 +7232,14 @@ Failed batches: ${failedBatches}`;
         } catch (error) {
             console.error('Error during harvest:', error);
             processing_notifications.error(`Analysis failed: ${error.message}`);
+        }
+
+        // Persist scan progress and update UI
+        if (processedMessages > 0) {
+            const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
+            (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
+            (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
+            ui_updateStatusDisplay();
         }
     });
 }
@@ -7450,6 +7464,7 @@ async function scanEntireChat() {
 
         let successfulBatches = 0;
         let failedBatches = 0;
+        let processedMessages = 0;
         const uniqueCharacters = new Set(); // Track unique character names
 
         // Process from oldest to newest
@@ -7480,6 +7495,7 @@ async function scanEntireChat() {
                     await processAnalysisResults(analysis.characters);
                     // Track unique characters
                     analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                    processedMessages += batchMessages.length;
                 }
 
                 successfulBatches++;
@@ -7492,16 +7508,8 @@ async function scanEntireChat() {
             } catch (error) {
                 console.error(`Error processing batch ${i + 1}:`, error);
                 failedBatches++;
-
-                // Auto-retry logic could be added here
-                const continueOnError = confirm(`Batch ${i + 1} failed.
-
-Error: ${error.message}
-
-Continue with remaining batches?`);
-                if (!continueOnError) {
-                    break;
-                }
+                processing_notifications.error(`Batch ${i + 1} failed: ${error.message}`);
+                // Continue to next batch automatically to avoid blocking popups
             }
         }
 
@@ -7510,6 +7518,12 @@ Continue with remaining batches?`);
 
         // Update scan completion status
         (0,core_settings/* set_settings */.nT)('lastScannedMessageId', totalMessages - 1);
+
+        if (processedMessages > 0) {
+            const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
+            (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
+            ui_updateStatusDisplay();
+        }
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
@@ -7581,6 +7595,8 @@ async function onChatChanged() {
         // Reset scan state
         set_settings('lastScannedMessageId', -1);
         set_settings('messageCounter', 0);
+
+        updateStatusDisplay();
 
         processing_debug.log();
     });
