@@ -745,8 +745,8 @@ export function bindSettingsHandlers() {
             updateStatusDisplay();
         });
 
-        $('#name_tracker_create_character').on('click', () => {
-            showCreateCharacterModal();
+        $('#name_tracker_create_character').on('click', async () => {
+            await showCreateCharacterModal();
         });
 
         $('#name_tracker_clear_cache').on('click', () => {
@@ -763,16 +763,16 @@ export function bindSettingsHandlers() {
             }
         });
 
-        $('#name_tracker_purge_entries').on('click', () => {
-            showPurgeConfirmation();
+        $('#name_tracker_purge_entries').on('click', async () => {
+            await showPurgeConfirmation();
         });
 
-        $('#name_tracker_edit_prompt').on('click', () => {
-            showSystemPromptEditor();
+        $('#name_tracker_edit_prompt').on('click', async () => {
+            await showSystemPromptEditor();
         });
 
-        $('#name_tracker_debug_status').on('click', () => {
-            showDebugStatus();
+        $('#name_tracker_debug_status').on('click', async () => {
+            await showDebugStatus();
         });
 
         $('#name_tracker_dump_context').on('click', () => {

@@ -195,7 +195,7 @@ async function processCharacterData(analyzedChar) {
         console.log('[NT-CharData]    Is main char?:', isMainChar);
 
         // Check if character already exists
-        const existingChar = findExistingCharacter(characterName);
+        const existingChar = await findExistingCharacter(characterName);
         console.log('[NT-CharData]    Existing character found?:', !!existingChar);
 
         if (existingChar) {
@@ -387,7 +387,7 @@ export async function processPhaseTwoAnalysis(newNames, messages, existingMentio
                     if (abortScan) break;
 
                     try {
-                        const existingChar = findExistingCharacter(charName);
+                        const existingChar = await findExistingCharacter(charName);
                         if (existingChar) {
                             await processExistingCharacter(existingChar, messages, results);
                         }
@@ -435,7 +435,7 @@ async function processNewCharacter(name, messages, results) {
     debugLog(`[P2-NewChar] LLM returned data: ${JSON.stringify(characterData[0]).substring(0, 200)}...`);
 
     // Check for merge opportunities before creating
-    const potentialMerges = detectMergeOpportunities(name);
+    const potentialMerges = await detectMergeOpportunities(name);
     if (potentialMerges && potentialMerges.length > 0) {
         debugLog(`[P2-NewChar] Merge opportunities: ${potentialMerges.map(m => m.targetName).join(', ')}`);
         results.mergesDetected.push({ source: name, targets: potentialMerges });

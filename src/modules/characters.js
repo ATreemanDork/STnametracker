@@ -397,9 +397,8 @@ antml:parameter>
 export async function createCharacter(analyzedChar, isMainChar = false) {
     return withErrorBoundary('createCharacter', async () => {
         debug.log();
-
         // Clean and filter aliases
-        const aliases = cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
+        const aliases = await cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
 
         const character = {
             preferredName: analyzedChar.name,
@@ -443,8 +442,8 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
  * @returns {boolean} True if successfully updated
  */
 export function updateCharacterProcessingState(characterName, messageId) {
-    return withErrorBoundary('updateCharacterProcessingState', () => {
-        const character = findExistingCharacter(characterName);
+    return withErrorBoundary('updateCharacterProcessingState', async () => {
+        const character = await findExistingCharacter(characterName);
 
         if (!character) {
             debug.log(`Character not found for state update: ${characterName}`);
