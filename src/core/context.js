@@ -183,6 +183,37 @@ class SillyTavernContext {
     }
 
     /**
+     * Set the chat's selected world info book (makes it active for the chat)
+     * @param {string} lorebookName - Name of lorebook to select
+     * @returns {Promise<void>}
+     */
+    async setSelectedWorldInfo(lorebookName) {
+        return errorHandler.withErrorBoundary('Context', async () => {
+            const context = this.getContext();
+            
+            // First method: Use saveSelectedWorldInfo if available
+            if (context.saveSelectedWorldInfo && typeof context.saveSelectedWorldInfo === 'function') {
+                await context.saveSelectedWorldInfo(lorebookName);
+                return;
+            }
+            
+            // Second method: Set the world_info directly in chat metadata
+            if (!context.chatMetadata) {
+                throw new Error('Chat metadata not available');
+            }
+            
+            context.chatMetadata.world_info = lorebookName;
+            
+            // Save the metadata
+            if (context.saveMetadata && typeof context.saveMetadata === 'function') {
+                await context.saveMetadata();
+            }
+            
+            logger.debug(`Selected world info: ${lorebookName}`);
+        }, { silent: true });
+    }
+
+    /**
      * Get event source for listening to SillyTavern events
      * @returns {Object} Event source object
      */

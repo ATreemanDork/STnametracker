@@ -72,6 +72,15 @@ export async function initializeLorebook() {
         if (chatMetadata[METADATA_KEY]) {
             lorebookName = chatMetadata[METADATA_KEY];
             debug.log(`Using existing chat lorebook: ${lorebookName}`);
+            
+            // IMPORTANT: Make sure it's selected as the active lorebook
+            try {
+                await context.setSelectedWorldInfo(lorebookName);
+                console.log(`[NT-Lorebook] ✅ Re-selected existing chat lorebook: ${lorebookName}`);
+            } catch (error) {
+                console.warn(`[NT-Lorebook] ⚠️  Could not re-select lorebook, but continuing:`, error.message);
+            }
+            
             return lorebookName;
         }
 
@@ -94,6 +103,10 @@ export async function initializeLorebook() {
             await context.saveMetadata();
             console.log(`[NT-Lorebook] ✅ Bound lorebook to chat metadata: ${lorebookName}`);
             debug.log(`Bound lorebook to chat: ${lorebookName}`);
+
+            // CRITICAL: Actually SELECT the lorebook so it's active for the chat
+            await context.setSelectedWorldInfo(lorebookName);
+            console.log(`[NT-Lorebook] ✅ Selected lorebook as active for this chat: ${lorebookName}`);
 
             // Ensure the lorebook file exists (create empty if needed)
             const worldInfo = await context.loadWorldInfo(lorebookName);
