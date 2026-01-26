@@ -44,8 +44,11 @@ export function updateCharacterList() {
             }
         }
 
+        console.log('[NT-UI] 🟡 updateCharacterList() called');
         const characters = getCharacters();
+        console.log('[NT-UI] 🟡 getCharacters() returned:', Object.keys(characters || {}));
         const characterNames = Object.keys(characters);
+    console.log('[NT-UI] 🟡 Character count:', characterNames.length);
 
         if (characterNames.length === 0) {
             $container.html(`

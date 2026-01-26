@@ -158,8 +158,12 @@ export async function processAnalysisResults(analyzedCharacters) {
         }
 
         debugLog('All characters processed');
-        updateCharacterList();
-        updateStatusDisplay();
+        console.log('[NT-Processing] 🟢 About to call updateCharacterList()');
+        const listResult = updateCharacterList();
+        console.log('[NT-Processing] 🟢 updateCharacterList() returned:', listResult);
+        const statusResult = updateStatusDisplay();
+        console.log('[NT-Processing] 🟢 updateStatusDisplay() returned:', statusResult);
+        console.log('[NT-Processing] 🟢 Current characters in storage:', getCharacters());
     });
 }
 
@@ -170,6 +174,7 @@ export async function processAnalysisResults(analyzedCharacters) {
  */
 async function processCharacterData(analyzedChar) {
     return withErrorBoundary('processCharacterData', async () => {
+        console.log('[NT-Processing] 🟠 processCharacterData() for:', analyzedChar?.name);
         debugLog('Processing character data', analyzedChar?.name);
 
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
@@ -217,6 +222,7 @@ async function processCharacterData(analyzedChar) {
             } else {
                 // Create new character
                 const newCharacter = await createCharacter(analyzedChar, isMainChar);
+                console.log('[NT-Processing] 🟠 Created character:', newCharacter?.preferredName);
                 await updateLorebookEntry(newCharacter, newCharacter.preferredName);
                 debug.log();
             }

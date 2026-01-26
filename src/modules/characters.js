@@ -10,7 +10,7 @@ import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
 import {
     getCharacters, getCharacter, setCharacter, removeCharacter,
-    get_settings, set_chat_metadata,
+    get_settings, set_chat_metadata, getSetting,
 } from '../core/settings.js';
 import { NotificationManager } from '../utils/notifications.js';
 
@@ -103,7 +103,8 @@ export function findExistingCharacter(name) {
 export async function findPotentialMatch(analyzedChar) {
     return withErrorBoundary('findPotentialMatch', async () => {
         const chars = getCharacters();
-        const threshold = get_settings('confidenceThreshold', 70);
+        // Use the user-configured confidence threshold (0-100)
+        const threshold = getSetting('confidenceThreshold', 70);
 
         debug.log();
 
@@ -395,6 +396,7 @@ antml:parameter>
 export async function createCharacter(analyzedChar, isMainChar = false) {
     return withErrorBoundary('createCharacter', async () => {
         debug.log();
+        console.log('[NT-Characters] 🟦 createCharacter() called for:', analyzedChar.name);
         // Clean and filter aliases
         const aliases = await cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
 
@@ -420,6 +422,7 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
 
         // Store character in settings - CRITICAL: AWAIT to ensure save completes
         await setCharacter(character.preferredName, character);
+        console.log('[NT-Characters] 🟦 Created and saved character:', character.preferredName);
 
         // Create lorebook entry
         await updateLorebookEntry(character, character.preferredName);
@@ -487,6 +490,7 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
 
         // Update character in settings - AWAIT to ensure save completes
         await setCharacter(existingChar.preferredName, existingChar);
+        console.log('[NT-Characters] 🟦 Updated and saved character:', existingChar.preferredName);
 
         debug.log();
 

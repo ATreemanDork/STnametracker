@@ -2507,10 +2507,12 @@ async function setCharacter(name, character) {
         if (!character || typeof character !== 'object') {
             throw new Error('Character data must be an object');
         }
+        console.log('[NT-Settings] 🟩 setCharacter() called for:', name);
         const chars = { ...getCharacters() };
         chars[name] = character;
         await setCharacters(chars); // AWAIT the async setCharacters
         debug.log(`Set character: ${name}`);
+        console.log('[NT-Settings] 🟩 setCharacter() completed for:', name);
     });
 }
 
@@ -2736,7 +2738,8 @@ function findExistingCharacter(name) {
 async function findPotentialMatch(analyzedChar) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('findPotentialMatch', async () => {
         const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
-        const threshold = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .get_settings */ .TJ)('confidenceThreshold', 70);
+        // Use the user-configured confidence threshold (0-100)
+        const threshold = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getSetting */ .PL)('confidenceThreshold', 70);
 
         debug.log();
 
@@ -3028,6 +3031,7 @@ antml:parameter>
 async function createCharacter(analyzedChar, isMainChar = false) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('createCharacter', async () => {
         debug.log();
+        console.log('[NT-Characters] 🟦 createCharacter() called for:', analyzedChar.name);
         // Clean and filter aliases
         const aliases = await cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
 
@@ -3053,6 +3057,7 @@ async function createCharacter(analyzedChar, isMainChar = false) {
 
         // Store character in settings - CRITICAL: AWAIT to ensure save completes
         await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(character.preferredName, character);
+        console.log('[NT-Characters] 🟦 Created and saved character:', character.preferredName);
 
         // Create lorebook entry
         await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_0__/* .updateLorebookEntry */ .TQ)(character, character.preferredName);
@@ -3120,6 +3125,7 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
 
         // Update character in settings - AWAIT to ensure save completes
         await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(existingChar.preferredName, existingChar);
+        console.log('[NT-Characters] 🟦 Updated and saved character:', existingChar.preferredName);
 
         debug.log();
 
@@ -5543,8 +5549,11 @@ function updateCharacterList() {
             }
         }
 
+        console.log('[NT-UI] 🟡 updateCharacterList() called');
         const characters = (0,core_settings/* getCharacters */.bg)();
+        console.log('[NT-UI] 🟡 getCharacters() returned:', Object.keys(characters || {}));
         const characterNames = Object.keys(characters);
+    console.log('[NT-UI] 🟡 Character count:', characterNames.length);
 
         if (characterNames.length === 0) {
             $container.html(`
@@ -6744,8 +6753,12 @@ async function processAnalysisResults(analyzedCharacters) {
         }
 
         debugLog('All characters processed');
-        updateCharacterList();
-        ui_updateStatusDisplay();
+        console.log('[NT-Processing] 🟢 About to call updateCharacterList()');
+        const listResult = updateCharacterList();
+        console.log('[NT-Processing] 🟢 updateCharacterList() returned:', listResult);
+        const statusResult = ui_updateStatusDisplay();
+        console.log('[NT-Processing] 🟢 updateStatusDisplay() returned:', statusResult);
+        console.log('[NT-Processing] 🟢 Current characters in storage:', (0,core_settings/* getCharacters */.bg)());
     });
 }
 
@@ -6756,6 +6769,7 @@ async function processAnalysisResults(analyzedCharacters) {
  */
 async function processCharacterData(analyzedChar) {
     return (0,errors/* withErrorBoundary */.Xc)('processCharacterData', async () => {
+        console.log('[NT-Processing] 🟠 processCharacterData() for:', analyzedChar?.name);
         debugLog('Processing character data', analyzedChar?.name);
 
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
@@ -6803,6 +6817,7 @@ async function processCharacterData(analyzedChar) {
             } else {
                 // Create new character
                 const newCharacter = await (0,modules_characters/* createCharacter */.OW)(analyzedChar, isMainChar);
+                console.log('[NT-Processing] 🟠 Created character:', newCharacter?.preferredName);
                 await (0,lorebook/* updateLorebookEntry */.TQ)(newCharacter, newCharacter.preferredName);
                 processing_debug.log();
             }

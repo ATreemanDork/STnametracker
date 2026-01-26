@@ -276,10 +276,12 @@ async function setCharacter(name, character) {
         if (!character || typeof character !== 'object') {
             throw new Error('Character data must be an object');
         }
+        console.log('[NT-Settings] 🟩 setCharacter() called for:', name);
         const chars = { ...getCharacters() };
         chars[name] = character;
         await setCharacters(chars); // AWAIT the async setCharacters
         debug.log(`Set character: ${name}`);
+        console.log('[NT-Settings] 🟩 setCharacter() completed for:', name);
     });
 }
 
