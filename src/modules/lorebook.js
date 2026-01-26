@@ -81,6 +81,8 @@ export async function initializeLorebook() {
             .replace(/_{2,}/g, '_')
             .substring(0, 64);
 
+        console.log(`[NT-Lorebook] 🆕 Creating new chat lorebook: ${bookName}`);
+        console.log(`[NT-Lorebook]    Chat ID: ${context.chatId}`);
         debug.log(`Creating new chat lorebook: ${bookName}`);
         lorebookName = bookName;
 
@@ -90,17 +92,23 @@ export async function initializeLorebook() {
         // Save chat metadata using context API
         try {
             await context.saveMetadata();
+            console.log(`[NT-Lorebook] ✅ Bound lorebook to chat metadata: ${lorebookName}`);
             debug.log(`Bound lorebook to chat: ${lorebookName}`);
 
             // Ensure the lorebook file exists (create empty if needed)
             const worldInfo = await context.loadWorldInfo(lorebookName);
             if (!worldInfo) {
+                console.log(`[NT-Lorebook] 📝 Creating empty lorebook file: ${lorebookName}`);
                 debug.log();
                 await context.saveWorldInfo(lorebookName, { entries: {} }, true);
+                console.log(`[NT-Lorebook] ✅ Lorebook file created successfully`);
+            } else {
+                console.log(`[NT-Lorebook] ℹ️  Lorebook file already exists with ${Object.keys(worldInfo.entries || {}).length} entries`);
             }
 
             // Notify user
             notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
+            console.log(`[NT-Lorebook] 🎉 Chat lorebook initialization complete`);
         } catch (error) {
             console.error('Failed to initialize lorebook:', error);
             lorebookName = null;
@@ -210,6 +218,11 @@ export async function updateLorebookEntry(character, characterName) {
             existingUid = character.lorebookEntryId;
             const existingEntry = worldInfo.entries[existingUid];
 
+            console.log(`[NT-Lorebook] 🔄 Updating existing entry for: ${characterName}`);
+            console.log(`[NT-Lorebook]    Entry UID: ${existingUid}`);
+            console.log(`[NT-Lorebook]    Keys: ${keys.join(', ')}`);
+            console.log(`[NT-Lorebook]    Content length: ${content.length} chars`);
+
             existingEntry.key = keys;
             existingEntry.content = content;
             existingEntry.enabled = lorebookConfig.enabled;
@@ -269,25 +282,41 @@ export async function updateLorebookEntry(character, characterName) {
             worldInfo.entries[newUid] = newEntry;
             character.lorebookEntryId = newUid;
 
+            console.log(`[NT-Lorebook] 🆕 Creating new entry for: ${characterName}`);
+            console.log(`[NT-Lorebook]    Entry UID: ${newUid}`);
+            console.log(`[NT-Lorebook]    Keys: ${keys.join(', ')}`);
+            console.log(`[NT-Lorebook]    Content length: ${content.length} chars`);
+            console.log(`[NT-Lorebook]    Enabled: ${lorebookConfig.enabled}`);
+            console.log(`[NT-Lorebook]    Position: ${lorebookConfig.position}`);
             debug.log();
         }
 
         // Save the lorebook
         try {
+            console.log(`[NT-Lorebook] 💾 Saving lorebook: ${lorebookName}`);
+            console.log(`[NT-Lorebook]    Total entries: ${Object.keys(worldInfo.entries).length}`);
             await context.saveWorldInfo(lorebookName, worldInfo, true);
+            console.log(`[NT-Lorebook] ✅ Lorebook saved successfully`);
 
             // Verify the save worked by reloading
             const verifyWorldInfo = await context.loadWorldInfo(lorebookName);
             const targetUid = existingUid || character.lorebookEntryId;
 
             if (verifyWorldInfo && verifyWorldInfo.entries && verifyWorldInfo.entries[targetUid]) {
+                console.log(`[NT-Lorebook] ✅ Verification successful - entry ${targetUid} confirmed in lorebook`);
                 debug.log();
             } else {
+                console.error('[NT-Lorebook] ❌ WARNING: Lorebook verification failed - entries may not have been saved!');
+                console.error('[NT-Lorebook]    Target UID:', targetUid);
+                console.error('[NT-Lorebook]    Available entries:', Object.keys(verifyWorldInfo?.entries || {}));
                 console.error('[Name Tracker] WARNING: Lorebook verification failed - entries may not have been saved!');
             }
 
             debug.log();
         } catch (error) {
+            console.error('[NT-Lorebook] ❌ Error saving lorebook:', error);
+            console.error('[NT-Lorebook]    Lorebook name:', lorebookName);
+            console.error('[NT-Lorebook]    Error details:', error.message);
             console.error('[Name Tracker] Error saving lorebook:', error);
             debug.log();
             throw error; // Re-throw so caller knows it failed

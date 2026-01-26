@@ -626,7 +626,8 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                 }
 
                 const parsed = parseJSONResponse(resultText);
-                console.log('[NT-ST-Call] ✅ Successfully parsed on attempt', attempt);
+                const parsedCount = Array.isArray(parsed?.characters) ? parsed.characters.length : 0;
+                console.log('[NT-ST-Call] ✅ Successfully parsed on attempt', attempt, 'characters:', parsedCount);
                 console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
                 return parsed;
 
@@ -1044,13 +1045,17 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
             throw error;
         }
 
-        // Cache the result
-        if (analysisCache.size > 50) {
-            // Clear oldest entries if cache is getting too large
-            const firstKey = analysisCache.keys().next().value;
-            analysisCache.delete(firstKey);
+        // Cache the result only if we have characters
+        if (result && Array.isArray(result.characters) && result.characters.length > 0) {
+            if (analysisCache.size > 50) {
+                // Clear oldest entries if cache is getting too large
+                const firstKey = analysisCache.keys().next().value;
+                analysisCache.delete(firstKey);
+            }
+            analysisCache.set(cacheKey, result);
+        } else {
+            console.warn('[NT-Cache] Skipping cache because result is empty or has no characters');
         }
-        analysisCache.set(cacheKey, result);
 
         debug.log();
         return result;
