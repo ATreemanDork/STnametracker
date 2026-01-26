@@ -3207,17 +3207,56 @@ async function getMaxPromptLength() {
             // Use SillyTavern's context
             const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
 
+            // Debug: Log all context properties
+            if (context) {
+                const contextKeys = Object.keys(context);
+                const relevantKeys = contextKeys.filter(k => 
+                    k.toLowerCase().includes('max') || 
+                    k.toLowerCase().includes('context') ||
+                    k.toLowerCase().includes('token') ||
+                    k.toLowerCase().includes('prompt')
+                );
+                debug.log(`Available context properties: ${relevantKeys.join(', ')}`);
+            }
+
+            // Try multiple possible paths for max context
+            let detectedMaxContext = null;
+
+            // Method 1: Direct maxContext property
+            if (context?.maxContext) {
+                detectedMaxContext = context.maxContext;
+                debug.log(`Method 1 (context.maxContext): ${detectedMaxContext}`);
+            }
+
+            // Method 2: extensionSettings path
+            if (!detectedMaxContext && context?.extensionSettings?.common?.maxContext) {
+                detectedMaxContext = context.extensionSettings.common.maxContext;
+                debug.log(`Method 2 (context.extensionSettings.common.maxContext): ${detectedMaxContext}`);
+            }
+
+            // Method 3: chat.maxContextSize path
+            if (!detectedMaxContext && context?.chat?.maxContextSize) {
+                detectedMaxContext = context.chat.maxContextSize;
+                debug.log(`Method 3 (context.chat.maxContextSize): ${detectedMaxContext}`);
+            }
+
+            // Method 4: Try token_limit or similar
+            if (!detectedMaxContext && context?.token_limit) {
+                detectedMaxContext = context.token_limit;
+                debug.log(`Method 4 (context.token_limit): ${detectedMaxContext}`);
+            }
+
             // Check if context is fully loaded
-            if (!context || !context.maxContext) {
-                debug.log(`WARNING: Context not fully loaded yet (maxContext=${context?.maxContext}), using fallback`);
+            if (!context || !detectedMaxContext) {
+                debug.log(`WARNING: Could not detect maxContext from any path, using fallback (4096)`);
+                debug.log(`Context exists: ${!!context}, detectedMaxContext: ${detectedMaxContext}`);
+                if (context) {
+                    debug.log(`Full context object keys: ${Object.keys(context).join(', ')}`);
+                }
                 maxContext = 4096;
                 maxGenTokens = 1024;
             } else {
-                debug.log(`Raw context properties available: ${Object.keys(context).filter(k => k.toLowerCase().includes('max') || k.toLowerCase().includes('context')).join(', ')}`);
-
-                // SillyTavern exposes maxContext - this is the total context window
-                maxContext = context.maxContext;
-
+                maxContext = detectedMaxContext;
                 debug.log(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
 
                 // For our extension's background analysis, we set our own max_tokens in generateRaw()
