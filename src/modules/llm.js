@@ -569,14 +569,15 @@ export async function calculateMessageTokens(messages) {
 }
 
 /**
- * Call SillyTavern's LLM with optimized parameters for JSON extraction
- * Uses chat completion format with structured outputs (JSON schema)
+ * Call SillyTavern's LLM using systemPrompt + prompt structure
+ * Works in both Chat Completion and Text Completion modes
  * Retries up to 3 times with 2s delay on parse failures
- * @param {string} systemInstructions - System message with extraction instructions
- * @param {string} userData - User message with data to analyze
+ * @param {string} systemPrompt - System-level instructions
+ * @param {string} prompt - User data/instructions to analyze
+ * @param {string} prefill - Optional response prefill (e.g., "{" to force JSON)
  * @returns {Promise<Object>} Parsed JSON response
  */
-export async function callSillyTavern(systemInstructions, userData) {
+export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
     return withErrorBoundary('callSillyTavern', async () => {
         debug.log();
 
@@ -588,22 +589,18 @@ export async function callSillyTavern(systemInstructions, userData) {
             throw new NameTrackerError('No API connection available. Please connect to an API first.');
         }
 
-        // Build chat completion messages array
-        const chatMessages = [
-            { role: 'system', content: systemInstructions },
-            { role: 'user', content: userData }
-        ];
+        console.log('[NT-ST-Call] Starting SillyTavern LLM call');
+        console.log('[NT-ST-Call] System prompt length:', systemPrompt.length, 'characters');
+        console.log('[NT-ST-Call] User prompt length:', prompt.length, 'characters');
+        if (prefill) console.log('[NT-ST-Call] Prefill:', prefill);
+        console.log('[NT-ST-Call] ========== PROMPT STRUCTURE START ==========');
+        console.log('SYSTEM:', systemPrompt);
+        console.log('USER:', prompt);
+        if (prefill) console.log('PREFILL:', prefill);
+        console.log('[NT-ST-Call] ========== PROMPT STRUCTURE END ==========');
 
-        console.log('[NT-ST-Call] Starting SillyTavern LLM call (Chat Completion)');
-        console.log('[NT-ST-Call] System message length:', systemInstructions.length, 'characters');
-        console.log('[NT-ST-Call] User message length:', userData.length, 'characters');
-        console.log('[NT-ST-Call] ========== CHAT MESSAGES START ==========');
-        console.log('SYSTEM:', systemInstructions);
-        console.log('USER:', userData);
-        console.log('[NT-ST-Call] ========== CHAT MESSAGES END ==========');
-
-        // Get token count for the messages
-        const combinedText = systemInstructions + '\n\n' + userData;
+        // Get token count for combined text
+        const combinedText = systemPrompt + '\n\n' + prompt + (prefill ? '\n' + prefill : '');
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(combinedText);
@@ -639,13 +636,12 @@ export async function callSillyTavern(systemInstructions, userData) {
                     rep_pen: GENERATION_REP_PEN,
                     max_tokens: maxTokens,
                     jsonSchemaAttached: true,
-                    promptType: 'chat',
                 });
 
                 const result = await context.generateRaw({
-                    prompt: chatMessages,  // Array = Chat Completion format
-                    systemPrompt: '',  // Empty, using system role in messages
-                    prefill: '',
+                    systemPrompt,
+                    prompt,
+                    prefill,
                     temperature: GENERATION_TEMPERATURE,
                     top_p: GENERATION_TOP_P,
                     top_k: GENERATION_TOP_K,
@@ -1014,17 +1010,18 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
         console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
         
-        // Build system message with instructions
+        // Build system message with instructions and roster
         const systemMessage = systemPrompt + (rosterStr ? '\n\n' + rosterStr : '');
         
-        // Build user message with data and closing instructions
-        const closingInstructions = '\n\n[END OF DATA - CRITICAL REMINDER]\nYour response MUST be ONLY a valid JSON object.\nFormat: {"characters": [{"name": "...", "aliases": [], "physical": {"description": "..."}, "mental": {"personality": "...", "background": "..."}, "relationships": []}]}\nDo NOT include markdown code blocks, explanations, or any text outside the JSON.\nStart your response with { and end with }';
+        // Build user prompt with data
+        const userPrompt = '[DATA TO ANALYZE]\n' + messagesText;
         
-        const userMessage = '[DATA TO ANALYZE]\n' + messagesText + closingInstructions;
+        // Build prefill to force JSON output
+        const prefill = '{"characters":';
 
         // Calculate actual token count for the combined messages
         let promptTokens;
-        const combinedText = systemMessage + '\n\n' + userMessage;
+        const combinedText = systemMessage + '\n\n' + userPrompt + '\n' + prefill;
         try {
             promptTokens = await calculateMessageTokens([{ mes: combinedText }]);
             debug.log();
@@ -1066,14 +1063,16 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
 
         // Prompt is acceptable length, proceed with analysis
         debug.log(`Calling LLM with prompt (${promptTokens} tokens)...`);
-        console.log('[NT-Prompt] Message composition:');
-        console.log('SYSTEM MESSAGE (' + systemMessage.length + ' chars):');
+        console.log('[NT-Prompt] Prompt composition:');
+        console.log('SYSTEM (' + systemMessage.length + ' chars):');
         console.log('='.repeat(80));
         console.log(systemMessage);
         console.log('='.repeat(80));
-        console.log('USER MESSAGE (' + userMessage.length + ' chars):');
+        console.log('USER (' + userPrompt.length + ' chars):');
         console.log('='.repeat(80));
-        console.log(userMessage);
+        console.log(userPrompt);
+        console.log('='.repeat(80));
+        console.log('PREFILL:', prefill);
         console.log('='.repeat(80));
         
         let result;
@@ -1081,10 +1080,10 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         try {
             if (llmConfig.source === 'ollama') {
                 // Ollama still uses flat prompt for now
-                const flatPrompt = systemMessage + '\n\n' + userMessage;
+                const flatPrompt = systemMessage + '\n\n' + userPrompt + '\n' + prefill;
                 result = await callOllama(flatPrompt);
             } else {
-                result = await callSillyTavern(systemMessage, userMessage);
+                result = await callSillyTavern(systemMessage, userPrompt, prefill);
             }
         } catch (error) {
             // Retry on JSON parsing errors or empty responses
