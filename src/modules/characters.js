@@ -422,8 +422,8 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
 
         debug.log();
 
-        // Store character in settings
-        setCharacter(character.preferredName, character);
+        // Store character in settings - CRITICAL: AWAIT to ensure save completes
+        await setCharacter(character.preferredName, character);
 
         // Create lorebook entry
         await updateLorebookEntry(character, character.preferredName);
@@ -453,7 +453,7 @@ export function updateCharacterProcessingState(characterName, messageId) {
         character.lastMessageProcessed = messageId;
         character.lastUpdated = Date.now();
 
-        setCharacter(character.preferredName, character);
+        await setCharacter(character.preferredName, character);
 
         debug.log(`Updated processing state for ${characterName}: messageId=${messageId}`);
         return true;
@@ -518,8 +518,8 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
 
         existingChar.lastUpdated = Date.now();
 
-        // Update character in settings
-        setCharacter(existingChar.preferredName, existingChar);
+        // Update character in settings - AWAIT to ensure save completes
+        await setCharacter(existingChar.preferredName, existingChar);
 
         debug.log();
 
@@ -593,9 +593,9 @@ export async function mergeCharacters(sourceName, targetName) {
         // Update timestamp
         targetChar.lastUpdated = Date.now();
 
-        // Update target character and delete source
-        setCharacter(targetChar.preferredName, targetChar);
-        removeCharacter(sourceName);
+        // Update target character and delete source - AWAIT both
+        await setCharacter(targetChar.preferredName, targetChar);
+        await removeCharacter(sourceName);
 
         // Save chat data
         // Auto-saved by new settings system
@@ -625,11 +625,11 @@ export async function undoLastMerge() {
             return false;
         }
 
-        // Restore source character
-        setCharacter(lastOp.sourceName, lastOp.sourceData);
+        // Restore source character - AWAIT
+        await setCharacter(lastOp.sourceName, lastOp.sourceData);
 
-        // Restore target character to pre-merge state
-        setCharacter(lastOp.targetName, lastOp.targetDataBefore);
+        // Restore target character to pre-merge state - AWAIT
+        await setCharacter(lastOp.targetName, lastOp.targetDataBefore);
 
         debug.log();
         notifications.success('Merge undone successfully');
@@ -653,7 +653,7 @@ export async function toggleIgnoreCharacter(characterName) {
 
         character.ignored = !character.ignored;
 
-        setCharacter(characterName, character);
+        await setCharacter(characterName, character);
 
         // Save chat data
         // Auto-saved by new settings system
@@ -809,7 +809,7 @@ export async function importCharacters(characterData, merge = false) {
 
         for (const [name, character] of Object.entries(characterData)) {
             if (merge || !getCharacter(name)) {
-                setCharacter(name, character);
+                await setCharacter(name, character);
                 importCount++;
             }
         }

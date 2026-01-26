@@ -122,8 +122,8 @@ function getCharacters() {
  * Update chat characters and save
  * @param {Object} characters - Characters data to save
  */
-function setCharacters(characters) {
-    return errorHandler.withErrorBoundary('Settings', () => {
+async function setCharacters(characters) {
+    return errorHandler.withErrorBoundary('Settings', async () => {
         try {
             const metadata = stContext.getChatMetadata();
 
@@ -135,12 +135,11 @@ function setCharacters(characters) {
             // Update characters
             metadata[MODULE_NAME].characters = characters;
 
-            // Save to SillyTavern
-            stContext.saveChatMetadata().catch(err => {
-                debug.warn('Failed to save chat metadata:', err.message);
-            });
+            // CRITICAL: AWAIT the save to complete before returning
+            await stContext.saveChatMetadata();
         } catch (error) {
             debug.warn('Failed to set characters:', error.message);
+            throw error; // Re-throw so caller knows it failed
         }
     });
 }
@@ -171,8 +170,8 @@ function getChatData() {
  * Update chat-level data
  * @param {Object} data - Data to update
  */
-function setChatData(data) {
-    return errorHandler.withErrorBoundary('Settings', () => {
+async function setChatData(data) {
+    return errorHandler.withErrorBoundary('Settings', async () => {
         try {
             const metadata = stContext.getChatMetadata();
 
@@ -184,12 +183,11 @@ function setChatData(data) {
             // Update data
             Object.assign(metadata[MODULE_NAME], data);
 
-            // Save to SillyTavern
-            stContext.saveChatMetadata().catch(err => {
-                debug.warn('Failed to save chat metadata:', err.message);
-            });
+            // CRITICAL: AWAIT the save to complete before returning
+            await stContext.saveChatMetadata();
         } catch (error) {
             debug.warn('Failed to set chat data:', error.message);
+            throw error; // Re-throw so caller knows it failed
         }
     });
 }
@@ -199,11 +197,11 @@ function setChatData(data) {
  * @param {string} name - Character name
  * @param {Object} characterData - Character data
  */
-function addCharacter(name, characterData) {
-    return errorHandler.withErrorBoundary('Settings', () => {
+async function addCharacter(name, characterData) {
+    return errorHandler.withErrorBoundary('Settings', async () => {
         const characters = getCharacters();
         characters[name] = characterData;
-        setCharacters(characters);
+        await setCharacters(characters); // AWAIT the async save
     });
 }
 
@@ -211,11 +209,11 @@ function addCharacter(name, characterData) {
  * Remove a character from the current chat
  * @param {string} name - Character name to remove
  */
-function removeCharacter(name) {
-    return errorHandler.withErrorBoundary('Settings', () => {
+async function removeCharacter(name) {
+    return errorHandler.withErrorBoundary('Settings', async () => {
         const characters = getCharacters();
         delete characters[name];
-        setCharacters(characters);
+        await setCharacters(characters); // AWAIT the async save
     });
 }
 
@@ -262,8 +260,8 @@ function getCharacter(name) {
  * @param {string} name - Character name
  * @param {Object} character - Character data
  */
-function setCharacter(name, character) {
-    return errorHandler.withErrorBoundary('Settings', () => {
+async function setCharacter(name, character) {
+    return errorHandler.withErrorBoundary('Settings', async () => {
         if (!name || typeof name !== 'string') {
             throw new Error('Character name must be a non-empty string');
         }
@@ -272,7 +270,7 @@ function setCharacter(name, character) {
         }
         const chars = { ...getCharacters() };
         chars[name] = character;
-        setCharacters(chars);
+        await setCharacters(chars); // AWAIT the async setCharacters
         debug.log(`Set character: ${name}`);
     });
 }

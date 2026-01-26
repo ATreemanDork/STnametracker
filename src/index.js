@@ -248,7 +248,7 @@ class NameTrackerExtension {
             eventSource.on(event_types.CHAT_CHANGED, async () => {
                 logger.debug('Chat changed event received');
                 // Reset chat-level data when chat changes
-                setChatData({ characters: {}, lastScannedMessageId: -1 });
+                await setChatData({ characters: {}, lastScannedMessageId: -1 });
             });
 
             logger.debug('Event listeners registered');
