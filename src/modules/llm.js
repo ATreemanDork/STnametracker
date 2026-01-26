@@ -625,7 +625,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                     console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
                 }
 
-                const parsed = parseJSONResponse(resultText);
+                const parsed = await parseJSONResponse(resultText);
                 console.log('[NT-ST-Call] parseJSONResponse returned type:', typeof parsed);
                 console.log('[NT-ST-Call] parseJSONResponse returned value:', parsed);
                 console.log('[NT-ST-Call] parsed.characters exists?:', parsed && 'characters' in parsed);
