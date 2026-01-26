@@ -635,7 +635,6 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                     top_k: GENERATION_TOP_K,
                     rep_pen: GENERATION_REP_PEN,
                     max_tokens: maxTokens,
-                    jsonSchemaAttached: true,
                 });
 
                 const result = await context.generateRaw({
@@ -648,7 +647,6 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                     rep_pen: GENERATION_REP_PEN,
                     max_tokens: maxTokens,
                     stop: [],
-                    jsonSchema: CHARACTER_EXTRACTION_SCHEMA,  // Structured output
                 });
 
                 console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
