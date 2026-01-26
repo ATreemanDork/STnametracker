@@ -65,89 +65,6 @@ const analysisCache = new Map(); // Cache for LLM analysis results
 let ollamaModels = []; // Available Ollama models
 
 /**
- * JSON Schema for structured character extraction
- * Enforces strict JSON structure for reliable parsing
- * Per: https://docs.sillytavern.app/for-contributors/writing-extensions/#structured-outputs
- */
-const CHARACTER_EXTRACTION_SCHEMA = {
-    name: 'CharacterAnalysis',
-    description: 'Structured character information extracted from chat messages',
-    strict: true,
-    value: {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'type': 'object',
-        'properties': {
-            'characters': {
-                'type': 'array',
-                'description': 'Array of character objects',
-                'items': {
-                    'type': 'object',
-                    'properties': {
-                        'name': {
-                            'type': 'string',
-                            'description': 'Character\'s preferred name (first and last if provided)',
-                        },
-                        'aliases': {
-                            'type': 'array',
-                            'description': 'Alternative names, nicknames, titles',
-                            'items': { 'type': 'string' },
-                        },
-                        'physicalAge': {
-                            'type': 'string',
-                            'description': 'Apparent age in years or ??? if unknown',
-                        },
-                        'mentalAge': {
-                            'type': 'string',
-                            'description': 'Actual age (can differ for immortals) or ??? if unknown',
-                        },
-                        'physical': {
-                            'type': 'string',
-                            'description': 'Physical description (2-3 paragraphs)',
-                        },
-                        'personality': {
-                            'type': 'string',
-                            'description': 'Personality traits, quirks, habits (2-3 paragraphs)',
-                        },
-                        'sexuality': {
-                            'type': 'string',
-                            'description': 'Sexual orientation, preferences if mentioned',
-                        },
-                        'raceEthnicity': {
-                            'type': 'string',
-                            'description': 'Race/species/ethnicity if mentioned',
-                        },
-                        'roleSkills': {
-                            'type': 'string',
-                            'description': 'Occupation, abilities, talents',
-                        },
-                        'lastInteraction': {
-                            'type': 'string',
-                            'description': 'Most recent interaction with user',
-                        },
-                        'relationships': {
-                            'type': 'array',
-                            'description': 'Relationships with other characters',
-                            'items': { 'type': 'string' },
-                        },
-                        'confidence': {
-                            'type': 'integer',
-                            'description': 'Confidence score 0-100 (90+=explicit, 70-89=clear, 50-69=mentioned, <50=vague)',
-                            'minimum': 0,
-                            'maximum': 100,
-                        },
-                    },
-                    'required': ['name', 'aliases', 'physicalAge', 'mentalAge', 'physical', 'personality',
-                        'sexuality', 'raceEthnicity', 'roleSkills', 'lastInteraction', 'relationships', 'confidence'],
-                    'additionalProperties': false,
-                },
-            },
-        },
-        'required': ['characters'],
-        'additionalProperties': false,
-    },
-};
-
-/**
  * Default system prompt for character analysis
  */
 const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
@@ -634,7 +551,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                     top_p: GENERATION_TOP_P,
                     top_k: GENERATION_TOP_K,
                     rep_pen: GENERATION_REP_PEN,
-                    max_tokens: maxTokens,
+                    responseLength: maxTokens,
                 });
 
                 const result = await context.generateRaw({
@@ -645,8 +562,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                     top_p: GENERATION_TOP_P,
                     top_k: GENERATION_TOP_K,
                     rep_pen: GENERATION_REP_PEN,
-                    max_tokens: maxTokens,
-                    stop: [],
+                    responseLength: maxTokens, // SillyTavern uses responseLength for text completion length
                 });
 
                 console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
@@ -1038,12 +954,12 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         // Build user prompt with data
         const userPrompt = '[DATA TO ANALYZE]\n' + messagesText;
         
-        // Build prefill to force JSON output
-        const prefill = '{"characters":';
+        // No prefill - let model generate complete JSON from system prompt guidance
+        const prefill = '';
 
         // Calculate actual token count for the combined messages
         let promptTokens;
-        const combinedText = systemMessage + '\n\n' + userPrompt + '\n' + prefill;
+        const combinedText = systemMessage + '\n\n' + userPrompt;
         try {
             promptTokens = await calculateMessageTokens([{ mes: combinedText }]);
             debug.log();
