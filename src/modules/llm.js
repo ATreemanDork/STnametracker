@@ -584,16 +584,23 @@ export async function callSillyTavern(prompt) {
             throw new NameTrackerError('No API connection available. Please connect to an API first.');
         }
 
+        console.log('[NT-ST-Call] Starting SillyTavern LLM call');
+        console.log('[NT-ST-Call] Prompt length:', prompt.length, 'characters');
+        console.log('[NT-ST-Call] Prompt preview:', prompt.substring(0, 200) + '...');
+
         // Get token count for the prompt
 
         let promptTokens;
         try {
             promptTokens = await context.getTokenCountAsync(prompt);
+            console.log('[NT-ST-Call] Token count:', promptTokens);
             debug.log();
             // eslint-disable-next-line no-unused-vars
         } catch (_error) {
+            console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
             debug.log();
             promptTokens = Math.ceil(prompt.length / 4);
+            console.log('[NT-ST-Call] Estimated tokens:', promptTokens);
             debug.log();
         }
 
@@ -602,11 +609,20 @@ export async function callSillyTavern(prompt) {
         const maxContext = context.maxContext || 4096;
         const calculatedMaxTokens = Math.floor(maxContext * 0.25);
         const maxTokens = Math.max(4000, calculatedMaxTokens);
+        console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
         debug.log();
 
         // Use generateRaw as documented in:
         // https://docs.sillytavern.app/for-contributors/writing-extensions/#raw-generation
         // With structured outputs per: https://docs.sillytavern.app/for-contributors/writing-extensions/#structured-outputs
+        console.log('[NT-ST-Call] Calling generateRaw with params:', {
+            temperature: GENERATION_TEMPERATURE,
+            top_p: GENERATION_TOP_P,
+            top_k: GENERATION_TOP_K,
+            rep_pen: GENERATION_REP_PEN,
+            max_tokens: maxTokens,
+        });
+
         const result = await context.generateRaw({
             prompt: prompt,  // Can be string (Text Completion) or array (Chat Completion)
             systemPrompt: '',  // Empty, we include instructions in prompt
@@ -625,6 +641,11 @@ export async function callSillyTavern(prompt) {
             jsonSchema: CHARACTER_EXTRACTION_SCHEMA,
         });
 
+        console.log('[NT-ST-Call] Raw result type:', typeof result);
+        console.log('[NT-ST-Call] Raw result length:', result ? result.length : 'null');
+        if (result) {
+            console.log('[NT-ST-Call] Raw result preview:', result.substring(0, 300));
+        }
         debug.log();
 
         // The result should be a string
@@ -632,7 +653,9 @@ export async function callSillyTavern(prompt) {
             throw new NameTrackerError('Empty response from SillyTavern LLM');
         }
 
-        return parseJSONResponse(result);
+        const parsed = parseJSONResponse(result);
+        console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
+        return parsed;
     });
 }
 
@@ -699,17 +722,22 @@ export async function callOllama(prompt) {
  */
 export function parseJSONResponse(text) {
     return withErrorBoundary('parseJSONResponse', () => {
+        console.log('[NT-Parse] Starting JSON parse, input type:', typeof text, 'length:', text ? text.length : 'null');
+        
         if (!text || typeof text !== 'string') {
-            console.error('Invalid response text:', text);
+            console.error('[NT-Parse] Invalid response text - not a string:', text);
             throw new NameTrackerError('LLM returned empty or invalid response');
         }
 
         // Remove any leading/trailing whitespace
         text = text.trim();
+        console.log('[NT-Parse] After trim, length:', text.length);
+        console.log('[NT-Parse] Content preview:', text.substring(0, 100));
 
         // Try to extract JSON from markdown code blocks (```json or ```)
         const jsonMatch = text.match(/```(?:json)?\\s*([\\s\\S]*?)```/);
         if (jsonMatch) {
+            console.log('[NT-Parse] Found markdown code block, extracting JSON');
             text = jsonMatch[1].trim();
         }
 
@@ -717,8 +745,11 @@ export function parseJSONResponse(text) {
         const firstBrace = text.indexOf('{');
         const lastBrace = text.lastIndexOf('}');
 
+        console.log('[NT-Parse] First brace at:', firstBrace, 'Last brace at:', lastBrace);
+
         if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
             text = text.substring(firstBrace, lastBrace + 1);
+            console.log('[NT-Parse] Extracted JSON range, new length:', text.length);
         }
 
         // Remove common prefixes that LLMs add
@@ -727,19 +758,27 @@ export function parseJSONResponse(text) {
         // Clean up common formatting issues
         text = text.trim();
 
+        console.log('[NT-Parse] Before JSON.parse, text length:', text.length);
+        console.log('[NT-Parse] Text for parsing:', text.substring(0, 200));
+
         try {
             const parsed = JSON.parse(text);
 
+            console.log('[NT-Parse] Successfully parsed JSON');
+            console.log('[NT-Parse] Parsed object keys:', Object.keys(parsed));
+            
             // Validate structure
             if (!parsed.characters || !Array.isArray(parsed.characters)) {
-                console.warn('Response missing characters array, returning empty:', parsed);
+                console.warn('[NT-Parse] Response missing characters array, returning empty');
+                console.warn('[NT-Parse] Parsed object:', parsed);
                 return { characters: [] };
             }
 
+            console.log('[NT-Parse] Valid response with', parsed.characters.length, 'characters');
             return parsed;
         } catch (error) {
-            console.error('Failed to parse JSON response. Original text:', text);
-            console.error('Parse error:', error.message);
+            console.error('[NT-Parse] JSON.parse failed:', error.message);
+            console.error('[NT-Parse] Failed text:', text.substring(0, 500));
 
             // Check if response was truncated (common issue with long responses)
             if (text.includes('"characters"') && !text.trim().endsWith('}')) {
@@ -755,6 +794,8 @@ export function parseJSONResponse(text) {
                 const openBrackets = (text.match(/\[/g) || []).length;
                 const closeBrackets = (text.match(/\]/g) || []).length;
 
+                console.log('[NT-Parse] Attempting recovery - open braces:', openBraces, 'closed:', closeBraces);
+
                 // Try to close incomplete strings and objects
                 if (salvaged.match(/"[^"]*$/)) {
                     // Has unclosed quote
@@ -769,23 +810,16 @@ export function parseJSONResponse(text) {
                     salvaged += '}';
                 }
 
+                console.log('[NT-Parse] Attempting to parse salvaged content');
+
                 try {
                     const recovered = JSON.parse(salvaged);
+                    console.log('[NT-Parse] Successfully recovered JSON with', recovered.characters?.length || 0, 'characters');
                     debug.log();
                     return recovered;
                 } catch (e) {
+                    console.error('[NT-Parse] Recovery failed:', e.message);
                     debug.log();
-                }
-            }
-
-            // Try one more time with more aggressive extraction
-            const fallbackMatch = text.match(/\\{[\\s\\S]*"characters"[\\s\\S]*\\}/);
-            if (fallbackMatch) {
-                try {
-                    parsed = JSON.parse(fallbackMatch[0]);
-                } catch (parseError) {
-                    debug.log();
-                    // Give up
                 }
             }
 

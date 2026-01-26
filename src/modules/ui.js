@@ -798,26 +798,24 @@ function showDebugStatus() {
             let llmConfig = {};
             let maxPromptTokens = 4096;
             let contextDetails = {};
+            let detectionMethod = 'unknown';
+            let detectionDebugLog = '';
 
             try {
                 const { getLLMConfig, getMaxPromptLength } = await import('./llm.js');
                 const { stContext } = await import('../core/context.js');
 
-                // Force a fresh SillyTavern context read (bypass 1s cache)
-                stContext.clearCache();
-
                 llmConfig = getLLMConfig();
                 const maxPromptResultObj = await getMaxPromptLength();
                 maxPromptTokens = maxPromptResultObj.maxPrompt;
-                const detectionMethod = maxPromptResultObj.detectionMethod;
-                const detectionDebugLog = maxPromptResultObj.debugLog || '';
+                detectionMethod = maxPromptResultObj.detectionMethod;
+                detectionDebugLog = maxPromptResultObj.debugLog || '';
 
                 // Get raw context info (retry briefly if not yet ready)
                 let context = stContext.getContext();
                 if (!context || typeof context.maxContext === 'undefined') {
                     for (let i = 0; i < 3; i++) {
                         await new Promise(r => setTimeout(r, 200));
-                        stContext.clearCache();
                         context = stContext.getContext();
                         if (context && typeof context.maxContext !== 'undefined') break;
                     }
@@ -850,6 +848,7 @@ function showDebugStatus() {
                     maxGenerationNote: 'Check console for details',
                     modelName: 'unknown',
                 };
+                detectionMethod = 'error';
             }
 
             // Get batch size constants from processing module

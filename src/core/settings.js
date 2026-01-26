@@ -283,8 +283,11 @@ function setCharacter(name, character) {
  */
 function getLLMConfig() {
     return errorHandler.withErrorBoundary('Settings', () => {
+        const llmSource = getSetting('llmSource');
+        console.log('[NT-LLMConfig] llmSource setting:', llmSource);
+        console.log('[NT-LLMConfig] All extension_settings keys:', Object.keys(extension_settings.sillytavern_nametracker || {}));
         return {
-            source: getSetting('llmSource'),
+            source: llmSource,
             ollamaEndpoint: getSetting('ollamaEndpoint'),
             ollamaModel: getSetting('ollamaModel'),
             systemPrompt: getSetting('systemPrompt'),
