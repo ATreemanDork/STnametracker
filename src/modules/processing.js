@@ -13,6 +13,7 @@ import { NotificationManager } from '../utils/notifications.js';
 import { callLLMAnalysis, buildCharacterRoster, getMaxPromptLength, calculateMessageTokens } from './llm.js';
 import { createCharacter, updateCharacter, findExistingCharacter, findPotentialMatch, isIgnoredCharacter, detectMergeOpportunities } from './characters.js';
 import { updateLorebookEntry } from './lorebook.js';
+import { updateCharacterList } from './ui.js';
 
 const debug = createModuleLogger('processing');
 const notifications = new NotificationManager('Message Processing');
@@ -159,6 +160,10 @@ export async function processAnalysisResults(analyzedCharacters) {
         }
         
         console.log('[NT-Processing] 🎉 All characters processed');
+        
+        // Update the character list UI after processing all characters
+        console.log('[NT-Processing] 🖥️  Updating character list UI');
+        updateCharacterList();
     });
 }
 

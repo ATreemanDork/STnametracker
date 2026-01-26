@@ -264,9 +264,41 @@ export async function updateLorebookEntry(character, characterName) {
             };
         }
 
+        // Clean up orphaned entries for this character
+        // Remove any entries that match this character's name/aliases but aren't the current entry ID
+        console.log(`[NT-Lorebook] 🧹 Cleaning up orphaned entries for: ${characterName}`);
+        const orphanedUids = [];
+        for (const [uid, entry] of Object.entries(worldInfo.entries)) {
+            if (!entry.key || !Array.isArray(entry.key)) continue;
+            
+            // Check if any of this entry's keys match our character's primary name or aliases
+            const hasMatchingKey = entry.key.some(k => 
+                k.toLowerCase() === characterName.toLowerCase() ||
+                (character.aliases && character.aliases.some(alias => 
+                    k.toLowerCase() === alias.toLowerCase()
+                ))
+            );
+            
+            // If this entry has matching keys but isn't our current entry, mark it for removal
+            if (hasMatchingKey && uid !== character.lorebookEntryId) {
+                console.log(`[NT-Lorebook]    Removing orphaned entry: ${uid} (keys: ${entry.key.join(', ')})`);
+                orphanedUids.push(uid);
+            }
+        }
+        
+        // Remove orphaned entries
+        for (const uid of orphanedUids) {
+            delete worldInfo.entries[uid];
+        }
+        
+        if (orphanedUids.length > 0) {
+            console.log(`[NT-Lorebook] ✅ Removed ${orphanedUids.length} orphaned entries`);
+        }
+
         // Calculate dynamic cooldown
         const messageFreq = get_settings('messageFrequency', 10);
         const calculatedCooldown = Math.max(1, Math.floor(messageFreq * 0.75));
+
 
         let existingUid = null;
 
