@@ -132,21 +132,33 @@ const currentProcessingState = {
  */
 export async function processAnalysisResults(analyzedCharacters) {
     return withErrorBoundary('processAnalysisResults', async () => {
+        console.log('[NT-Processing] 🔄 processAnalysisResults called');
+        console.log('[NT-Processing]    Input type:', typeof analyzedCharacters);
+        console.log('[NT-Processing]    Is array?:', Array.isArray(analyzedCharacters));
+        console.log('[NT-Processing]    Length:', analyzedCharacters?.length);
+        
         if (!analyzedCharacters || !Array.isArray(analyzedCharacters)) {
+            console.warn('[NT-Processing] ⚠️  Invalid input - not an array:', analyzedCharacters);
             debug.log();
             return;
         }
 
+        console.log('[NT-Processing] ✅ Processing', analyzedCharacters.length, 'characters');
         debug.log();
 
         for (const analyzedChar of analyzedCharacters) {
             try {
+                console.log('[NT-Processing] 📝 Processing character:', analyzedChar.name);
                 await processCharacterData(analyzedChar);
+                console.log('[NT-Processing] ✅ Character processed:', analyzedChar.name);
             } catch (error) {
-                console.error(`Error processing character ${analyzedChar.name}:`, error);
+                console.error(`[NT-Processing] ❌ Error processing character ${analyzedChar.name}:`, error);
+                console.error('[NT-Processing] Error stack:', error.stack);
                 // Continue with other characters
             }
         }
+        
+        console.log('[NT-Processing] 🎉 All characters processed');
     });
 }
 
@@ -157,15 +169,20 @@ export async function processAnalysisResults(analyzedCharacters) {
  */
 async function processCharacterData(analyzedChar) {
     return withErrorBoundary('processCharacterData', async () => {
+        console.log('[NT-CharData] 🔍 Processing character data for:', analyzedChar.name);
+        
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
+            console.warn('[NT-CharData] ⚠️  Character has no name, skipping');
             debug.log();
             return;
         }
 
         const characterName = analyzedChar.name.trim();
+        console.log('[NT-CharData]    Character name:', characterName);
 
         // Check if character is ignored
         if (isIgnoredCharacter(characterName)) {
+            console.log('[NT-CharData] ⏭️  Character is ignored, skipping:', characterName);
             debug.log();
             return;
         }
@@ -174,28 +191,42 @@ async function processCharacterData(analyzedChar) {
         const isMainChar = characterName.toLowerCase().includes('{{char}}') ||
                           analyzedChar.isMainCharacter === true ||
                           analyzedChar.role === 'main';
+        console.log('[NT-CharData]    Is main char?:', isMainChar);
 
         // Check if character already exists
         const existingChar = findExistingCharacter(characterName);
+        console.log('[NT-CharData]    Existing character found?:', !!existingChar);
 
         if (existingChar) {
             // Update existing character
+            console.log('[NT-CharData] 🔄 Updating existing character:', existingChar.preferredName);
             await updateCharacter(existingChar, analyzedChar, false, isMainChar);
+            console.log('[NT-CharData] 📚 Updating lorebook entry...');
             await updateLorebookEntry(existingChar, existingChar.preferredName);
+            console.log('[NT-CharData] ✅ Existing character updated');
             debug.log();
         } else {
             // Check for potential matches (similar names)
+            console.log('[NT-CharData] 🔍 Checking for potential matches...');
             const potentialMatch = await findPotentialMatch(analyzedChar);
+            console.log('[NT-CharData]    Potential match found?:', !!potentialMatch);
 
             if (potentialMatch) {
                 // Update potential match and add as alias
+                console.log('[NT-CharData] 🔄 Updating potential match:', potentialMatch.preferredName);
                 await updateCharacter(potentialMatch, analyzedChar, true, isMainChar);
+                console.log('[NT-CharData] 📚 Updating lorebook entry...');
                 await updateLorebookEntry(potentialMatch, potentialMatch.preferredName);
+                console.log('[NT-CharData] ✅ Potential match updated');
                 debug.log();
             } else {
                 // Create new character
+                console.log('[NT-CharData] 🆕 Creating new character:', characterName);
                 const newCharacter = await createCharacter(analyzedChar, isMainChar);
+                console.log('[NT-CharData] ✅ Character created:', newCharacter.preferredName);
+                console.log('[NT-CharData] 📚 Creating lorebook entry...');
                 await updateLorebookEntry(newCharacter, newCharacter.preferredName);
+                console.log('[NT-CharData] ✅ New character complete');
                 debug.log();
             }
         }
@@ -629,10 +660,23 @@ export async function harvestMessages(messageCount, showProgress = true) {
                     // Call LLM for analysis
                     const analysis = await callLLMAnalysis(batch, characterRoster);
 
+                    console.log('[NT-Batch] 📊 LLM analysis returned');
+                    console.log('[NT-Batch]    Type:', typeof analysis);
+                    console.log('[NT-Batch]    Value:', analysis);
+                    console.log('[NT-Batch]    Has characters?:', analysis && 'characters' in analysis);
+                    console.log('[NT-Batch]    Characters type:', typeof analysis?.characters);
+                    console.log('[NT-Batch]    Characters is Array?:', Array.isArray(analysis?.characters));
+                    console.log('[NT-Batch]    Characters length:', analysis?.characters?.length);
+
                     // Process the analysis
                     if (analysis.characters && Array.isArray(analysis.characters)) {
+                        console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
                         await processAnalysisResults(analysis.characters);
                         analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                    } else {
+                        console.warn('[NT-Batch] ⚠️  Condition failed - not processing results');
+                        console.warn('[NT-Batch]    analysis:', analysis);
+                        console.warn('[NT-Batch]    analysis.characters:', analysis?.characters);
                     }
 
                     successfulBatches++;
