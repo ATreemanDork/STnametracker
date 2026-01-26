@@ -626,6 +626,11 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
                 }
 
                 const parsed = parseJSONResponse(resultText);
+                console.log('[NT-ST-Call] parseJSONResponse returned type:', typeof parsed);
+                console.log('[NT-ST-Call] parseJSONResponse returned value:', parsed);
+                console.log('[NT-ST-Call] parsed.characters exists?:', parsed && 'characters' in parsed);
+                console.log('[NT-ST-Call] parsed.characters type:', typeof parsed?.characters);
+                console.log('[NT-ST-Call] parsed.characters is Array?:', Array.isArray(parsed?.characters));
                 const parsedCount = Array.isArray(parsed?.characters) ? parsed.characters.length : 0;
                 console.log('[NT-ST-Call] ✅ Successfully parsed on attempt', attempt, 'characters:', parsedCount);
                 console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
