@@ -648,21 +648,34 @@ export async function callSillyTavern(prompt) {
         });
 
         console.log('[NT-ST-Call] Raw result type:', typeof result);
-        console.log('[NT-ST-Call] Raw result length:', result ? result.length : 'null');
-        if (result) {
-            console.log('[NT-ST-Call] Raw result preview:', result.substring(0, 300));
+        console.log('[NT-ST-Call] Raw result object:', result);
+        
+        // Extract text from vLLM response format
+        // vLLM returns: { choices: [{ text: "..." }] }
+        // SillyTavern may pass through the full response or just the text
+        let resultText = result;
+        
+        if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
+            console.log('[NT-ST-Call] Detected vLLM response format, extracting text from choices[0].text');
+            resultText = result.choices[0]?.text || '';
         }
-        console.log('[NT-ST-Call] ========== FULL RESPONSE START ==========');
-        console.log(result);
-        console.log('[NT-ST-Call] ========== FULL RESPONSE END ==========');
+        
+        console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
+        console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
+        if (resultText) {
+            console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
+        }
+        console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
+        console.log(resultText);
+        console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
         debug.log();
 
         // The result should be a string
-        if (!result) {
+        if (!resultText) {
             throw new NameTrackerError('Empty response from SillyTavern LLM');
         }
 
-        const parsed = parseJSONResponse(result);
+        const parsed = parseJSONResponse(resultText);
         console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
         return parsed;
     });
