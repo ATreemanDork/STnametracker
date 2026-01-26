@@ -864,7 +864,23 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
 
         // Build the prompt
         const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\\n${msg}`).join('\\n\\n');
-        const systemInstructions = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\\n${getSystemPrompt()}${knownCharacters}\\n\\n[DATA TO ANALYZE]`;
+        
+        // Ensure system prompt and character roster are strings (not Promises)
+        let systemPrompt = getSystemPrompt();
+        if (systemPrompt && typeof systemPrompt === 'object' && systemPrompt.then) {
+            console.warn('[NT-Prompt] getSystemPrompt returned Promise, awaiting...');
+            systemPrompt = await systemPrompt;
+        }
+        systemPrompt = String(systemPrompt || DEFAULT_SYSTEM_PROMPT);
+        
+        let rosterStr = String(knownCharacters || '');
+        if (rosterStr && typeof rosterStr === 'object' && rosterStr.then) {
+            console.warn('[NT-Prompt] knownCharacters is Promise, awaiting...');
+            rosterStr = await rosterStr;
+            rosterStr = String(rosterStr);
+        }
+        
+        const systemInstructions = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\\n${systemPrompt}${rosterStr}\\n\\n[DATA TO ANALYZE]`;
         const fullPrompt = `${systemInstructions}\\n${messagesText}\\n\\n[RESPOND WITH JSON ONLY - NO STORY CONTINUATION]`;
 
         // Calculate actual token count for the prompt
