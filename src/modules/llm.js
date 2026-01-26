@@ -909,8 +909,12 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
         console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
         
-        const systemInstructions = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\\n${systemPrompt}${rosterStr}\\n\\n[DATA TO ANALYZE]`;
-        const fullPrompt = `${systemInstructions}\\n${messagesText}\\n\\n[RESPOND WITH JSON ONLY - NO STORY CONTINUATION]`;
+        const systemInstructions = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\n${systemPrompt}${rosterStr}\n\n[DATA TO ANALYZE]`;
+        
+        // Closing instructions to reinforce format (sandwich pattern)
+        const closingInstructions = `\n\n[END OF DATA - CRITICAL REMINDER]\nYour response MUST be ONLY a valid JSON object.\nFormat: {"characters": [{"name": "...", "aliases": [], "physical": {"description": "..."}, "mental": {"personality": "...", "background": "..."}, "relationships": []}]}\nDo NOT include markdown code blocks, explanations, or any text outside the JSON.\nStart your response with { and end with }`;
+        
+        const fullPrompt = `${systemInstructions}\n${messagesText}${closingInstructions}`;
 
         // Calculate actual token count for the prompt
         let promptTokens;

@@ -53,10 +53,65 @@ const CONTEXT_REDUCTION_STEP = 5;       // Percentage to reduce context target o
 const MIN_MESSAGES_PER_BATCH = 5;       // Never create batches smaller than this (unless last batch)
 const MAX_MESSAGES_PER_BATCH = 50;      // Cap batches at this size even if tokens allow more
 const TARGET_MESSAGES_PER_BATCH = 30;   // Aim for this size when possible (balance: not too small, not too large)
+const TARGET_MESSAGE_PERCENT = 35;      // Use 35% of max context for message data (conservative)
 
 // Error Recovery
 const ENABLE_AUTO_RECOVERY = true;      // Enable automatic context reduction on failure
 const PRESERVE_PROCESSING_STATE = true; // Always save character state even on errors
+
+// ============================================================================
+// SHARED HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Calculate available token budget for message data
+ * @param {number} maxPromptTokens - Maximum tokens available from context
+ * @returns {number} Available tokens for message content
+ */
+function calculateAvailableTokens(maxPromptTokens) {
+    // Use only 35% of max context for messages (conservative to avoid overwhelming the model)
+    // This leaves room for: system prompt (~1000 tokens) + response (up to 4000 tokens)
+    return Math.floor(maxPromptTokens * (TARGET_MESSAGE_PERCENT / 100));
+}
+
+/**
+ * Create batches of messages based on token limits
+ * @param {Array} messages - Messages to batch
+ * @param {number} availableTokens - Token budget per batch
+ * @param {boolean} enforceMessageLimit - Whether to enforce MAX_MESSAGES_PER_BATCH
+ * @returns {Promise<Array>} Array of message batches
+ */
+async function createMessageBatches(messages, availableTokens, enforceMessageLimit = true) {
+    const batches = [];
+    let currentBatch = [];
+    let currentTokens = 0;
+
+    for (const msg of messages) {
+        const msgTokens = await calculateMessageTokens([msg]);
+
+        // Check if batch would exceed limits
+        const wouldExceedTokens = currentTokens + msgTokens > availableTokens;
+        const wouldExceedMessageCount = enforceMessageLimit && currentBatch.length >= MAX_MESSAGES_PER_BATCH;
+
+        if ((wouldExceedTokens || wouldExceedMessageCount) && currentBatch.length > 0) {
+            // Current batch is full, start new one
+            batches.push(currentBatch);
+            currentBatch = [msg];
+            currentTokens = msgTokens;
+        } else {
+            // Add to current batch
+            currentBatch.push(msg);
+            currentTokens += msgTokens;
+        }
+    }
+
+    // Add final batch
+    if (currentBatch.length > 0) {
+        batches.push(currentBatch);
+    }
+
+    return batches;
+}
 
 // Processing state
 let processingQueue = [];
@@ -493,10 +548,11 @@ export async function harvestMessages(messageCount, showProgress = true) {
         // Check if messages fit in context window
         const maxPromptResult = await getMaxPromptLength();
         const maxPromptTokens = maxPromptResult.maxPrompt;
-        const availableTokens = maxPromptTokens - 1000; // Reserve for system prompt and response
-
-        debugLog(`[Batching] Token budget: maxPromptTokens=${maxPromptTokens}, reserved=1000, availableTokens=${availableTokens}`);
+        const availableTokens = calculateAvailableTokens(maxPromptTokens);
+        
+        debugLog(`[Batching] Token budget: maxPromptTokens=${maxPromptTokens}, targetPercent=${TARGET_MESSAGE_PERCENT}%, availableTokens=${availableTokens}`);
         debugLog(`[Batching] Context target: ${currentProcessingState.contextTarget}%`);
+        debugLog(`[Batching] Estimated reserves: systemPrompt=~1000tok, response=~4000tok, messages=${availableTokens}tok`);
 
         // Calculate actual token count for the requested messages
         const messageTokens = await calculateMessageTokens(messagesToAnalyze);
@@ -507,45 +563,16 @@ export async function harvestMessages(messageCount, showProgress = true) {
         if (messageTokens > availableTokens) {
             debugLog(`[Batching] Messages exceed token limit (${messageTokens} > ${availableTokens}), creating batches`);
 
-            // Calculate optimal batch size based on tokens AND message count constraints
-            const batches = [];
-            let currentBatch = [];
-            let currentTokens = 0;
-            const batchDetails = []; // Track batch composition for logging
-
-            // Build batches by adding messages until token limit OR message count limit
-            for (const msg of messagesToAnalyze) {
-                const msgTokens = await calculateMessageTokens([msg]);
-
-                // Check if batch would exceed token limit OR message count limit
-                const wouldExceedTokens = currentTokens + msgTokens > availableTokens;
-                const wouldExceedMessageCount = currentBatch.length >= MAX_MESSAGES_PER_BATCH;
-
-                if ((wouldExceedTokens || wouldExceedMessageCount) && currentBatch.length > 0) {
-                    // Current batch is full, start new one
-                    const reason = wouldExceedTokens ? 'token limit' : 'message count limit';
-                    debugLog(`[Batching] Batch ${batches.length + 1} complete: ${currentBatch.length} messages, ${currentTokens} tokens (split by ${reason})`);
-                    batches.push(currentBatch);
-                    batchDetails.push({ size: currentBatch.length, tokens: currentTokens, reason: reason });
-                    currentBatch = [msg];
-                    currentTokens = msgTokens;
-                } else {
-                    // Add to current batch
-                    currentBatch.push(msg);
-                    currentTokens += msgTokens;
-                }
-            }
-
-            // Add final batch
-            if (currentBatch.length > 0) {
-                batches.push(currentBatch);
-                batchDetails.push({ size: currentBatch.length, tokens: currentTokens, reason: 'final batch' });
-                debugLog(`[Batching] Final batch ${batches.length}: ${currentBatch.length} messages, ${currentTokens} tokens`);
-            }
-
-            // Log comprehensive batch summary
-            const batchSummary = batchDetails.map((b, i) => `Batch ${i + 1}: ${b.size}msg/${b.tokens}tok (${b.reason})`).join(' | ');
-            debugLog(`[Batching] Created ${batches.length} total batches: ${batchSummary}`);
+            // Create batches using shared helper
+            const batches = await createMessageBatches(messagesToAnalyze, availableTokens, true);
+            
+            // Log batch details for debugging
+            const batchDetails = await Promise.all(batches.map(async (batch, i) => {
+                const tokens = await calculateMessageTokens(batch);
+                return `Batch ${i + 1}: ${batch.length}msg/${tokens}tok`;
+            }));
+            
+            debugLog(`[Batching] Created ${batches.length} total batches: ${batchDetails.join(' | ')}`);
             debugLog(`[Batching] Constraints applied: MIN=${MIN_MESSAGES_PER_BATCH}, TARGET=${TARGET_MESSAGES_PER_BATCH}, MAX=${MAX_MESSAGES_PER_BATCH}, TokenLimit=${availableTokens}`);
 
             // Reset abort flag
@@ -882,33 +909,10 @@ export async function scanEntireChat() {
         // Calculate optimal batch size based on context window
         const maxPromptResult = await getMaxPromptLength();
         const maxPromptTokens = maxPromptResult.maxPrompt;
-        const availableTokens = maxPromptTokens - 1000;
+        const availableTokens = calculateAvailableTokens(maxPromptTokens);
 
-        // Build batches dynamically based on token counts
-        const batches = [];
-        let currentBatch = [];
-        let currentTokens = 0;
-
-        for (let i = 0; i < totalMessages; i++) {
-            const msg = context.chat[i];
-            const msgTokens = await calculateMessageTokens([msg]);
-
-            if (currentTokens + msgTokens > availableTokens && currentBatch.length > 0) {
-                // Current batch is full, save it and start new one
-                batches.push(currentBatch);
-                currentBatch = [msg];
-                currentTokens = msgTokens;
-            } else {
-                // Add to current batch
-                currentBatch.push(msg);
-                currentTokens += msgTokens;
-            }
-        }
-
-        // Add final batch
-        if (currentBatch.length > 0) {
-            batches.push(currentBatch);
-        }
+        // Build batches using shared helper
+        const batches = await createMessageBatches(context.chat, availableTokens, false);
 
         const numBatches = batches.length;
 
