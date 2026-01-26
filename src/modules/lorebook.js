@@ -93,14 +93,7 @@ export async function initializeLorebook() {
             console.log('╚═══════════════════════════════════════════════════════════════════════════');
             debug.log(`Using existing chat lorebook: ${lorebookName}`);
             
-            // IMPORTANT: Make sure it's selected as the active lorebook
-            try {
-                await context.setSelectedWorldInfo(lorebookName);
-                console.log(`║ [NT-Lorebook] ✅ Re-selected existing chat lorebook: ${lorebookName}`);
-            } catch (error) {
-                console.warn(`║ [NT-Lorebook] ⚠️  Could not re-select lorebook, but continuing:`, error.message);
-            }
-            
+            // Lorebook is already bound in chatMetadata - no additional selection needed
             return lorebookName;
         }
 
