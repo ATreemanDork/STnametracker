@@ -194,7 +194,10 @@ Your response must start with { immediately.`;
  * @returns {string} System prompt text
  */
 function getSystemPrompt() {
-    return get_settings('systemPrompt') || DEFAULT_SYSTEM_PROMPT;
+    const settings = get_settings();
+    const prompt = settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+    // Ensure we return a string, not a Promise or object
+    return typeof prompt === 'string' ? prompt : DEFAULT_SYSTEM_PROMPT;
 }
 
 /**
@@ -865,20 +868,40 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         // Build the prompt
         const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\\n${msg}`).join('\\n\\n');
         
-        // Ensure system prompt and character roster are strings (not Promises)
+        // Get system prompt and ensure it's a string
         let systemPrompt = getSystemPrompt();
-        if (systemPrompt && typeof systemPrompt === 'object' && systemPrompt.then) {
+        console.log('[NT-Prompt] getSystemPrompt() returned type:', typeof systemPrompt);
+        
+        // Handle if it's a Promise
+        if (systemPrompt && typeof systemPrompt === 'object' && typeof systemPrompt.then === 'function') {
             console.warn('[NT-Prompt] getSystemPrompt returned Promise, awaiting...');
             systemPrompt = await systemPrompt;
+            console.log('[NT-Prompt] After await, type:', typeof systemPrompt);
         }
-        systemPrompt = String(systemPrompt || DEFAULT_SYSTEM_PROMPT);
         
-        let rosterStr = String(knownCharacters || '');
-        if (rosterStr && typeof rosterStr === 'object' && rosterStr.then) {
+        // Handle if it's still an object after await
+        if (typeof systemPrompt !== 'string') {
+            console.warn('[NT-Prompt] systemPrompt is not a string, using default. Type:', typeof systemPrompt, 'Value:', systemPrompt);
+            systemPrompt = DEFAULT_SYSTEM_PROMPT;
+        }
+        
+        // Get character roster and ensure it's a string
+        let rosterStr = knownCharacters || '';
+        console.log('[NT-Prompt] knownCharacters type:', typeof rosterStr);
+        
+        // Handle if it's a Promise
+        if (rosterStr && typeof rosterStr === 'object' && typeof rosterStr.then === 'function') {
             console.warn('[NT-Prompt] knownCharacters is Promise, awaiting...');
             rosterStr = await rosterStr;
-            rosterStr = String(rosterStr);
+            console.log('[NT-Prompt] After await, type:', typeof rosterStr);
         }
+        
+        // Ensure it's a string
+        rosterStr = String(rosterStr || '');
+        
+        console.log('[NT-Prompt] Final systemPrompt length:', systemPrompt.length);
+        console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
+        console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
         
         const systemInstructions = `[SYSTEM INSTRUCTION - DO NOT ROLEPLAY]\\n${systemPrompt}${rosterStr}\\n\\n[DATA TO ANALYZE]`;
         const fullPrompt = `${systemInstructions}\\n${messagesText}\\n\\n[RESPOND WITH JSON ONLY - NO STORY CONTINUATION]`;

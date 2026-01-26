@@ -802,7 +802,8 @@ function showDebugStatus() {
             let detectionDebugLog = '';
 
             try {
-                const { getLLMConfig, getMaxPromptLength } = await import('./llm.js');
+                const { getMaxPromptLength } = await import('./llm.js');
+                const { getLLMConfig } = await import('../core/settings.js');
                 const { stContext } = await import('../core/context.js');
 
                 llmConfig = getLLMConfig();
