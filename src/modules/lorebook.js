@@ -50,35 +50,55 @@ let lorebookName = null;
  * @returns {Promise<string|null>} Lorebook name if successful, null if no chat
  */
 export async function initializeLorebook() {
+    console.log('╔═══════════════════════════════════════════════════════════════════════════');
+    console.log('║ [NT-Lorebook] initializeLorebook() CALLED');
+    console.log('╚═══════════════════════════════════════════════════════════════════════════');
+    
     return withErrorBoundary('initializeLorebook', async () => {
+        console.log('║ [NT-Lorebook] Inside withErrorBoundary, getting context...');
         const context = stContext.getContext();
+        console.log('║ [NT-Lorebook] Got context:', !!context);
+        console.log('║ [NT-Lorebook] context.chatId:', context?.chatId);
 
         if (!context.chatId) {
+            console.warn('║ [NT-Lorebook] ⚠️  NO ACTIVE CHAT - Aborting initialization');
             debug.log('No active chat, skipping lorebook initialization');
             lorebookName = null;
             return null;
         }
 
+        console.log('║ [NT-Lorebook] Active chat detected, proceeding...');
         const METADATA_KEY = 'world_info';
         const chatMetadata = context.chatMetadata;
+        console.log('║ [NT-Lorebook] chatMetadata exists?:', !!chatMetadata);
 
         if (!chatMetadata) {
+            console.warn('║ [NT-Lorebook] ⚠️  NO CHAT METADATA - Aborting initialization');
             debug.log('No chat metadata available, skipping lorebook initialization');
             lorebookName = null;
             return null;
         }
 
+        console.log('║ [NT-Lorebook] Checking for existing bound lorebook...');
+        console.log('║ [NT-Lorebook] chatMetadata[world_info]:', chatMetadata[METADATA_KEY]);
+
         // Check if chat already has a bound lorebook
         if (chatMetadata[METADATA_KEY]) {
             lorebookName = chatMetadata[METADATA_KEY];
+            console.log('╔═══════════════════════════════════════════════════════════════════════════');
+            console.log('║ [NT-Lorebook] ✅ EXISTING LOREBOOK FOUND');
+            console.log('╠═══════════════════════════════════════════════════════════════════════════');
+            console.log('║ Lorebook Name:', lorebookName);
+            console.log('║ Module Variable Set: YES');
+            console.log('╚═══════════════════════════════════════════════════════════════════════════');
             debug.log(`Using existing chat lorebook: ${lorebookName}`);
             
             // IMPORTANT: Make sure it's selected as the active lorebook
             try {
                 await context.setSelectedWorldInfo(lorebookName);
-                console.log(`[NT-Lorebook] ✅ Re-selected existing chat lorebook: ${lorebookName}`);
+                console.log(`║ [NT-Lorebook] ✅ Re-selected existing chat lorebook: ${lorebookName}`);
             } catch (error) {
-                console.warn(`[NT-Lorebook] ⚠️  Could not re-select lorebook, but continuing:`, error.message);
+                console.warn(`║ [NT-Lorebook] ⚠️  Could not re-select lorebook, but continuing:`, error.message);
             }
             
             return lorebookName;
@@ -90,10 +110,15 @@ export async function initializeLorebook() {
             .replace(/_{2,}/g, '_')
             .substring(0, 64);
 
-        console.log(`[NT-Lorebook] 🆕 Creating new chat lorebook: ${bookName}`);
-        console.log(`[NT-Lorebook]    Chat ID: ${context.chatId}`);
+        console.log('╔═══════════════════════════════════════════════════════════════════════════');
+        console.log('║ [NT-Lorebook] 🆕 CREATING NEW LOREBOOK');
+        console.log('╠═══════════════════════════════════════════════════════════════════════════');
+        console.log('║ Generated Name:', bookName);
+        console.log('║ Chat ID:', context.chatId);
+        console.log('╚═══════════════════════════════════════════════════════════════════════════');
         debug.log(`Creating new chat lorebook: ${bookName}`);
         lorebookName = bookName;
+        console.log('║ [NT-Lorebook] Module variable lorebookName SET TO:', lorebookName);
 
         // Bind it to the chat metadata
         chatMetadata[METADATA_KEY] = lorebookName;
@@ -143,6 +168,29 @@ export async function updateLorebookEntry(character, characterName) {
         console.log('╔════════════════════════════════════════════════════════════════');
         console.log('║ [NT-Lorebook] updateLorebookEntry CALLED');
         console.log('╠════════════════════════════════════════════════════════════════');
+        console.log('║ CRITICAL: Checking lorebookName variable');
+        console.log('║ lorebookName value:', lorebookName);
+        console.log('║ lorebookName type:', typeof lorebookName);
+        console.log('║ lorebookName is null?:', lorebookName === null);
+        console.log('║ lorebookName is undefined?:', lorebookName === undefined);
+        console.log('║ lorebookName is falsy?:', !lorebookName);
+        console.log('╚════════════════════════════════════════════════════════════════');
+        
+        if (!lorebookName) {
+            console.error('╔════════════════════════════════════════════════════════════════');
+            console.error('║ [NT-Lorebook] ❌ CRITICAL ERROR: NO LOREBOOK INITIALIZED!');
+            console.error('╠════════════════════════════════════════════════════════════════');
+            console.error('║ lorebookName is:', lorebookName);
+            console.error('║ Character:', characterName);
+            console.error('║ SKIPPING LOREBOOK ENTRY UPDATE');
+            console.error('╚════════════════════════════════════════════════════════════════');
+            debug.log('No lorebook initialized, skipping entry update');
+            return;
+        }
+        
+        console.log('╔════════════════════════════════════════════════════════════════');
+        console.log('║ [NT-Lorebook] ✅ Lorebook IS initialized');
+        console.log('╠════════════════════════════════════════════════════════════════');
         console.log('║ Character Name:', characterName);
         console.log('║ Character Object:', JSON.stringify(character, null, 2));
         console.log('║ Has lorebookEntryId?:', !!character.lorebookEntryId);
@@ -151,11 +199,6 @@ export async function updateLorebookEntry(character, characterName) {
         
         debug.log(`updateLorebookEntry called for: ${characterName}`);
         debug.log('  Character data:', character);
-
-        if (!lorebookName) {
-            debug.log('No lorebook initialized, skipping entry update');
-            return;
-        }
 
         const context = stContext.getContext();
         const lorebookConfig = getLorebookConfig();
