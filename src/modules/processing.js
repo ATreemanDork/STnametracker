@@ -491,7 +491,8 @@ export async function harvestMessages(messageCount, showProgress = true) {
         debugLog(`[Batching] Message selection: startIdx=${startIdx}, endIdx=${endIdx}, requesting ${messageCount} messages, got ${messagesToAnalyze.length} messages`);
 
         // Check if messages fit in context window
-        const maxPromptTokens = await getMaxPromptLength();
+        const maxPromptResult = await getMaxPromptLength();
+        const maxPromptTokens = maxPromptResult.maxPrompt;
         const availableTokens = maxPromptTokens - 1000; // Reserve for system prompt and response
 
         debugLog(`[Batching] Token budget: maxPromptTokens=${maxPromptTokens}, reserved=1000, availableTokens=${availableTokens}`);
@@ -879,7 +880,8 @@ export async function scanEntireChat() {
         const totalMessages = context.chat.length;
 
         // Calculate optimal batch size based on context window
-        const maxPromptTokens = await getMaxPromptLength();
+        const maxPromptResult = await getMaxPromptLength();
+        const maxPromptTokens = maxPromptResult.maxPrompt;
         const availableTokens = maxPromptTokens - 1000;
 
         // Build batches dynamically based on token counts

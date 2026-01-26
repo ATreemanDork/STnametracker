@@ -807,7 +807,10 @@ function showDebugStatus() {
                 stContext.clearCache();
 
                 llmConfig = getLLMConfig();
-                maxPromptTokens = await getMaxPromptLength();
+                const maxPromptResultObj = await getMaxPromptLength();
+                maxPromptTokens = maxPromptResultObj.maxPrompt;
+                const detectionMethod = maxPromptResultObj.detectionMethod;
+                const detectionDebugLog = maxPromptResultObj.debugLog || '';
 
                 // Get raw context info (retry briefly if not yet ready)
                 let context = stContext.getContext();
@@ -839,6 +842,7 @@ function showDebugStatus() {
                     };
                 }
             } catch (_error) {
+                console.error('[NT-Debug] Error in buildDebugContent:', _error);
                 debug.log('Could not load LLM config:', _error);
                 contextDetails = {
                     totalContext: 'Error loading',
@@ -878,6 +882,11 @@ function showDebugStatus() {
                     'System Prompt Reserve': systemPromptTokens,
                     'Safety Margin': safetyMargin,
                     'Total Reserved': reservedTokens,
+                },
+                'Max Context Detection': {
+                    'Detection Method': detectionMethod || 'unknown',
+                    'Detected Max Context': contextDetails.totalContext,
+                    'Final Max Prompt': maxPromptTokens,
                 },
                 'Usable Token Budget': {
                     'Max Prompt Tokens': maxPromptTokens,
