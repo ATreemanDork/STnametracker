@@ -14,6 +14,7 @@ import {
     get_settings, getCharacters, getCharacter, setCharacter, getLorebookConfig,
 } from '../core/settings.js';
 import { stContext } from '../core/context.js';
+import { reloadEditor } from '../core/world-info.js';
 import { generateUID } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
 
@@ -93,7 +94,8 @@ export async function initializeLorebook() {
             console.log('╚═══════════════════════════════════════════════════════════════════════════');
             debug.log(`Using existing chat lorebook: ${lorebookName}`);
 
-            // Lorebook is already bound in chatMetadata - no additional selection needed
+            // Load the lorebook in the editor and make it active
+            reloadEditor(lorebookName, true);
             return lorebookName;
         }
 
@@ -136,6 +138,9 @@ export async function initializeLorebook() {
             } else {
                 console.log(`[NT-Lorebook] ℹ️  Lorebook file already exists with ${Object.keys(worldInfo.entries || {}).length} entries`);
             }
+
+            // Load the new lorebook in the editor and make it active
+            reloadEditor(lorebookName, true);
 
             // Notify user
             notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
