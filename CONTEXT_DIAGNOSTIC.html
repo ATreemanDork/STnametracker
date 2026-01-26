@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SillyTavern Context Diagnostic</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #555; border-radius: 5px; }
+        .title { font-size: 18px; font-weight: bold; color: #4ec9b0; margin-bottom: 10px; }
+        .code { background: #2d2d2d; padding: 10px; border-left: 3px solid #007acc; margin: 10px 0; overflow-x: auto; }
+        .success { color: #6a9955; }
+        .error { color: #f48771; }
+        .info { color: #9cdcfe; }
+        pre { margin: 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 SillyTavern Context Structure Diagnostic</h1>
+    
+    <div class="section">
+        <div class="title">Instructions</div>
+        <p>1. Open this file in your browser alongside SillyTavern</p>
+        <p>2. Run each code block in your browser console (F12)</p>
+        <p>3. Copy the output and paste it here</p>
+    </div>
+
+    <div class="section">
+        <div class="title">Test 1: Get Full Context Object</div>
+        <div class="code"><pre>const ctx = SillyTavern.getContext();
+console.log('=== FULL CONTEXT OBJECT ===');
+console.log(ctx);
+console.log('=== CONTEXT KEYS ===');
+console.log(Object.keys(ctx).sort());</pre></div>
+        <p><strong>Expected:</strong> Will show all available properties on the context object</p>
+    </div>
+
+    <div class="section">
+        <div class="title">Test 2: Check Specific Paths</div>
+        <div class="code"><pre">const ctx = SillyTavern.getContext();
+console.log('=== PATH DETECTION ===');
+console.log('1. ctx.maxContext:', ctx.maxContext);
+console.log('2. ctx.extensionSettings?.common?.maxContext:', ctx.extensionSettings?.common?.maxContext);
+console.log('3. ctx.chat?.maxContextSize:', ctx.chat?.maxContextSize);
+console.log('4. ctx.token_limit:', ctx.token_limit);
+console.log('5. ctx.amount_gen:', ctx.amount_gen);
+console.log('6. ctx.max_context:', ctx.max_context);
+console.log('7. ctx.context_size:', ctx.context_size);</pre></div>
+        <p><strong>Expected:</strong> At least one should show a number (context size in tokens)</p>
+    </div>
+
+    <div class="section">
+        <div class="title">Test 3: Check extensionSettings Structure</div>
+        <div class="code"><pre">const ctx = SillyTavern.getContext();
+console.log('=== EXTENSION SETTINGS STRUCTURE ===');
+if (ctx.extensionSettings) {
+    console.log('extensionSettings keys:', Object.keys(ctx.extensionSettings).sort());
+    console.log('extensionSettings.common:', ctx.extensionSettings.common);
+    if (ctx.extensionSettings.common) {
+        console.log('common keys:', Object.keys(ctx.extensionSettings.common).sort());
+    }
+} else {
+    console.log('No extensionSettings found');
+}</pre></div>
+        <p><strong>Expected:</strong> Will show the structure of extension settings</p>
+    </div>
+
+    <div class="section">
+        <div class="title">Test 4: Check Chat Object Structure</div>
+        <div class="code"><pre">const ctx = SillyTavern.getContext();
+console.log('=== CHAT OBJECT STRUCTURE ===');
+if (ctx.chat && Array.isArray(ctx.chat)) {
+    console.log('chat is an array (messages)');
+} else if (ctx.chat && typeof ctx.chat === 'object') {
+    console.log('chat is an object');
+    console.log('chat keys:', Object.keys(ctx.chat).sort());
+    console.log('chat object:', ctx.chat);
+} else {
+    console.log('chat:', ctx.chat);
+}</pre></div>
+        <p><strong>Expected:</strong> Will show the chat object structure</p>
+    </div>
+
+    <div class="section">
+        <div class="title">Test 5: Search for Any "Max" or "Context" Property</div>
+        <div class="code"><pre">const ctx = SillyTavern.getContext();
+console.log('=== SEARCHING FOR MAX/CONTEXT PROPERTIES ===');
+
+// Recursive search
+function findProperties(obj, depth = 0, maxDepth = 2, visited = new Set()) {
+    if (depth > maxDepth || visited.has(obj)) return;
+    if (obj === null || typeof obj !== 'object') return;
+    
+    visited.add(obj);
+    
+    for (const key of Object.keys(obj)) {
+        if (key.toLowerCase().includes('max') || key.toLowerCase().includes('context') || key.toLowerCase().includes('token')) {
+            console.log(`  ${'.'.repeat(depth)}${key}:`, obj[key]);
+        }
+        
+        if (depth < maxDepth && typeof obj[key] === 'object' && obj[key] !== null) {
+            findProperties(obj[key], depth + 1, maxDepth, visited);
+        }
+    }
+}
+
+findProperties(ctx);</pre></div>
+        <p><strong>Expected:</strong> Will find all properties containing "max", "context", or "token"</p>
+    </div>
+
+    <div class="section">
+        <div class="title">Test 6: Direct Type Check</div>
+        <div class="code"><pre">const ctx = SillyTavern.getContext();
+console.log('=== TYPE INFORMATION ===');
+console.log('maxContext type:', typeof ctx.maxContext, '| value:', ctx.maxContext);
+console.log('Context object type:', typeof ctx, '| is object:', ctx !== null && typeof ctx === 'object');
+console.log('Extension settings type:', typeof ctx.extensionSettings, '| is object:', ctx.extensionSettings !== null && typeof ctx.extensionSettings === 'object');
+console.log('Chat type:', typeof ctx.chat, '| is array:', Array.isArray(ctx.chat));</pre></div>
+        <p><strong>Expected:</strong> Will show types of the properties</p>
+    </div>
+
+    <div class="section">
+        <div class="title">💡 What To Look For</div>
+        <ul>
+            <li>A numeric value between 2000-128000 (typical token limits)</li>
+            <li>Properties named: maxContext, maxTokens, contextSize, tokenLimit, amount_gen</li>
+            <li>Nested in settings, API config, or directly on context</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="title">📝 Debugging Steps</div>
+        <ol>
+            <li>Run Test 1 first - get overview of all properties</li>
+            <li>Run Test 2 - see which paths work</li>
+            <li>Run Test 5 - comprehensive search</li>
+            <li>Copy the console output and share it</li>
+            <li>Identify which test found the actual context size value</li>
+        </ol>
+    </div>
+</body>
+</html>

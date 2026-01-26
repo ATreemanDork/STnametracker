@@ -321,86 +321,134 @@ export function buildCharacterRoster() {
  */
 export async function getMaxPromptLength() {
     return withErrorBoundary('getMaxPromptLength', async () => {
-        const llmConfig = getLLMConfig();
-        let maxContext = 4096; // Default
-        let maxGenTokens = 2048; // Default generation limit
+        try {
+            const llmConfig = getLLMConfig();
+            let maxContext = 4096; // Default
+            let maxGenTokens = 2048; // Default generation limit
 
-        if (llmConfig.source === 'ollama' && llmConfig.ollamaModel) {
-            // Get Ollama model's context size
-            maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
-        } else {
-            // Use SillyTavern's context
-            const context = stContext.getContext();
-
-            // Debug: Log all context properties
-            if (context) {
-                const contextKeys = Object.keys(context);
-                const relevantKeys = contextKeys.filter(k => 
-                    k.toLowerCase().includes('max') || 
-                    k.toLowerCase().includes('context') ||
-                    k.toLowerCase().includes('token') ||
-                    k.toLowerCase().includes('prompt')
-                );
-                debug.log(`Available context properties: ${relevantKeys.join(', ')}`);
-            }
-
-            // Try multiple possible paths for max context
-            let detectedMaxContext = null;
-
-            // Method 1: Direct maxContext property
-            if (context?.maxContext) {
-                detectedMaxContext = context.maxContext;
-                debug.log(`Method 1 (context.maxContext): ${detectedMaxContext}`);
-            }
-
-            // Method 2: extensionSettings path
-            if (!detectedMaxContext && context?.extensionSettings?.common?.maxContext) {
-                detectedMaxContext = context.extensionSettings.common.maxContext;
-                debug.log(`Method 2 (context.extensionSettings.common.maxContext): ${detectedMaxContext}`);
-            }
-
-            // Method 3: chat.maxContextSize path
-            if (!detectedMaxContext && context?.chat?.maxContextSize) {
-                detectedMaxContext = context.chat.maxContextSize;
-                debug.log(`Method 3 (context.chat.maxContextSize): ${detectedMaxContext}`);
-            }
-
-            // Method 4: Try token_limit or similar
-            if (!detectedMaxContext && context?.token_limit) {
-                detectedMaxContext = context.token_limit;
-                debug.log(`Method 4 (context.token_limit): ${detectedMaxContext}`);
-            }
-
-            // Check if context is fully loaded
-            if (!context || !detectedMaxContext) {
-                debug.log(`WARNING: Could not detect maxContext from any path, using fallback (4096)`);
-                debug.log(`Context exists: ${!!context}, detectedMaxContext: ${detectedMaxContext}`);
-                if (context) {
-                    debug.log(`Full context object keys: ${Object.keys(context).join(', ')}`);
-                }
-                maxContext = 4096;
-                maxGenTokens = 1024;
+            if (llmConfig.source === 'ollama' && llmConfig.ollamaModel) {
+                // Get Ollama model's context size
+                maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
             } else {
-                maxContext = detectedMaxContext;
-                debug.log(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
+                // Use SillyTavern's context
+                let context = null;
+                
+                try {
+                    context = stContext.getContext();
+                } catch (error) {
+                    debug.log(`Failed to get context: ${error.message}, using fallback`);
+                    context = null;
+                }
 
-                // For our extension's background analysis, we set our own max_tokens in generateRaw()
-                // We don't use amount_gen (that's for user chat messages)
-                // Reserve a reasonable amount for our structured JSON responses
-                maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
+                // Debug: Log all context properties
+                if (context) {
+                    try {
+                        const contextKeys = Object.keys(context);
+                        const relevantKeys = contextKeys.filter(k => 
+                            k.toLowerCase().includes('max') || 
+                            k.toLowerCase().includes('context') ||
+                            k.toLowerCase().includes('token') ||
+                            k.toLowerCase().includes('prompt')
+                        );
+                        debug.log(`Available context properties: ${relevantKeys.join(', ')}`);
+                    } catch (e) {
+                        debug.log(`Error analyzing context keys: ${e.message}`);
+                    }
+                }
 
-                debug.log(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
+                // Try multiple possible paths for max context
+                let detectedMaxContext = null;
+
+                // Method 1: Direct maxContext property
+                if (context && typeof context.maxContext === 'number' && context.maxContext > 0) {
+                    detectedMaxContext = context.maxContext;
+                    debug.log(`Method 1 SUCCESS (context.maxContext): ${detectedMaxContext}`);
+                }
+
+                // Method 2: extensionSettings.common.maxContext path
+                if (!detectedMaxContext && context?.extensionSettings?.common) {
+                    if (typeof context.extensionSettings.common.maxContext === 'number' && context.extensionSettings.common.maxContext > 0) {
+                        detectedMaxContext = context.extensionSettings.common.maxContext;
+                        debug.log(`Method 2 SUCCESS (context.extensionSettings.common.maxContext): ${detectedMaxContext}`);
+                    }
+                }
+
+                // Method 3: chat.maxContextSize path
+                if (!detectedMaxContext && context?.chat && typeof context.chat === 'object' && !Array.isArray(context.chat)) {
+                    if (typeof context.chat.maxContextSize === 'number' && context.chat.maxContextSize > 0) {
+                        detectedMaxContext = context.chat.maxContextSize;
+                        debug.log(`Method 3 SUCCESS (context.chat.maxContextSize): ${detectedMaxContext}`);
+                    }
+                }
+
+                // Method 4: token_limit
+                if (!detectedMaxContext && context && typeof context.token_limit === 'number' && context.token_limit > 0) {
+                    detectedMaxContext = context.token_limit;
+                    debug.log(`Method 4 SUCCESS (context.token_limit): ${detectedMaxContext}`);
+                }
+
+                // Method 5: amount_gen (maximum generation tokens)
+                if (!detectedMaxContext && context && typeof context.amount_gen === 'number' && context.amount_gen > 0) {
+                    // amount_gen is typically small (generation limit), not context size
+                    // Use as indicator if no other value found
+                    detectedMaxContext = context.amount_gen * 4; // Rough estimate
+                    debug.log(`Method 5 FALLBACK (context.amount_gen): ${context.amount_gen}, estimated context: ${detectedMaxContext}`);
+                }
+
+                // Method 6: Check settings object directly
+                if (!detectedMaxContext && context && typeof context.settings === 'object') {
+                    if (typeof context.settings.max_context === 'number' && context.settings.max_context > 0) {
+                        detectedMaxContext = context.settings.max_context;
+                        debug.log(`Method 6 SUCCESS (context.settings.max_context): ${detectedMaxContext}`);
+                    }
+                }
+
+                // Final check: is detected value reasonable?
+                if (detectedMaxContext && (typeof detectedMaxContext !== 'number' || detectedMaxContext < 100)) {
+                    debug.log(`WARNING: Detected maxContext is not valid: ${detectedMaxContext}, type: ${typeof detectedMaxContext}`);
+                    detectedMaxContext = null;
+                }
+
+                // Check if context is fully loaded
+                if (!context || !detectedMaxContext) {
+                    debug.log(`WARNING: Could not detect maxContext from any path, using fallback (4096)`);
+                    debug.log(`Context exists: ${!!context}, detectedMaxContext: ${detectedMaxContext}`);
+                    if (context) {
+                        try {
+                            const allKeys = Object.keys(context).sort();
+                            debug.log(`Full context object keys: ${allKeys.slice(0, 20).join(', ')}${allKeys.length > 20 ? '...' : ''}`);
+                        } catch (e) {
+                            debug.log(`Could not enumerate context keys: ${e.message}`);
+                        }
+                    }
+                    maxContext = 4096;
+                    maxGenTokens = 1024;
+                } else {
+                    maxContext = Math.floor(detectedMaxContext);
+                    debug.log(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
+
+                    // For our extension's background analysis, we set our own max_tokens in generateRaw()
+                    // We don't use amount_gen (that's for user chat messages)
+                    // Reserve a reasonable amount for our structured JSON responses
+                    maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
+
+                    debug.log(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
+                }
             }
+
+            // Reserve space for: system prompt (500 tokens) + max generation (maxGenTokens) + safety margin (500)
+            const reservedTokens = 500 + maxGenTokens + 500;
+            const tokensForPrompt = Math.max(1000, maxContext - reservedTokens);
+
+            debug.log(`Token allocation: maxContext=${maxContext}, reserved=${reservedTokens}, available=${tokensForPrompt}`);
+
+            // Return at least 1000 tokens, max 50000 tokens (raised from 25000)
+            return Math.max(1000, Math.min(tokensForPrompt, 50000));
+        } catch (error) {
+            debug.log(`ERROR in getMaxPromptLength: ${error.message}`);
+            // Return conservative fallback on any error
+            return 3276; // Based on default 4096 context with reserves
         }
-
-        // Reserve space for: system prompt (500 tokens) + max generation (maxGenTokens) + safety margin (500)
-        const reservedTokens = 500 + maxGenTokens + 500;
-        const tokensForPrompt = Math.max(1000, maxContext - reservedTokens);
-
-        debug.log(`Token allocation: maxContext=${maxContext}, reserved=${reservedTokens}, available=${tokensForPrompt}`);
-
-        // Return at least 1000 tokens, max 50000 tokens (raised from 25000)
-        return Math.max(1000, Math.min(tokensForPrompt, 50000));
     });
 }
 

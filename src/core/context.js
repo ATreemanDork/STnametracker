@@ -252,6 +252,58 @@ class SillyTavernContext {
             characterId: this.getCharacterId(),
         };
     }
+
+    /**
+     * Dump entire context object to console for debugging
+     * Shows all properties and their values in a readable format
+     */
+    dumpContextToConsole() {
+        try {
+            const context = this.getContext();
+            
+            // Create a formatted dump
+            const dump = {
+                timestamp: new Date().toISOString(),
+                availableProperties: Object.keys(context),
+                fullContext: context,
+                detailedBreakdown: {}
+            };
+
+            // Add detailed breakdown of key properties
+            const keyProps = [
+                'maxContext', 'maxTokens', 'amount_gen', 'token_limit',
+                'extensionSettings', 'settings', 'chat', 'chatMetadata',
+                'characters', 'world_info', 'botId', 'characterId', 'chatId',
+                'impersonate', 'groups'
+            ];
+
+            for (const prop of keyProps) {
+                if (prop in context) {
+                    dump.detailedBreakdown[prop] = {
+                        type: typeof context[prop],
+                        value: context[prop],
+                        isNull: context[prop] === null,
+                        isUndefined: context[prop] === undefined
+                    };
+                }
+            }
+
+            // Log to console with formatting
+            console.group('%c[Name Tracker] COMPLETE CONTEXT DUMP', 'color: #00ff00; font-weight: bold; font-size: 14px;');
+            console.log('%cTimestamp:', 'color: #ffaa00; font-weight: bold;', dump.timestamp);
+            console.log('%cTotal Properties:', 'color: #ffaa00; font-weight: bold;', dump.availableProperties.length);
+            console.log('%cAll Property Names:', 'color: #00aaff; font-weight: bold;', dump.availableProperties.join(', '));
+            console.log('%cDetailed Property Breakdown:', 'color: #ff00ff; font-weight: bold;', dump.detailedBreakdown);
+            console.log('%cFull Context Object:', 'color: #00ff00; font-weight: bold;', context);
+            console.log('%cJSON Dump (for copying):', 'color: #ffff00; font-weight: bold;', JSON.stringify(dump, null, 2));
+            console.groupEnd();
+
+            return dump;
+        } catch (error) {
+            console.error('[Name Tracker] ERROR dumping context:', error);
+            throw error;
+        }
+    }
 }
 
 // Create singleton instance

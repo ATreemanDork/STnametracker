@@ -775,6 +775,10 @@ export function bindSettingsHandlers() {
             showDebugStatus();
         });
 
+        $('#name_tracker_dump_context').on('click', () => {
+            dumpContextToConsole();
+        });
+
         debug.log();
     });
 }
@@ -1004,6 +1008,34 @@ export async function loadSettingsHTML(extensionFolderPath) {
         } catch (error) {
             console.error('Failed to load settings HTML:', error);
             throw new NameTrackerError(`Failed to load settings HTML: ${error.message}`);
+        }
+    });
+}
+
+/**
+ * Dump entire SillyTavern context to console for debugging
+ * Shows all properties, values, and structure in readable format
+ * @returns {void}
+ */
+function dumpContextToConsole() {
+    return withErrorBoundary('dumpContextToConsole', () => {
+        try {
+            const dump = stContext.dumpContextToConsole();
+            notifications.success('Context dumped to console - Press F12 to view', 'Context Dump');
+            
+            // Also show a brief summary in a dialog
+            const summary = {
+                'Total Properties': dump.availableProperties.length,
+                'Key Properties Found': Object.keys(dump.detailedBreakdown).filter(k => k in dump.detailedBreakdown).length,
+                'Timestamp': dump.timestamp
+            };
+            
+            console.log('%c[Name Tracker] QUICK SUMMARY:', 'color: #ffaa00; font-weight: bold; font-size: 12px;');
+            console.table(summary);
+            
+        } catch (error) {
+            debug.log(`Failed to dump context: ${error.message}`);
+            notifications.error(`Failed to dump context: ${error.message}`, 'Context Dump');
         }
     });
 }
