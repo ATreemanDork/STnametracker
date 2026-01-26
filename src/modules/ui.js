@@ -29,10 +29,19 @@ const notifications = new NotificationManager('UI Management');
  */
 export function updateCharacterList() {
     return withErrorBoundary('updateCharacterList', () => {
-        const $container = $('#name_tracker_character_list');
+        let $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
-            debug.log();
-            return;
+            // Fallback: create a minimal container if settings HTML wasn't loaded
+            const settingsRoot = document.getElementById('extensions_settings');
+            if (settingsRoot) {
+                const placeholder = document.createElement('div');
+                placeholder.id = 'name_tracker_character_list';
+                settingsRoot.appendChild(placeholder);
+                $container = $('#name_tracker_character_list');
+            } else {
+                debug.log();
+                return;
+            }
         }
 
         const characters = getCharacters();

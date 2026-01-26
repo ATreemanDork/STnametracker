@@ -13,7 +13,7 @@ import { NotificationManager } from '../utils/notifications.js';
 import { callLLMAnalysis, buildCharacterRoster, getMaxPromptLength, calculateMessageTokens } from './llm.js';
 import { createCharacter, updateCharacter, findExistingCharacter, findPotentialMatch, isIgnoredCharacter, detectMergeOpportunities, mergeCharacters } from './characters.js';
 import { updateLorebookEntry } from './lorebook.js';
-import { updateCharacterList } from './ui.js';
+import { updateCharacterList, updateStatusDisplay } from './ui.js';
 
 const debug = createModuleLogger('processing');
 const notifications = new NotificationManager('Message Processing');
@@ -164,6 +164,7 @@ export async function processAnalysisResults(analyzedCharacters) {
         // Update the character list UI after processing all characters
         console.log('[NT-Processing] 🖥️  Updating character list UI');
         updateCharacterList();
+        updateStatusDisplay();
     });
 }
 
@@ -586,6 +587,8 @@ export async function harvestMessages(messageCount, showProgress = true) {
 
         debugLog(`[Batching] Message selection: startIdx=${startIdx}, endIdx=${endIdx}, requesting ${messageCount} messages, got ${messagesToAnalyze.length} messages`);
 
+        let processedMessages = 0;
+
         // Check if messages fit in context window
         const maxPromptResult = await getMaxPromptLength();
         const maxPromptTokens = maxPromptResult.maxPrompt;
@@ -683,6 +686,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
                         console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
                         await processAnalysisResults(analysis.characters);
                         analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                        processedMessages += batch.length;
                     } else {
                         console.warn('[NT-Batch] ⚠️  Condition failed - not processing results');
                         console.warn('[NT-Batch]    analysis:', analysis);
@@ -701,19 +705,8 @@ export async function harvestMessages(messageCount, showProgress = true) {
                     debugLog(`[BatchProcessing] Context: messages ${batchStart}-${batchEnd - 1}, batch size ${batch.length}, token count calc error`);
                     console.error(`Error processing batch ${i + 1}:`, error);
                     failedBatches++;
-
-                    // Ask user if they want to continue
-                    const continueOnError = confirm(`Batch ${i + 1} failed.
-
-Error: ${error.message}
-
-Continue with remaining batches?`);
-                    if (!continueOnError) {
-                        debugLog(`[BatchProcessing] User chose not to continue after error on batch ${i + 1}/${batches.length}`);
-                        break;
-                    } else {
-                        debugLog(`[BatchProcessing] User chose to continue despite error on batch ${i + 1}/${batches.length}`);
-                    }
+                    notifications.error(`Batch ${i + 1} failed: ${error.message}`);
+                    // Continue to next batch automatically to avoid blocking popups
                 }
             }
 
@@ -733,6 +726,14 @@ Failed batches: ${failedBatches}`;
                 notifications.warning(summary, 'Batch Analysis', { timeOut: 8000 });
             } else {
                 notifications.success(summary, 'Batch Analysis', { timeOut: 8000 });
+            }
+
+            // Persist scan progress and update UI
+            if (processedMessages > 0) {
+                const existingCount = get_settings('messageCounter', 0);
+                set_settings('messageCounter', existingCount + processedMessages);
+                set_settings('lastScannedMessageId', endIdx - 1);
+                updateStatusDisplay();
             }
 
             return;
@@ -755,6 +756,7 @@ Failed batches: ${failedBatches}`;
             // Process the analysis
             if (analysis.characters && Array.isArray(analysis.characters)) {
                 await processAnalysisResults(analysis.characters);
+                processedMessages += messagesToAnalyze.length;
 
                 if (showProgress) {
                     notifications.success(`Found ${analysis.characters.length} character(s) in messages`);
@@ -766,6 +768,14 @@ Failed batches: ${failedBatches}`;
         } catch (error) {
             console.error('Error during harvest:', error);
             notifications.error(`Analysis failed: ${error.message}`);
+        }
+
+        // Persist scan progress and update UI
+        if (processedMessages > 0) {
+            const existingCount = get_settings('messageCounter', 0);
+            set_settings('messageCounter', existingCount + processedMessages);
+            set_settings('lastScannedMessageId', endIdx - 1);
+            updateStatusDisplay();
         }
     });
 }
@@ -990,6 +1000,7 @@ export async function scanEntireChat() {
 
         let successfulBatches = 0;
         let failedBatches = 0;
+        let processedMessages = 0;
         const uniqueCharacters = new Set(); // Track unique character names
 
         // Process from oldest to newest
@@ -1020,6 +1031,7 @@ export async function scanEntireChat() {
                     await processAnalysisResults(analysis.characters);
                     // Track unique characters
                     analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                    processedMessages += batchMessages.length;
                 }
 
                 successfulBatches++;
@@ -1032,16 +1044,8 @@ export async function scanEntireChat() {
             } catch (error) {
                 console.error(`Error processing batch ${i + 1}:`, error);
                 failedBatches++;
-
-                // Auto-retry logic could be added here
-                const continueOnError = confirm(`Batch ${i + 1} failed.
-
-Error: ${error.message}
-
-Continue with remaining batches?`);
-                if (!continueOnError) {
-                    break;
-                }
+                notifications.error(`Batch ${i + 1} failed: ${error.message}`);
+                // Continue to next batch automatically to avoid blocking popups
             }
         }
 
@@ -1050,6 +1054,12 @@ Continue with remaining batches?`);
 
         // Update scan completion status
         set_settings('lastScannedMessageId', totalMessages - 1);
+
+        if (processedMessages > 0) {
+            const existingCount = get_settings('messageCounter', 0);
+            set_settings('messageCounter', existingCount + processedMessages);
+            updateStatusDisplay();
+        }
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
@@ -1121,6 +1131,8 @@ export async function onChatChanged() {
         // Reset scan state
         set_settings('lastScannedMessageId', -1);
         set_settings('messageCounter', 0);
+
+        updateStatusDisplay();
 
         debug.log();
     });

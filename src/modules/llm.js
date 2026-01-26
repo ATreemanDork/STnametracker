@@ -508,7 +508,7 @@ export async function calculateMessageTokens(messages) {
  * @param {string} prefill - Optional response prefill (e.g., "{" to force JSON)
  * @returns {Promise<Object>} Parsed JSON response
  */
-export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
+export async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive = false) {
     return withErrorBoundary('callSillyTavern', async () => {
         debug.log();
 
@@ -662,19 +662,26 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '') {
             }
         }
 
-        // All retries failed - prompt user
-        const shouldContinue = confirm(
-            `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
-            `Last error: ${lastError.message}\n\n` +
-            'Check console for detailed logs. Continue processing remaining batches?',
-        );
+        // All retries failed
+        if (interactive) {
+            const shouldContinue = confirm(
+                `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
+                `Last error: ${lastError.message}\n\n` +
+                'Check console for detailed logs. Continue processing remaining batches?',
+            );
 
-        if (!shouldContinue) {
-            throw new NameTrackerError('User aborted after parse failures');
+            if (!shouldContinue) {
+                throw new NameTrackerError('User aborted after parse failures');
+            }
+            // Return empty result if user wants to continue
+            return { characters: [] };
         }
 
-        // Return empty result if user wants to continue
-        return { characters: [] };
+        // Non-interactive mode: throw to allow outer logic to retry/split
+        const err = new NameTrackerError('Failed to parse LLM response as JSON (non-interactive mode)');
+        err.code = 'JSON_PARSE_FAILED';
+        err.lastError = lastError;
+        throw err;
     });
 }
 
@@ -1043,7 +1050,8 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
                 const flatPrompt = systemMessage + '\n\n' + userPrompt + '\n' + prefill;
                 result = await callOllama(flatPrompt);
             } else {
-                result = await callSillyTavern(systemMessage, userPrompt, prefill);
+                // Use non-interactive mode so outer logic can handle retries/splitting
+                result = await callSillyTavern(systemMessage, userPrompt, prefill, false);
             }
         } catch (error) {
             const isRetryable = error.message.includes('JSON')

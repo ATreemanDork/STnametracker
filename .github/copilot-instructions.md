@@ -42,6 +42,8 @@ npm run lint      # ESLint validation
 
 ## Testing & Validation
 
+Always run the unit/validation tests before any integration test to ensure coding work is complete and stable before end-to-end runs.
+
 ### Pre-Development Validation
 
 Before making ANY code edits to modular files, run the validation scripts:

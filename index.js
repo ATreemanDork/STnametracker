@@ -4108,7 +4108,7 @@ async function calculateMessageTokens(messages) {
  * @param {string} prefill - Optional response prefill (e.g., "{" to force JSON)
  * @returns {Promise<Object>} Parsed JSON response
  */
-async function callSillyTavern(systemPrompt, prompt, prefill = '') {
+async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive = false) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callSillyTavern', async () => {
         debug.log();
 
@@ -4262,19 +4262,26 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '') {
             }
         }
 
-        // All retries failed - prompt user
-        const shouldContinue = confirm(
-            `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
-            `Last error: ${lastError.message}\n\n` +
-            'Check console for detailed logs. Continue processing remaining batches?',
-        );
+        // All retries failed
+        if (interactive) {
+            const shouldContinue = confirm(
+                `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
+                `Last error: ${lastError.message}\n\n` +
+                'Check console for detailed logs. Continue processing remaining batches?',
+            );
 
-        if (!shouldContinue) {
-            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('User aborted after parse failures');
+            if (!shouldContinue) {
+                throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('User aborted after parse failures');
+            }
+            // Return empty result if user wants to continue
+            return { characters: [] };
         }
 
-        // Return empty result if user wants to continue
-        return { characters: [] };
+        // Non-interactive mode: throw to allow outer logic to retry/split
+        const err = new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('Failed to parse LLM response as JSON (non-interactive mode)');
+        err.code = 'JSON_PARSE_FAILED';
+        err.lastError = lastError;
+        throw err;
     });
 }
 
@@ -4643,7 +4650,8 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
                 const flatPrompt = systemMessage + '\n\n' + userPrompt + '\n' + prefill;
                 result = await callOllama(flatPrompt);
             } else {
-                result = await callSillyTavern(systemMessage, userPrompt, prefill);
+                // Use non-interactive mode so outer logic can handle retries/splitting
+                result = await callSillyTavern(systemMessage, userPrompt, prefill, false);
             }
         } catch (error) {
             const isRetryable = error.message.includes('JSON')
@@ -5396,10 +5404,17 @@ const ui_notifications = new notifications/* NotificationManager */.h('UI Manage
  */
 function updateCharacterList() {
     return (0,errors/* withErrorBoundary */.Xc)('updateCharacterList', () => {
-        const $container = $('#name_tracker_character_list');
+        let $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
-            ui_debug.log();
-            return;
+            // Fallback: create a minimal container if settings HTML wasn't loaded
+            const $settings = $('#extensions_settings');
+            if ($settings.length > 0) {
+                $settings.append('<div id="name_tracker_character_list"></div>');
+                $container = $('#name_tracker_character_list');
+            } else {
+                ui_debug.log();
+                return;
+            }
         }
 
         const characters = (0,core_settings/* getCharacters */.bg)();
