@@ -181,7 +181,8 @@ async function processCharacterData(analyzedChar) {
         console.log('[NT-CharData]    Character name:', characterName);
 
         // Check if character is ignored
-        if (isIgnoredCharacter(characterName)) {
+        const isIgnored = await isIgnoredCharacter(characterName);
+        if (isIgnored) {
             console.log('[NT-CharData] ⏭️  Character is ignored, skipping:', characterName);
             debug.log();
             return;
