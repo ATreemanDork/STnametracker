@@ -744,68 +744,114 @@ export async function callOllama(prompt) {
  */
 export function parseJSONResponse(text) {
     return withErrorBoundary('parseJSONResponse', () => {
-        console.log('[NT-Parse] Starting JSON parse, input type:', typeof text, 'length:', text ? text.length : 'null');
+        console.log('[NT-Parse] ========== PARSE START ==========');
+        console.log('[NT-Parse] Input type:', typeof text);
+        console.log('[NT-Parse] Input is null?:', text === null);
+        console.log('[NT-Parse] Input is undefined?:', text === undefined);
+        
+        if (typeof text === 'object' && text !== null) {
+            console.log('[NT-Parse] Input is an OBJECT (not string). Keys:', Object.keys(text));
+            console.log('[NT-Parse] Full object:', JSON.stringify(text).substring(0, 500));
+            
+            // If it's already an object with characters, return it
+            if (text.characters && Array.isArray(text.characters)) {
+                console.log('[NT-Parse] Object already has characters array, returning as-is');
+                return text;
+            }
+        }
+        
+        console.log('[NT-Parse] Input length:', text ? text.length : 'null');
+        if (text && typeof text === 'string') {
+            console.log('[NT-Parse] First 300 chars:', text.substring(0, 300));
+            console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
+        }
         
         if (!text || typeof text !== 'string') {
-            console.error('[NT-Parse] Invalid response text - not a string:', text);
+            console.error('[NT-Parse] ❌ INVALID: Response is not a string:', typeof text);
+            console.error('[NT-Parse] ❌ Response value:', text);
             throw new NameTrackerError('LLM returned empty or invalid response');
         }
 
         // Remove any leading/trailing whitespace
         text = text.trim();
         console.log('[NT-Parse] After trim, length:', text.length);
-        console.log('[NT-Parse] Content preview:', text.substring(0, 100));
+        if (text.length === 0) {
+            console.error('[NT-Parse] ❌ Text is empty after trim');
+            throw new NameTrackerError('LLM returned empty response');
+        }
 
         // Try to extract JSON from markdown code blocks (```json or ```)
-        const jsonMatch = text.match(/```(?:json)?\\s*([\\s\\S]*?)```/);
+        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (jsonMatch) {
             console.log('[NT-Parse] Found markdown code block, extracting JSON');
             text = jsonMatch[1].trim();
+            console.log('[NT-Parse] After markdown extraction, length:', text.length);
         }
 
         // Try to find JSON object in the text (look for first { to last })
         const firstBrace = text.indexOf('{');
         const lastBrace = text.lastIndexOf('}');
 
-        console.log('[NT-Parse] First brace at:', firstBrace, 'Last brace at:', lastBrace);
+        console.log('[NT-Parse] Brace search: first={' + firstBrace + ', last=' + lastBrace + '}');
 
         if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            text = text.substring(firstBrace, lastBrace + 1);
-            console.log('[NT-Parse] Extracted JSON range, new length:', text.length);
+            const beforeText = text.substring(0, firstBrace);
+            const jsonText = text.substring(firstBrace, lastBrace + 1);
+            const afterText = text.substring(lastBrace + 1);
+            
+            console.log('[NT-Parse] Text before JSON:', beforeText.substring(0, 100));
+            console.log('[NT-Parse] Extracted JSON length:', jsonText.length);
+            console.log('[NT-Parse] Text after JSON:', afterText.substring(0, 100));
+            
+            text = jsonText;
         }
 
         // Remove common prefixes that LLMs add
-        text = text.replace(/^(?:Here's the analysis:|Here is the JSON:|Result:|Output:)\\s*/i, '');
+        text = text.replace(/^(?:Here's the analysis:|Here is the JSON:|Result:|Output:)\s*/i, '');
 
         // Clean up common formatting issues
         text = text.trim();
 
-        console.log('[NT-Parse] Before JSON.parse, text length:', text.length);
-        console.log('[NT-Parse] Text for parsing:', text.substring(0, 200));
+        console.log('[NT-Parse] Before JSON.parse, length:', text.length);
+        console.log('[NT-Parse] First 200 chars:', text.substring(0, 200));
+        console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
 
         try {
+            console.log('[NT-Parse] Attempting JSON.parse...');
             const parsed = JSON.parse(text);
 
-            console.log('[NT-Parse] Successfully parsed JSON');
-            console.log('[NT-Parse] Parsed object keys:', Object.keys(parsed));
+            console.log('[NT-Parse] ✅ Successfully parsed JSON');
+            console.log('[NT-Parse] Parsed type:', typeof parsed);
+            console.log('[NT-Parse] Parsed keys:', Object.keys(parsed));
+            console.log('[NT-Parse] Full parsed object:', JSON.stringify(parsed).substring(0, 500));
             
             // Validate structure
+            if (!parsed.characters) {
+                console.warn('[NT-Parse] ⚠️  parsed.characters is undefined or null');
+                console.warn('[NT-Parse] Available keys in object:', Object.keys(parsed));
+            } else if (!Array.isArray(parsed.characters)) {
+                console.warn('[NT-Parse] ⚠️  parsed.characters exists but is NOT an array. Type:', typeof parsed.characters);
+                console.warn('[NT-Parse] Value:', parsed.characters);
+            }
+            
             if (!parsed.characters || !Array.isArray(parsed.characters)) {
-                console.warn('[NT-Parse] Response missing characters array, returning empty');
-                console.warn('[NT-Parse] Parsed object:', parsed);
+                console.warn('[NT-Parse] ❌ Response missing characters array, returning empty');
+                console.warn('[NT-Parse] Full parsed object:', parsed);
                 return { characters: [] };
             }
 
-            console.log('[NT-Parse] Valid response with', parsed.characters.length, 'characters');
+            console.log('[NT-Parse] ✅ Valid response with', parsed.characters.length, 'characters');
+            console.log('[NT-Parse] ========== PARSE END (SUCCESS) ==========');
             return parsed;
         } catch (error) {
-            console.error('[NT-Parse] JSON.parse failed:', error.message);
-            console.error('[NT-Parse] Failed text:', text.substring(0, 500));
+            console.error('[NT-Parse] ❌ JSON.parse failed:', error.message);
+            console.error('[NT-Parse] ❌ Error at position:', error.name);
+            console.log('[NT-Parse] Text being parsed (first 500 chars):', text.substring(0, 500));
+            console.log('[NT-Parse] Text being parsed (last 200 chars):', text.substring(Math.max(0, text.length - 200)));
 
             // Check if response was truncated (common issue with long responses)
             if (text.includes('"characters"') && !text.trim().endsWith('}')) {
-                debug.log();
-                debug.log();
+                console.log('[NT-Parse] Detected truncated response, attempting recovery...');
 
                 // Try to salvage partial data by attempting to close the JSON
                 let salvaged = text;
@@ -816,11 +862,12 @@ export function parseJSONResponse(text) {
                 const openBrackets = (text.match(/\[/g) || []).length;
                 const closeBrackets = (text.match(/\]/g) || []).length;
 
-                console.log('[NT-Parse] Attempting recovery - open braces:', openBraces, 'closed:', closeBraces);
+                console.log('[NT-Parse] Recovery attempt - braces: open=' + openBraces + ' close=' + closeBraces + ', brackets: open=' + openBrackets + ' close=' + closeBrackets);
 
                 // Try to close incomplete strings and objects
                 if (salvaged.match(/"[^"]*$/)) {
                     // Has unclosed quote
+                    console.log('[NT-Parse] Adding closing quote');
                     salvaged += '"';
                 }
 
@@ -832,19 +879,21 @@ export function parseJSONResponse(text) {
                     salvaged += '}';
                 }
 
-                console.log('[NT-Parse] Attempting to parse salvaged content');
+                console.log('[NT-Parse] Salvaged text length:', salvaged.length);
+                console.log('[NT-Parse] Attempting to parse salvaged content...');
 
                 try {
                     const recovered = JSON.parse(salvaged);
-                    console.log('[NT-Parse] Successfully recovered JSON with', recovered.characters?.length || 0, 'characters');
-                    debug.log();
+                    console.log('[NT-Parse] ✅ Successfully recovered JSON with', recovered.characters?.length || 0, 'characters');
+                    console.log('[NT-Parse] ========== PARSE END (RECOVERED) ==========');
                     return recovered;
                 } catch (e) {
-                    console.error('[NT-Parse] Recovery failed:', e.message);
-                    debug.log();
+                    console.error('[NT-Parse] ❌ Recovery failed:', e.message);
+                    console.error('[NT-Parse] Salvaged text (first 500):', salvaged.substring(0, 500));
                 }
             }
 
+            console.log('[NT-Parse] ========== PARSE END (FAILED) ==========');
             throw new NameTrackerError('Failed to parse LLM response as JSON. The response may be too long or truncated. Try analyzing fewer messages at once.');
         }
     });
