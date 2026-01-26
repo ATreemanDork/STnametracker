@@ -590,6 +590,9 @@ export async function callSillyTavern(prompt) {
         console.log('[NT-ST-Call] Starting SillyTavern LLM call');
         console.log('[NT-ST-Call] Prompt length:', prompt.length, 'characters');
         console.log('[NT-ST-Call] Prompt preview:', prompt.substring(0, 200) + '...');
+        console.log('[NT-ST-Call] ========== FULL PROMPT START ==========');
+        console.log(prompt);
+        console.log('[NT-ST-Call] ========== FULL PROMPT END ==========');
 
         // Get token count for the prompt
 
@@ -649,6 +652,9 @@ export async function callSillyTavern(prompt) {
         if (result) {
             console.log('[NT-ST-Call] Raw result preview:', result.substring(0, 300));
         }
+        console.log('[NT-ST-Call] ========== FULL RESPONSE START ==========');
+        console.log(result);
+        console.log('[NT-ST-Call] ========== FULL RESPONSE END ==========');
         debug.log();
 
         // The result should be a string

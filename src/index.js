@@ -334,7 +334,12 @@ jQuery(async () => {
         }
         console.log('[STnametracker] Current extension_settings keys:', Object.keys(window.extension_settings));
         window.extension_settings[extensionName] = window.extension_settings[extensionName] || {};
-        console.log('[STnametracker] Extension settings initialized');
+        
+        // Call get_settings() to trigger default merge
+        console.log('[STnametracker] Initializing defaults...');
+        const initialSettings = get_settings();
+        console.log('[STnametracker] Settings initialized with defaults. llmSource:', initialSettings.llmSource);
+        console.log('[STnametracker] Extension settings keys after init:', Object.keys(window.extension_settings[extensionName]));
 
         console.log('[STnametracker] Starting main initialization...');
         await nameTrackerExtension.initialize();
