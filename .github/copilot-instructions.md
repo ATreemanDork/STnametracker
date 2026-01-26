@@ -40,6 +40,36 @@ npm run dev       # Development build with watch
 npm run lint      # ESLint validation
 ```
 
+## Testing & Validation
+
+### Pre-Development Validation
+
+Before making ANY code edits to modular files, run the validation scripts:
+
+```bash
+# Validate interface consistency
+node validate-interfaces.js
+
+# Check async/await patterns
+node tests/validate-async-await.js
+
+# Verify method signatures
+node tests/validate-method-calls.js
+```
+
+All three must pass before starting development work.
+
+### Quick Validation Checklist
+
+- [ ] Run `node validate-interfaces.js` - all interfaces match
+- [ ] Run `node tests/validate-async-await.js` - all async calls awaited
+- [ ] Run `node tests/validate-method-calls.js` - all methods exist
+- [ ] `npm run build` succeeds
+- [ ] No webpack errors or warnings
+- [ ] All console log statements in place for debugging
+
+**See `tests/README.md` for detailed validation script usage and integration with git hooks.**
+
 ## MANDATORY PRE-EDIT VALIDATION
 
 **⚠️ CRITICAL REQUIREMENT: Before making ANY code edits, you MUST validate interfaces to avoid assumption-based errors.**
@@ -252,6 +282,42 @@ function debugLog(message) {
 - **Race conditions**: Use `isProcessing` flag for LLM calls  
 - **Data loss**: Always call `saveChatData()` after character updates
 - **UI sync**: Call `updateUI()` and `updateCharacterList()` after setting changes
+
+## Troubleshooting & Known Issues
+
+### Async/Await Patterns
+- **Issue:** Functions wrapped with `withErrorBoundary()` are async even if callback is sync
+- **Solution:** Always await calls to functions using `withErrorBoundary()`
+- **Reference:** `tests/validate-async-await.js` enforces this pattern
+
+### Context Detection
+- **Issue:** `getContext()` may be null if SillyTavern not fully loaded
+- **Solution:** Always check context availability; use error boundaries
+- **Pattern:** See `src/core/context.js` for safe context access patterns
+
+### Batch Processing
+For understanding message batch calculations:
+- `startIdx`: First message to include
+- `endIdx`: Last message (exclusive)
+- Message frequency affects batch size automatically
+- Context window limits split messages into sub-batches
+
+### Lorebook Updates
+- **Issue:** Character name changes can create orphaned entries
+- **Solution:** `updateLorebookEntry()` cleans up orphaned entries automatically
+- **Mechanism:** Scans for entries with matching keys, removes non-current IDs
+
+### Character List UI Updates
+- **Issue:** Characters created but not displayed in UI panel
+- **Solution:** Always call `updateCharacterList()` after processing characters
+- **Pattern:** Call at end of `analyzeMessages()` or `processCharacterData()` loops
+
+### Debug Logging
+Enable with `get_settings('debugMode')`:
+- Module-specific logging via `createModuleLogger()`
+- Performance monitoring via `debug.time()` / `debug.timeEnd()`
+- Operation tracing for async operations
+- All logs prefixed with `[NT-*]` for easy filtering
 
 ## Essential SillyTavern Extension References
 

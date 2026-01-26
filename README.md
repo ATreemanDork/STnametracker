@@ -43,6 +43,86 @@ Name Tracker automatically analyzes your chat messages to build detailed charact
 - **Batch Scanning**: Progress bars and abort controls for long scans
 - **Debug Mode**: Comprehensive console logging for troubleshooting
 
+## Architecture
+
+### Modular Design (v2.1.0+)
+The extension uses a modern modular architecture with Webpack bundling:
+
+**Core Modules:**
+- `src/core/context.js` - SillyTavern API wrapper with error handling
+- `src/core/settings.js` - Configuration and chat metadata management
+- `src/core/debug.js` - Module-specific logging and performance monitoring
+- `src/core/errors.js` - Error boundaries and graceful degradation
+
+**Feature Modules:**
+- `src/modules/characters.js` - Character CRUD operations and merging logic
+- `src/modules/llm.js` - LLM integration (SillyTavern + Ollama with context management)
+- `src/modules/lorebook.js` - Chat-level lorebook creation and entry management
+- `src/modules/processing.js` - Two-phase message detection and batch analysis
+- `src/modules/ui.js` - Settings panel and character list UI components
+
+**Utility Layer:**
+- `src/utils/helpers.js` - Common functions (HTML escaping, hashing, normalization)
+- `src/utils/notifications.js` - Centralized toast notifications
+
+**Build System:**
+- Webpack combines all modules into single `index.js` output
+- ESLint ensures code quality and SillyTavern compatibility
+- Source maps enable debugging in production
+
+For detailed architecture documentation: see `.github/copilot-instructions.md`
+
+## Development & Testing
+
+### Running Validation Scripts
+
+The extension includes validation scripts to ensure code quality:
+
+```bash
+# Validate module import/export consistency
+node validate-interfaces.js
+
+# Check async/await patterns
+node tests/validate-async-await.js
+
+# Verify method signatures
+node tests/validate-method-calls.js
+
+# Run all validations
+npm run validate:all  # (if configured in package.json)
+```
+
+See `tests/README.md` for detailed usage and integration with git hooks.
+
+### Building for Development
+
+```bash
+# Production build
+npm run build
+
+# Development build with watch mode
+npm run dev
+
+# Code quality check
+npm run lint
+```
+
+### Debug Mode
+
+In extension settings panel:
+1. Enable "Debug Mode" checkbox
+2. Open browser console (F12)
+3. Watch real-time processing logs with `[NT-*]` prefix
+
+Console output shows:
+- Message analysis with character detection
+- LLM API calls and responses
+- Lorebook entry creation/updates
+- Character merging operations
+- UI state changes
+
+Detailed debugging guide: see `.github/copilot-instructions.md`
+
 ## Installation
 
 1. Download or clone this repository
@@ -285,6 +365,46 @@ Inspired by and learned from:
 For issues, suggestions, or contributions:
 - GitHub Issues: [https://github.com/ATreemanDork/STnametracker/issues](https://github.com/ATreemanDork/STnametracker/issues)
 - SillyTavern Discord: Tag @ATreemanDork
+
+## Migration from v2.0 (Monolith)
+
+### What Changed
+- **v2.0:** Single 3000+ line monolith file (`index.js`)
+- **v2.1.0+:** Modular architecture with ES6 modules + Webpack bundling
+
+### Why Modularize
+- **Maintainability:** Smaller, focused files (200-500 lines each) easier to understand
+- **Testability:** Individual modules can be validated independently
+- **Scalability:** Simple to add new features without touching existing code
+- **Debugging:** Module-specific logging and error boundaries
+- **Developer Experience:** Clear separation of concerns, easier onboarding
+
+### Key Improvements
+- Better error handling with error boundaries for each operation
+- Module-specific debug logging with `[NT-*]` prefixes
+- Improved async/await patterns with mandatory validation
+- Cleaner separation of concerns (core, features, utils)
+- Source maps for production debugging
+
+### For Existing Users
+**No changes to functionality!** All features from v2.0 are preserved:
+- Character tracking and analysis
+- LLM integration (SillyTavern + Ollama)
+- Lorebook entry management
+- Message batching and processing
+- Character merging with undo
+- All configuration options
+
+Data saved with v2.0 loads automatically in v2.1.0+.
+
+### For Developers
+Internal architecture is significantly different, but public API is unchanged:
+- Module files in `src/` instead of monolith
+- Import/export statements instead of global functions
+- Better encapsulation of internal logic
+- Validation scripts enforce code quality
+
+See `.github/copilot-instructions.md` for detailed developer documentation.
 
 ## Version History
 
