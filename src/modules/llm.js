@@ -106,8 +106,8 @@ REQUIRED JSON structure (copy this exact format):
 {
   "characters": [
     {
-      "name": "Full character name (one person only)",
-      "aliases": ["Other names and nicknames for THIS SAME person"],
+      "name": "Full character name (SINGLE NAME ONLY - never include aliases here)",
+      "aliases": ["Alternative names for THIS SAME person - nicknames, shortened names, titles"],
       "physicalAge": "Age if mentioned",
       "mentalAge": "Mental age if different",
       "physical": "Physical description",
@@ -115,11 +115,43 @@ REQUIRED JSON structure (copy this exact format):
       "sexuality": "Sexual orientation if mentioned",
       "raceEthnicity": "Race/ethnicity if mentioned",
       "roleSkills": "Job/role/skills",
-      "relationships": ["Relationships with other characters"],
+      "relationships": ["currentchar, otherchar, relationship"],
       "confidence": 75
     }
   ]
 }
+
+CRITICAL FIELD SPECIFICATIONS:
+
+NAME FIELD RULES:
+- Use the MOST COMPLETE proper name mentioned (e.g., "John Blackwood")
+- NEVER include commas, slashes, or multiple names in the name field
+- NEVER combine name + alias (❌ "John Blackwood, John" ❌ "John/Scout")
+- If only a first name is known, use just that ("John")
+
+ALIASES FIELD RULES:
+- Include ALL other ways this character is referred to
+- Nicknames, shortened names, titles, alternative spellings
+- Examples: ["John", "Scout", "JB", "Mr. Blackwood"]
+
+RELATIONSHIPS FIELD - STRICT TRIPLET FORMAT ONLY:
+MANDATORY FORMAT: "currentchar, otherchar, relationship"
+
+✅ CORRECT examples:
+- "John, Julia, son" (John is Julia's son)
+- "Sarah, John, rival" (Sarah is John's rival)  
+- "Maria, Alex, sister" (Maria is Alex's sister)
+- "John, Bill, friend" (John is Bill's friend)
+
+❌ FORBIDDEN - NO narrative text:
+- "Living in luxury penthouse since age 17"
+- "Writing under 6 different pen names"
+- "Leader of the current group seeking safety"
+- "Takes charge of organizing rescue mission"
+- "Offering shelter and guidance to others"
+
+CRITICAL: Relationships describe WHO this character is TO other characters, not actions, events, background, or history.
+Only include direct interpersonal connections: family, romantic, friendship, professional, rivalry relationships.
 
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.
@@ -131,11 +163,21 @@ Rules:
 - Empty array if no clear characters: {"characters":[]}
 - Confidence: 90+ (explicit), 70-89 (clear), 50-69 (mentioned), <50 (vague).
 
-Examples (correct vs wrong):
-- ✅ {"name":"John Blackwell","aliases":["John","Scout"]}
-- ❌ {"name":"John/Scout"}
-- ✅ [{"name":"Jade"},{"name":"Jesse"}]
-- ❌ {"name":"Jade and Jesse"}
+FIELD EXAMPLES:
+
+NAME EXAMPLES:
+✅ "John Blackwood" (not "John Blackwood, John")
+✅ "Maria Santos" (not "Maria/Marie")  
+✅ "Alex" (when full name unknown)
+
+ALIAS EXAMPLES:
+✅ ["John", "Scout", "JB"] 
+✅ ["Marie", "Maria"]
+✅ ["Mom", "Mother", "Sarah"]
+
+RELATIONSHIP TRIPLET EXAMPLES:
+✅ ["John, Julia, son", "Sarah, John, rival", "Maria, Alex, sister"]
+❌ ["Lives in penthouse", "Writing novels", "Leading group", "Met at bar"]
 
 Your response must start with { immediately.`;
 
