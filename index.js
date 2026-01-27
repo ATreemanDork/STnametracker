@@ -5249,7 +5249,20 @@ function repairJSON(text) {
         return `"${cleaned}"`;
     });
 
-    // 5. Fix trailing commas before closing brackets/braces
+    // 5. Remove error messages that get mixed into JSON
+    repaired = repaired.replace(/,\s*"[^"]*I'm sorry for[^"]*"/gi, '');
+    repaired = repaired.replace(/,\s*"[^"]*encountered a problem[^"]*"/gi, '');
+    repaired = repaired.replace(/,\s*"[^"]*Please try again[^"]*"/gi, '');
+    repaired = repaired.replace(/"[^"]*I'm sorry[^"]*"\s*,/gi, '');
+    
+    // Remove property names that are error messages (missing opening quote)
+    repaired = repaired.replace(/,\s*[A-Za-z]+"\s*:\s*"[^"]*I'm sorry[^"]*/gi, '');
+
+    // 6. Fix missing quotes around property names (critical fix)
+    // Pattern: ,Affected": or }Affected": (missing opening quote)
+    repaired = repaired.replace(/([,{]\s*)([A-Za-z_][A-Za-z0-9_]*)("):/g, '$1"$2$3:');
+
+    // 7. Fix trailing commas before closing brackets/braces
     repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
 
     // 6. Fix missing colons after property names  
@@ -5310,6 +5323,19 @@ function parseJSONResponse(text) {
             throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('LLM returned empty or invalid response');
         }
 
+        // CRITICAL: Unescape JSON-escaped string from SillyTavern
+        // The API returns escaped JSON string that needs to be unescaped first
+        try {
+            // If text looks like a JSON-escaped string, unescape it
+            if (text.includes('\\n') || text.includes('\\"')) {
+                console.log('[NT-Parse] 🔧 Unescaping JSON-encoded string from SillyTavern');
+                text = JSON.parse('"' + text.replace(/"/g, '\\"') + '"');
+                console.log('[NT-Parse] ✅ Successfully unescaped response');
+            }
+        } catch (unescapeError) {
+            console.log('[NT-Parse] ⚠️ Could not unescape response, proceeding with raw text');
+        }
+
         // Remove any leading/trailing whitespace
         text = text.trim();
         console.log('[NT-Parse] After trim, length:', text.length);
@@ -5339,6 +5365,12 @@ function parseJSONResponse(text) {
             const originalLength = text.length;
             text = text.replace(/<[^>]*>/g, '');
             console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
+        }
+        
+        // Check if response contains obvious error messages
+        if (text.includes("I'm sorry") || text.includes("encountered a problem") || text.includes("Please try again")) {
+            console.error(`[NT-Parse] 🚨 Response contains error message: "${text.substring(0, 200)}"`);
+            throw new Error('LLM generated an error response instead of JSON. Try adjusting your request.');
         }
         
         // Check if response is completely non-JSON (like pure XML tags or text)
