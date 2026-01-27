@@ -69,6 +69,13 @@ let ollamaModels = []; // Available Ollama models
  */
 const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
 
+[CURRENT LOREBOOK ENTRIES]
+The following characters have already been identified. Their information is shown in lorebook format (keys + content).
+If a character appears in the new messages with additional/changed information, include them in your response.
+If a character is NOT mentioned or has no new information, do NOT include them in your response.
+
+{{CHARACTER_ROSTER}}
+
 CRITICAL JSON REQUIREMENTS:
 - Your ENTIRE response must be valid JSON starting with { and ending with }
 - ALL property names MUST use double quotes: "name", "aliases", etc.
@@ -77,6 +84,8 @@ CRITICAL JSON REQUIREMENTS:
 - NO trailing commas before } or ]
 - EVERY property must have a colon: "name": "value" (not "name" "value")
 - NO markdown, NO explanations, NO text before or after the JSON
+- ONLY include characters mentioned in these specific messages or with new information
+- DO NOT repeat unchanged characters from the Current Lorebook Entries
 
 DO NOT include:
 - Any text before the JSON
@@ -228,8 +237,9 @@ export async function getOllamaModelContext(modelName) {
 }
 
 /**
- * Build a roster of known characters for context
- * @returns {string} Formatted roster text
+ * Build a roster of known characters in lorebook format for context
+ * Returns keys and formatted content fields to support incremental updates
+ * @returns {string} Formatted roster text with lorebook entries
  */
 export async function buildCharacterRoster() {
     return withErrorBoundary('buildCharacterRoster', async () => {
@@ -237,21 +247,73 @@ export async function buildCharacterRoster() {
         const characterNames = Object.keys(characters);
 
         if (characterNames.length === 0) {
-            return '';
+            return '(None - this is the first analysis)';
         }
 
-        const roster = characterNames.map(name => {
+        const entries = characterNames.map(name => {
             const char = characters[name];
-            const aliases = char.aliases && char.aliases.length > 0
-                ? ` (also known as: ${char.aliases.join(', ')})`
-                : '';
-            const relationships = char.relationships && char.relationships.length > 0
-                ? `\\n    Relationships: ${char.relationships.join('; ')}`
-                : '';
-            return `  - ${name}${aliases}${relationships}`;
+            
+            // Build keys array (name + aliases)
+            const keys = [char.preferredName || name];
+            if (char.aliases && char.aliases.length > 0) {
+                keys.push(...char.aliases);
+            }
+            
+            // Build formatted content (same format as lorebook)
+            const contentParts = [];
+            
+            // Age info
+            if (char.physicalAge || char.mentalAge) {
+                const ageInfo = [];
+                if (char.physicalAge) ageInfo.push(`Physical: ${char.physicalAge}`);
+                if (char.mentalAge) ageInfo.push(`Mental: ${char.mentalAge}`);
+                contentParts.push(`**Age:** ${ageInfo.join(', ')}`);
+            }
+            
+            // Physical
+            if (char.physical) {
+                contentParts.push(`\\n**Physical Description:**\\n${char.physical}`);
+            }
+            
+            // Personality
+            if (char.personality) {
+                contentParts.push(`\\n**Personality:**\\n${char.personality}`);
+            }
+            
+            // Sexuality
+            if (char.sexuality) {
+                contentParts.push(`\\n**Sexuality:**\\n${char.sexuality}`);
+            }
+            
+            // Race/Ethnicity
+            if (char.raceEthnicity) {
+                contentParts.push(`**Race/Ethnicity:** ${char.raceEthnicity}`);
+            }
+            
+            // Role & Skills
+            if (char.roleSkills) {
+                contentParts.push(`\\n**Role & Skills:**\\n${char.roleSkills}`);
+            }
+            
+            // Relationships
+            if (char.relationships && char.relationships.length > 0) {
+                contentParts.push('\\n**Relationships:**');
+                char.relationships.forEach(rel => {
+                    contentParts.push(`- ${rel}`);
+                });
+            }
+            
+            const content = contentParts.join('\\n');
+            
+            return `
+---
+KEYS: ${keys.join(', ')}
+CONTENT:
+${content}
+`;
         }).join('\\n');
 
-        return `\\n\\n[KNOWN CHARACTERS]\\nThe following characters have already been identified. If you encounter them again, use the same name and add any new details:\\n${roster}\\n`;
+        return entries;
     });
 }
 
@@ -1037,8 +1099,8 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
         console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
 
-        // Build system message with instructions and roster
-        const systemMessage = systemPrompt + (rosterStr ? '\n\n' + rosterStr : '');
+        // Inject character roster into system prompt using template placeholder
+        const systemMessage = systemPrompt.replace('{{CHARACTER_ROSTER}}', rosterStr);
 
         // Build user prompt with data
         const userPrompt = '[DATA TO ANALYZE]\n' + messagesText;
