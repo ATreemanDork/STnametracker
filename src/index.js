@@ -185,7 +185,7 @@ class NameTrackerExtension {
 
             // Update UI to reflect current settings
             console.log('[STnametracker] initializeUI: Updating UI...');
-            updateUI();
+            await updateUI();
             console.log('[STnametracker] initializeUI: UI updated');
 
             logger.debug('UI initialized');

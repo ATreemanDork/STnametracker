@@ -10,11 +10,44 @@ import { stContext } from './context.js';
 const MODULE_NAME = 'STnametracker';
 const debug = createModuleLogger('Settings');
 
+// Cache for context availability to avoid repeated null checks
+let contextAvailable = false;
+let lastContextCheck = 0;
+const CONTEXT_CHECK_INTERVAL = 100; // Check every 100ms max
+let hasLoggedUnavailable = false; // Only log warning once
+
 function getContextSettings() {
-    const context = stContext.getContext();
+    // Fast path: if we know context is available, just use it
+    if (contextAvailable) {
+        const context = stContext.getContext();
+        if (context?.extension_settings) {
+            return {
+                extSettings: context.extension_settings,
+                saveSettings: context.saveSettingsDebounced,
+            };
+        }
+        // Context became unavailable, reset flag
+        contextAvailable = false;
+    }
+
+    // Throttled availability check
+    const now = Date.now();
+    if (now - lastContextCheck > CONTEXT_CHECK_INTERVAL) {
+        lastContextCheck = now;
+        const context = stContext.getContext();
+        if (context?.extension_settings) {
+            contextAvailable = true;
+            return {
+                extSettings: context.extension_settings,
+                saveSettings: context.saveSettingsDebounced,
+            };
+        }
+    }
+
+    // Context not available yet
     return {
-        extSettings: context?.extension_settings,
-        saveSettings: context?.saveSettingsDebounced,
+        extSettings: null,
+        saveSettings: null,
     };
 }
 
@@ -62,9 +95,16 @@ function get_settings() {
     return errorHandler.withErrorBoundary('Settings', () => {
         const { extSettings } = getContextSettings();
         if (!extSettings) {
-            console.warn('[STnametracker] extension_settings not available');
+            // Only log once to avoid console spam
+            if (!hasLoggedUnavailable) {
+                console.warn('[STnametracker] extension_settings not yet available, using defaults');
+                hasLoggedUnavailable = true;
+            }
             return { ...DEFAULT_SETTINGS };
         }
+
+        // Context now available, reset warning flag for next session
+        hasLoggedUnavailable = false;
 
         // Initialize if not exists
         if (!extSettings[MODULE_NAME]) {

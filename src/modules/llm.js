@@ -69,39 +69,44 @@ let ollamaModels = []; // Available Ollama models
  */
 const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
 
-CRITICAL: Your entire response must be a single JSON object starting with { and ending with }
+CRITICAL JSON REQUIREMENTS:
+- Your ENTIRE response must be valid JSON starting with { and ending with }
+- ALL property names MUST use double quotes: "name", "aliases", etc.
+- ALL string values MUST use double quotes and escape internal quotes: "He said \\"hello\\""
+- NO control characters (line breaks, tabs) inside string values
+- NO trailing commas before } or ]
+- EVERY property must have a colon: "name": "value" (not "name" "value")
+- NO markdown, NO explanations, NO text before or after the JSON
 
 DO NOT include:
 - Any text before the JSON
 - Any text after the JSON  
-- Code block markers
-- Explanations or commentary
+- Code block markers like \`\`\`json
+- Explanations, commentary, or <think> tags
 
 REQUIRED JSON structure (copy this exact format):
 {
   "characters": [
     {
-            "name": "Full character name (one person only)",
-            "aliases": ["Other names and nicknames for THIS SAME person"],
-            "physicalAge": "Age if mentioned",
-            "mentalAge": "Mental age if different",
-            "physical": "Physical description",
-            "personality": "Personality traits",
-            "sexuality": "Sexual orientation if mentioned",
-            "raceEthnicity": "Race/ethnicity if mentioned",
-            "roleSkills": "Job/role/skills",
-            "relationships": ["Relationships with other characters"],
-            "confidence": 75
+      "name": "Full character name (one person only)",
+      "aliases": ["Other names and nicknames for THIS SAME person"],
+      "physicalAge": "Age if mentioned",
+      "mentalAge": "Mental age if different",
+      "physical": "Physical description",
+      "personality": "Personality traits",
+      "sexuality": "Sexual orientation if mentioned",
+      "raceEthnicity": "Race/ethnicity if mentioned",
+      "roleSkills": "Job/role/skills",
+      "relationships": ["Relationships with other characters"],
+      "confidence": 75
     }
   ]
 }
 
-All property names and string values must use JSON-valid double quotes. Never use single quotes or unquoted keys.
-
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.
 - If the same person is referred by variants ("John", "John Blackwell", "Scout"), make ONE entry with name = best full name ("John Blackwell") and put other names in aliases.
-- Do NOT create names like "Jade/Jesse" or "Sarah and Maya". Instead, create separate entries: [{name:"Jade"}, {name:"Jesse"}].
+- Do NOT create names like "Jade/Jesse" or "Sarah and Maya". Instead, create separate entries: [{"name":"Jade"}, {"name":"Jesse"}].
 - Only extract clearly named speaking characters.
 - Skip generic references ("the waiter", "a woman").
 - Use most recent information for conflicts.
@@ -423,9 +428,10 @@ export async function getMaxPromptLength() {
                     // For our extension's background analysis, we set our own max_tokens in generateRaw()
                     // We don't use amount_gen (that's for user chat messages)
                     // Reserve a reasonable amount for our structured JSON responses
-                    maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
+                    // Reduced to 2048 to prevent truncation issues and malformed JSON
+                    maxGenTokens = Math.min(2048, Math.floor(maxContext * 0.15)); // 15% or 2048, whichever is lower
 
-                    logEntry(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
+                    logEntry(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 2048)`);
                 }
             }
 
@@ -549,10 +555,11 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
             debug.log();
         }
 
-        // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
+        // Calculate max_tokens: reduced to prevent truncation and malformed JSON
+        // Use 2048 tokens max to ensure responses complete without syntax errors
         const maxContext = context.maxContext || 4096;
-        const calculatedMaxTokens = Math.floor(maxContext * 0.25);
-        const maxTokens = Math.max(4000, calculatedMaxTokens);
+        const calculatedMaxTokens = Math.min(2048, Math.floor(maxContext * 0.15));
+        const maxTokens = Math.max(1500, calculatedMaxTokens);
         if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
         debug.log();
 
@@ -715,10 +722,11 @@ export async function callOllama(prompt) {
 
         debug.log();
 
-        // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
+        // Calculate max_tokens: reduced to prevent truncation and malformed JSON
+        // Use 2048 tokens max to ensure responses complete without syntax errors
         const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
-        const calculatedMaxTokens = Math.floor(maxContext * 0.25);
-        const maxTokens = Math.max(4000, calculatedMaxTokens);
+        const calculatedMaxTokens = Math.min(2048, Math.floor(maxContext * 0.15));
+        const maxTokens = Math.max(1500, calculatedMaxTokens);
         debug.log();
 
         const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
@@ -753,6 +761,40 @@ export async function callOllama(prompt) {
 
         return parseJSONResponse(data.response);
     });
+}
+
+/**
+ * Repair common JSON syntax errors in LLM responses
+ * @param {string} text - Potentially malformed JSON text
+ * @returns {string} Repaired JSON text
+ */
+function repairJSON(text) {
+    console.log('[NT-Repair] Starting JSON repair...');
+    let repaired = text;
+
+    // 1. Fix missing commas between object properties (line breaks without commas)
+    // Match: }\n    "property" or ]\n    "property" without comma
+    repaired = repaired.replace(/([}\]])\s*\n\s*(")/g, '$1,\n    $2');
+    
+    // 2. Fix control characters (newlines, tabs in strings) by removing them
+    repaired = repaired.replace(/"([^"]*[\n\r\t][^"]*)"/g, (match, content) => {
+        const cleaned = content
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, '')
+            .replace(/\t/g, ' ');
+        return `"${cleaned}"`;
+    });
+
+    // 3. Fix trailing commas before closing brackets/braces
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+    // 4. Fix missing colons after property names  
+    // Pattern: "property"\n    value (missing colon) - be careful not to break valid JSON
+    repaired = repaired.replace(/"([^"]+)"\s+(?=["{\[])/g, '"$1": ');
+
+    console.log('[NT-Repair] Applied repairs, length change:', repaired.length - text.length);
+    
+    return repaired;
 }
 
 /**
@@ -829,6 +871,9 @@ export function parseJSONResponse(text) {
 
         // Clean up common formatting issues
         text = text.trim();
+
+        // Apply JSON repair for common LLM syntax errors
+        text = repairJSON(text);
 
         console.log('[NT-Parse] Before JSON.parse, length:', text.length);
         console.log('[NT-Parse] First 200 chars:', text.substring(0, 200));

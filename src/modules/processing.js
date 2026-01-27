@@ -159,9 +159,9 @@ export async function processAnalysisResults(analyzedCharacters) {
 
         debugLog('All characters processed');
         console.log('[NT-Processing] 🟢 About to call updateCharacterList()');
-        const listResult = updateCharacterList();
+        const listResult = await updateCharacterList();
         console.log('[NT-Processing] 🟢 updateCharacterList() returned:', listResult);
-        const statusResult = updateStatusDisplay();
+        const statusResult = await updateStatusDisplay();
         console.log('[NT-Processing] 🟢 updateStatusDisplay() returned:', statusResult);
         console.log('[NT-Processing] 🟢 Current characters in storage:', getCharacters());
     });
@@ -726,8 +726,8 @@ Failed batches: ${failedBatches}`;
             }
 
             // Always update UI after batch processing (success or partial failure)
-            updateCharacterList();
-            updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
 
             return;
         }
@@ -770,8 +770,8 @@ Failed batches: ${failedBatches}`;
                 set_settings('lastScannedMessageId', endIdx - 1);
             }
 
-            updateCharacterList();
-            updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         }
     });
 }
@@ -1057,8 +1057,8 @@ export async function scanEntireChat() {
         }
 
         // Always update UI after scan (success, partial failure, or abort)
-        updateCharacterList();
-        updateStatusDisplay();
+        await updateCharacterList();
+        await updateStatusDisplay();
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
@@ -1132,8 +1132,8 @@ export async function onChatChanged() {
         set_settings('messageCounter', 0);
 
         // Always update UI when chat changes
-        updateCharacterList();
-        updateStatusDisplay();
+        await updateCharacterList();
+        await updateStatusDisplay();
 
         debug.log();
     });

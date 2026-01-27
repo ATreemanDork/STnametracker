@@ -208,8 +208,8 @@ export async function showMergeDialog(sourceName) {
             notifications.error(`Merge failed: ${error.message}`, 'Merge Error');
         } finally {
             // Always update UI after merge attempt
-            updateCharacterList();
-            updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         }
     });
 }
@@ -233,8 +233,8 @@ export async function showCreateCharacterModal() {
             notifications.error(`Failed to create character: ${error.message}`, 'Creation Error');
         } finally {
             // Always update UI after character creation attempt
-            updateCharacterList();
-            updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         }
     });
 }
@@ -266,8 +266,8 @@ export async function showPurgeConfirmation() {
             notifications.error(`Failed to purge characters: ${error.message}`, 'Purge Error');
         } finally {
             // Always update UI after purge attempt
-            updateCharacterList();
-            updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         }
     });
 }
@@ -432,8 +432,8 @@ export function initializeUIHandlers() {
                 notifications.error(`Failed to toggle ignore: ${error.message}`, 'Toggle Error');
             } finally {
                 // Always update UI after ignore toggle attempt
-                updateCharacterList();
-                updateStatusDisplay();
+                await updateCharacterList();
+                await updateStatusDisplay();
             }
         });
 
@@ -563,8 +563,8 @@ async function showEditLorebookModal(characterName) {
             }
             setCharacter(preferredName, character);
 
-            updateCharacterList();
-            updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
 
             notifications.success(`Updated lorebook entry for ${preferredName}`);
             removeModal();
@@ -771,14 +771,14 @@ export function bindSettingsHandlers() {
         $('#name_tracker_manual_analyze').on('click', async () => {
             const messageFreq = getSetting('messageFrequency', 10);
             await harvestMessages(messageFreq, true);
-            updateCharacterList();
-            updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         });
 
         $('#name_tracker_scan_all').on('click', async () => {
             await scanEntireChat();
-            updateCharacterList();
-            updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         });
 
         $('#name_tracker_create_character').on('click', async () => {
@@ -794,8 +794,8 @@ export function bindSettingsHandlers() {
             const { undoLastMerge } = await import('./characters.js');
             const success = await undoLastMerge();
             if (success) {
-                updateCharacterList();
-                updateStatusDisplay();
+                await updateCharacterList();
+                await updateStatusDisplay();
             }
         });
 
@@ -1084,10 +1084,10 @@ function dumpContextToConsole() {
 
 /**
  * Update UI elements based on current settings
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function updateUI() {
-    return withErrorBoundary('updateUI', () => {
+export async function updateUI() {
+    return withErrorBoundary('updateUI', async () => {
         // Update all form elements with current settings
         $('#name_tracker_enabled').prop('checked', getSetting('enabled', true));
         $('#name_tracker_auto_analyze').prop('checked', getSetting('autoAnalyze', true));
@@ -1104,8 +1104,8 @@ export function updateUI() {
         $('#name_tracker_debug_mode').prop('checked', getSetting('debugMode', false));
 
         // Update character list and status
-        updateCharacterList();
-        updateStatusDisplay();
+        await updateCharacterList();
+        await updateStatusDisplay();
 
         debug.log();
     });

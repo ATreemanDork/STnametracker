@@ -1036,47 +1036,47 @@ let lorebookName = null;
  * @returns {Promise<string|null>} Lorebook name if successful, null if no chat
  */
 async function initializeLorebook() {
-    console.log('╔═══════════════════════════════════════════════════════════════════════════');
-    console.log('║ [NT-Lorebook] initializeLorebook() CALLED');
-    console.log('╚═══════════════════════════════════════════════════════════════════════════');
+    console.log('[NT-Lorebook] ╔═══════════════════════════════════════════════════════════════════════════');
+    console.log('[NT-Lorebook] ║ initializeLorebook() CALLED');
+    console.log('[NT-Lorebook] ╚═══════════════════════════════════════════════════════════════════════════');
 
     return (0,errors/* withErrorBoundary */.Xc)('initializeLorebook', async () => {
-        console.log('║ [NT-Lorebook] Inside withErrorBoundary, getting context...');
+        console.log('[NT-Lorebook] ║ Inside withErrorBoundary, getting context...');
         const context = core_context.stContext.getContext();
-        console.log('║ [NT-Lorebook] Got context:', !!context);
-        console.log('║ [NT-Lorebook] context.chatId:', context?.chatId);
+        console.log('[NT-Lorebook] ║ Got context:', !!context);
+        console.log('[NT-Lorebook] ║ context.chatId:', context?.chatId);
 
         if (!context.chatId) {
-            console.warn('║ [NT-Lorebook] ⚠️  NO ACTIVE CHAT - Aborting initialization');
+            console.warn('[NT-Lorebook] ║ ⚠️  NO ACTIVE CHAT - Aborting initialization');
             lorebook_debug.log('No active chat, skipping lorebook initialization');
             lorebookName = null;
             return null;
         }
 
-        console.log('║ [NT-Lorebook] Active chat detected, proceeding...');
+        console.log('[NT-Lorebook] ║ Active chat detected, proceeding...');
         const METADATA_KEY = 'world_info';
         const chatMetadata = context.chatMetadata;
-        console.log('║ [NT-Lorebook] chatMetadata exists?:', !!chatMetadata);
+        console.log('[NT-Lorebook] ║ chatMetadata exists?:', !!chatMetadata);
 
         if (!chatMetadata) {
-            console.warn('║ [NT-Lorebook] ⚠️  NO CHAT METADATA - Aborting initialization');
+            console.warn('[NT-Lorebook] ║ ⚠️  NO CHAT METADATA - Aborting initialization');
             lorebook_debug.log('No chat metadata available, skipping lorebook initialization');
             lorebookName = null;
             return null;
         }
 
-        console.log('║ [NT-Lorebook] Checking for existing bound lorebook...');
-        console.log('║ [NT-Lorebook] chatMetadata[world_info]:', chatMetadata[METADATA_KEY]);
+        console.log('[NT-Lorebook] ║ Checking for existing bound lorebook...');
+        console.log('[NT-Lorebook] ║ chatMetadata[world_info]:', chatMetadata[METADATA_KEY]);
 
         // Check if chat already has a bound lorebook
         if (chatMetadata[METADATA_KEY]) {
             lorebookName = chatMetadata[METADATA_KEY];
-            console.log('╔═══════════════════════════════════════════════════════════════════════════');
-            console.log('║ [NT-Lorebook] ✅ EXISTING LOREBOOK FOUND');
-            console.log('╠═══════════════════════════════════════════════════════════════════════════');
-            console.log('║ Lorebook Name:', lorebookName);
-            console.log('║ Module Variable Set: YES');
-            console.log('╚═══════════════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ╔═══════════════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ ✅ EXISTING LOREBOOK FOUND');
+            console.log('[NT-Lorebook] ╠═══════════════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ Lorebook Name:', lorebookName);
+            console.log('[NT-Lorebook] ║ Module Variable Set: YES');
+            console.log('[NT-Lorebook] ╚═══════════════════════════════════════════════════════════════════════════');
             lorebook_debug.log(`Using existing chat lorebook: ${lorebookName}`);
 
             // Load the lorebook in the editor and make it active
@@ -1090,15 +1090,15 @@ async function initializeLorebook() {
             .replace(/_{2,}/g, '_')
             .substring(0, 64);
 
-        console.log('╔═══════════════════════════════════════════════════════════════════════════');
-        console.log('║ [NT-Lorebook] 🆕 CREATING NEW LOREBOOK');
-        console.log('╠═══════════════════════════════════════════════════════════════════════════');
-        console.log('║ Generated Name:', bookName);
-        console.log('║ Chat ID:', context.chatId);
-        console.log('╚═══════════════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ╔═══════════════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ║ 🆕 CREATING NEW LOREBOOK');
+        console.log('[NT-Lorebook] ╠═══════════════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ║ Generated Name:', bookName);
+        console.log('[NT-Lorebook] ║ Chat ID:', context.chatId);
+        console.log('[NT-Lorebook] ╚═══════════════════════════════════════════════════════════════════════════');
         lorebook_debug.log(`Creating new chat lorebook: ${bookName}`);
         lorebookName = bookName;
-        console.log('║ [NT-Lorebook] Module variable lorebookName SET TO:', lorebookName);
+        console.log('[NT-Lorebook] ║ Module variable lorebookName SET TO:', lorebookName);
 
         // Bind it to the chat metadata
         chatMetadata[METADATA_KEY] = lorebookName;
@@ -1148,37 +1148,37 @@ async function initializeLorebook() {
  */
 async function updateLorebookEntry(character, characterName) {
     return (0,errors/* withErrorBoundary */.Xc)('updateLorebookEntry', async () => {
-        console.log('╔════════════════════════════════════════════════════════════════');
-        console.log('║ [NT-Lorebook] updateLorebookEntry CALLED');
-        console.log('╠════════════════════════════════════════════════════════════════');
-        console.log('║ CRITICAL: Checking lorebookName variable');
-        console.log('║ lorebookName value:', lorebookName);
-        console.log('║ lorebookName type:', typeof lorebookName);
-        console.log('║ lorebookName is null?:', lorebookName === null);
-        console.log('║ lorebookName is undefined?:', lorebookName === undefined);
-        console.log('║ lorebookName is falsy?:', !lorebookName);
-        console.log('╚════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ║ updateLorebookEntry CALLED');
+        console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ║ CRITICAL: Checking lorebookName variable');
+        console.log('[NT-Lorebook] ║ lorebookName value:', lorebookName);
+        console.log('[NT-Lorebook] ║ lorebookName type:', typeof lorebookName);
+        console.log('[NT-Lorebook] ║ lorebookName is null?:', lorebookName === null);
+        console.log('[NT-Lorebook] ║ lorebookName is undefined?:', lorebookName === undefined);
+        console.log('[NT-Lorebook] ║ lorebookName is falsy?:', !lorebookName);
+        console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
 
         if (!lorebookName) {
-            console.error('╔════════════════════════════════════════════════════════════════');
-            console.error('║ [NT-Lorebook] ❌ CRITICAL ERROR: NO LOREBOOK INITIALIZED!');
-            console.error('╠════════════════════════════════════════════════════════════════');
-            console.error('║ lorebookName is:', lorebookName);
-            console.error('║ Character:', characterName);
-            console.error('║ SKIPPING LOREBOOK ENTRY UPDATE');
-            console.error('╚════════════════════════════════════════════════════════════════');
+            console.error('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+            console.error('[NT-Lorebook] ║ ❌ CRITICAL ERROR: NO LOREBOOK INITIALIZED!');
+            console.error('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+            console.error('[NT-Lorebook] ║ lorebookName is:', lorebookName);
+            console.error('[NT-Lorebook] ║ Character:', characterName);
+            console.error('[NT-Lorebook] ║ SKIPPING LOREBOOK ENTRY UPDATE');
+            console.error('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
             lorebook_debug.log('No lorebook initialized, skipping entry update');
             return;
         }
 
-        console.log('╔════════════════════════════════════════════════════════════════');
-        console.log('║ [NT-Lorebook] ✅ Lorebook IS initialized');
-        console.log('╠════════════════════════════════════════════════════════════════');
-        console.log('║ Character Name:', characterName);
-        console.log('║ Character Object:', JSON.stringify(character, null, 2));
-        console.log('║ Has lorebookEntryId?:', !!character.lorebookEntryId);
-        console.log('║ Existing Entry ID:', character.lorebookEntryId || 'NONE');
-        console.log('╚════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ║ ✅ Lorebook IS initialized');
+        console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+        console.log('[NT-Lorebook] ║ Character Name:', characterName);
+        console.log('[NT-Lorebook] ║ Character Object:', JSON.stringify(character, null, 2));
+        console.log('[NT-Lorebook] ║ Has lorebookEntryId?:', !!character.lorebookEntryId);
+        console.log('[NT-Lorebook] ║ Existing Entry ID:', character.lorebookEntryId || 'NONE');
+        console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
 
         lorebook_debug.log(`updateLorebookEntry called for: ${characterName}`);
         lorebook_debug.log('  Character data:', character);
@@ -1312,15 +1312,15 @@ async function updateLorebookEntry(character, characterName) {
             // Create new entry
             const newUid = (0,helpers/* generateUID */.cv)();
 
-            console.log('╔════════════════════════════════════════════════════════════════');
-            console.log('║ [NT-Lorebook] CREATING NEW ENTRY');
-            console.log('╠════════════════════════════════════════════════════════════════');
-            console.log('║ Character Name:', characterName);
-            console.log('║ Generated UID:', newUid);
-            console.log('║ Keys Array:', JSON.stringify(keys));
-            console.log('║ Content Preview:', content.substring(0, 200) + '...');
-            console.log('║ Content Length:', content.length, 'characters');
-            console.log('╚════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ CREATING NEW ENTRY');
+            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ Character Name:', characterName);
+            console.log('[NT-Lorebook] ║ Generated UID:', newUid);
+            console.log('[NT-Lorebook] ║ Keys Array:', JSON.stringify(keys));
+            console.log('[NT-Lorebook] ║ Content Preview:', content.substring(0, 200) + '...');
+            console.log('[NT-Lorebook] ║ Content Length:', content.length, 'characters');
+            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
 
             const newEntry = {
                 uid: newUid,
@@ -1375,35 +1375,35 @@ async function updateLorebookEntry(character, characterName) {
             console.log(`[NT-Lorebook]    Position: ${lorebookConfig.position}`);
 
             // Save the character with the new lorebook entry ID
-            console.log('╔════════════════════════════════════════════════════════════════');
-            console.log('║ [NT-Lorebook] SAVING CHARACTER WITH ENTRY ID');
-            console.log('╠════════════════════════════════════════════════════════════════');
-            console.log('║ Character Name:', characterName);
-            console.log('║ Character Object BEFORE save:', JSON.stringify(character, null, 2));
-            console.log('║ Lorebook Entry ID:', newUid);
-            console.log('╚════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ SAVING CHARACTER WITH ENTRY ID');
+            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ Character Name:', characterName);
+            console.log('[NT-Lorebook] ║ Character Object BEFORE save:', JSON.stringify(character, null, 2));
+            console.log('[NT-Lorebook] ║ Lorebook Entry ID:', newUid);
+            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
 
             await (0,settings/* setCharacter */.e7)(characterName, character);
 
-            console.log('╔════════════════════════════════════════════════════════════════');
-            console.log('║ [NT-Lorebook] CHARACTER SAVE COMPLETE');
-            console.log('╠════════════════════════════════════════════════════════════════');
-            console.log('║ Character Name:', characterName);
-            console.log('║ Entry ID Saved:', character.lorebookEntryId);
-            console.log('╚════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ CHARACTER SAVE COMPLETE');
+            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ Character Name:', characterName);
+            console.log('[NT-Lorebook] ║ Entry ID Saved:', character.lorebookEntryId);
+            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
 
             lorebook_debug.log();
         }
 
         // Save the lorebook
         try {
-            console.log('╔════════════════════════════════════════════════════════════════');
-            console.log('║ [NT-Lorebook] SAVING LOREBOOK TO DISK');
-            console.log('╠════════════════════════════════════════════════════════════════');
-            console.log('║ Lorebook Name:', lorebookName);
-            console.log('║ Total Entries:', Object.keys(worldInfo.entries).length);
-            console.log('║ Entry UIDs:', Object.keys(worldInfo.entries));
-            console.log('║ WorldInfo Structure:', JSON.stringify({
+            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ SAVING LOREBOOK TO DISK');
+            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ Lorebook Name:', lorebookName);
+            console.log('[NT-Lorebook] ║ Total Entries:', Object.keys(worldInfo.entries).length);
+            console.log('[NT-Lorebook] ║ Entry UIDs:', Object.keys(worldInfo.entries));
+            console.log('[NT-Lorebook] ║ WorldInfo Structure:', JSON.stringify({
                 entryCount: Object.keys(worldInfo.entries).length,
                 entryKeys: Object.keys(worldInfo.entries),
                 sampleEntry: Object.values(worldInfo.entries)[0] ? {
@@ -1412,50 +1412,50 @@ async function updateLorebookEntry(character, characterName) {
                     contentLength: Object.values(worldInfo.entries)[0].content.length,
                 } : 'NONE',
             }, null, 2));
-            console.log('╚════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
 
             await context.saveWorldInfo(lorebookName, worldInfo, true);
 
-            console.log('╔════════════════════════════════════════════════════════════════');
-            console.log('║ [NT-Lorebook] LOREBOOK SAVE COMPLETE');
-            console.log('╠════════════════════════════════════════════════════════════════');
-            console.log('║ Lorebook Name:', lorebookName);
-            console.log('║ Save Successful: YES');
-            console.log('╚════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ LOREBOOK SAVE COMPLETE');
+            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ Lorebook Name:', lorebookName);
+            console.log('[NT-Lorebook] ║ Save Successful: YES');
+            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
 
             // Verify the save worked by reloading
-            console.log('╔════════════════════════════════════════════════════════════════');
-            console.log('║ [NT-Lorebook] VERIFYING LOREBOOK SAVE');
-            console.log('╠════════════════════════════════════════════════════════════════');
-            console.log('║ Reloading:', lorebookName);
-            console.log('╚════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ VERIFYING LOREBOOK SAVE');
+            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ Reloading:', lorebookName);
+            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
 
             const verifyWorldInfo = await context.loadWorldInfo(lorebookName);
             const targetUid = existingUid || character.lorebookEntryId;
 
-            console.log('╔════════════════════════════════════════════════════════════════');
-            console.log('║ [NT-Lorebook] VERIFICATION RESULTS');
-            console.log('╠════════════════════════════════════════════════════════════════');
-            console.log('║ Target UID:', targetUid);
-            console.log('║ Verification Data Loaded?:', !!verifyWorldInfo);
-            console.log('║ Has Entries Object?:', !!verifyWorldInfo?.entries);
-            console.log('║ Available Entry UIDs:', Object.keys(verifyWorldInfo?.entries || {}));
-            console.log('║ Target Entry Found?:', !!(verifyWorldInfo?.entries?.[targetUid]));
+            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ VERIFICATION RESULTS');
+            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
+            console.log('[NT-Lorebook] ║ Target UID:', targetUid);
+            console.log('[NT-Lorebook] ║ Verification Data Loaded?:', !!verifyWorldInfo);
+            console.log('[NT-Lorebook] ║ Has Entries Object?:', !!verifyWorldInfo?.entries);
+            console.log('[NT-Lorebook] ║ Available Entry UIDs:', Object.keys(verifyWorldInfo?.entries || {}));
+            console.log('[NT-Lorebook] ║ Target Entry Found?:', !!(verifyWorldInfo?.entries?.[targetUid]));
 
             if (verifyWorldInfo && verifyWorldInfo.entries && verifyWorldInfo.entries[targetUid]) {
-                console.log('║ ✅ VERIFICATION: SUCCESS');
-                console.log('║ Entry Data:', JSON.stringify({
+                console.log('[NT-Lorebook] ║ ✅ VERIFICATION: SUCCESS');
+                console.log('[NT-Lorebook] ║ Entry Data:', JSON.stringify({
                     uid: verifyWorldInfo.entries[targetUid].uid,
                     key: verifyWorldInfo.entries[targetUid].key,
                     enabled: verifyWorldInfo.entries[targetUid].enabled,
                     contentLength: verifyWorldInfo.entries[targetUid].content.length,
                 }, null, 2));
-                console.log('╚════════════════════════════════════════════════════════════════');
+                console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
                 lorebook_debug.log();
             } else {
-                console.log('║ ❌ VERIFICATION: FAILED');
-                console.log('║ Entry NOT found in reloaded lorebook!');
-                console.log('╚════════════════════════════════════════════════════════════════');
+                console.log('[NT-Lorebook] ║ ❌ VERIFICATION: FAILED');
+                console.log('[NT-Lorebook] ║ Entry NOT found in reloaded lorebook!');
+                console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
                 console.error('[NT-Lorebook] ❌ WARNING: Lorebook verification failed - entries may not have been saved!');
                 console.error('[NT-Lorebook]    Target UID:', targetUid);
                 console.error('[NT-Lorebook]    Available entries:', Object.keys(verifyWorldInfo?.entries || {}));
@@ -2241,11 +2241,44 @@ module.exports = insertStyleElement;
 const MODULE_NAME = 'STnametracker';
 const debug = (0,_debug_js__WEBPACK_IMPORTED_MODULE_1__/* .createModuleLogger */ .Xv)('Settings');
 
+// Cache for context availability to avoid repeated null checks
+let contextAvailable = false;
+let lastContextCheck = 0;
+const CONTEXT_CHECK_INTERVAL = 100; // Check every 100ms max
+let hasLoggedUnavailable = false; // Only log warning once
+
 function getContextSettings() {
-    const context = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getContext();
+    // Fast path: if we know context is available, just use it
+    if (contextAvailable) {
+        const context = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getContext();
+        if (context?.extension_settings) {
+            return {
+                extSettings: context.extension_settings,
+                saveSettings: context.saveSettingsDebounced,
+            };
+        }
+        // Context became unavailable, reset flag
+        contextAvailable = false;
+    }
+
+    // Throttled availability check
+    const now = Date.now();
+    if (now - lastContextCheck > CONTEXT_CHECK_INTERVAL) {
+        lastContextCheck = now;
+        const context = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getContext();
+        if (context?.extension_settings) {
+            contextAvailable = true;
+            return {
+                extSettings: context.extension_settings,
+                saveSettings: context.saveSettingsDebounced,
+            };
+        }
+    }
+
+    // Context not available yet
     return {
-        extSettings: context?.extension_settings,
-        saveSettings: context?.saveSettingsDebounced,
+        extSettings: null,
+        saveSettings: null,
     };
 }
 
@@ -2293,9 +2326,16 @@ function get_settings() {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
         const { extSettings } = getContextSettings();
         if (!extSettings) {
-            console.warn('[STnametracker] extension_settings not available');
+            // Only log once to avoid console spam
+            if (!hasLoggedUnavailable) {
+                console.warn('[STnametracker] extension_settings not yet available, using defaults');
+                hasLoggedUnavailable = true;
+            }
             return { ...DEFAULT_SETTINGS };
         }
+
+        // Context now available, reset warning flag for next session
+        hasLoggedUnavailable = false;
 
         // Initialize if not exists
         if (!extSettings[MODULE_NAME]) {
@@ -3791,39 +3831,44 @@ let ollamaModels = []; // Available Ollama models
  */
 const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
 
-CRITICAL: Your entire response must be a single JSON object starting with { and ending with }
+CRITICAL JSON REQUIREMENTS:
+- Your ENTIRE response must be valid JSON starting with { and ending with }
+- ALL property names MUST use double quotes: "name", "aliases", etc.
+- ALL string values MUST use double quotes and escape internal quotes: "He said \\"hello\\""
+- NO control characters (line breaks, tabs) inside string values
+- NO trailing commas before } or ]
+- EVERY property must have a colon: "name": "value" (not "name" "value")
+- NO markdown, NO explanations, NO text before or after the JSON
 
 DO NOT include:
 - Any text before the JSON
 - Any text after the JSON  
-- Code block markers
-- Explanations or commentary
+- Code block markers like \`\`\`json
+- Explanations, commentary, or <think> tags
 
 REQUIRED JSON structure (copy this exact format):
 {
   "characters": [
     {
-            "name": "Full character name (one person only)",
-            "aliases": ["Other names and nicknames for THIS SAME person"],
-            "physicalAge": "Age if mentioned",
-            "mentalAge": "Mental age if different",
-            "physical": "Physical description",
-            "personality": "Personality traits",
-            "sexuality": "Sexual orientation if mentioned",
-            "raceEthnicity": "Race/ethnicity if mentioned",
-            "roleSkills": "Job/role/skills",
-            "relationships": ["Relationships with other characters"],
-            "confidence": 75
+      "name": "Full character name (one person only)",
+      "aliases": ["Other names and nicknames for THIS SAME person"],
+      "physicalAge": "Age if mentioned",
+      "mentalAge": "Mental age if different",
+      "physical": "Physical description",
+      "personality": "Personality traits",
+      "sexuality": "Sexual orientation if mentioned",
+      "raceEthnicity": "Race/ethnicity if mentioned",
+      "roleSkills": "Job/role/skills",
+      "relationships": ["Relationships with other characters"],
+      "confidence": 75
     }
   ]
 }
 
-All property names and string values must use JSON-valid double quotes. Never use single quotes or unquoted keys.
-
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.
 - If the same person is referred by variants ("John", "John Blackwell", "Scout"), make ONE entry with name = best full name ("John Blackwell") and put other names in aliases.
-- Do NOT create names like "Jade/Jesse" or "Sarah and Maya". Instead, create separate entries: [{name:"Jade"}, {name:"Jesse"}].
+- Do NOT create names like "Jade/Jesse" or "Sarah and Maya". Instead, create separate entries: [{"name":"Jade"}, {"name":"Jesse"}].
 - Only extract clearly named speaking characters.
 - Skip generic references ("the waiter", "a woman").
 - Use most recent information for conflicts.
@@ -4145,9 +4190,10 @@ async function getMaxPromptLength() {
                     // For our extension's background analysis, we set our own max_tokens in generateRaw()
                     // We don't use amount_gen (that's for user chat messages)
                     // Reserve a reasonable amount for our structured JSON responses
-                    maxGenTokens = Math.min(4096, Math.floor(maxContext * 0.15)); // 15% or 4096, whichever is lower
+                    // Reduced to 2048 to prevent truncation issues and malformed JSON
+                    maxGenTokens = Math.min(2048, Math.floor(maxContext * 0.15)); // 15% or 2048, whichever is lower
 
-                    logEntry(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 4096)`);
+                    logEntry(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 2048)`);
                 }
             }
 
@@ -4271,10 +4317,11 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
             debug.log();
         }
 
-        // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
+        // Calculate max_tokens: reduced to prevent truncation and malformed JSON
+        // Use 2048 tokens max to ensure responses complete without syntax errors
         const maxContext = context.maxContext || 4096;
-        const calculatedMaxTokens = Math.floor(maxContext * 0.25);
-        const maxTokens = Math.max(4000, calculatedMaxTokens);
+        const calculatedMaxTokens = Math.min(2048, Math.floor(maxContext * 0.15));
+        const maxTokens = Math.max(1500, calculatedMaxTokens);
         if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
         debug.log();
 
@@ -4437,10 +4484,11 @@ async function callOllama(prompt) {
 
         debug.log();
 
-        // Calculate max_tokens dynamically: 1/4 of context size, minimum 4000
+        // Calculate max_tokens: reduced to prevent truncation and malformed JSON
+        // Use 2048 tokens max to ensure responses complete without syntax errors
         const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
-        const calculatedMaxTokens = Math.floor(maxContext * 0.25);
-        const maxTokens = Math.max(4000, calculatedMaxTokens);
+        const calculatedMaxTokens = Math.min(2048, Math.floor(maxContext * 0.15));
+        const maxTokens = Math.max(1500, calculatedMaxTokens);
         debug.log();
 
         const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
@@ -4475,6 +4523,40 @@ async function callOllama(prompt) {
 
         return parseJSONResponse(data.response);
     });
+}
+
+/**
+ * Repair common JSON syntax errors in LLM responses
+ * @param {string} text - Potentially malformed JSON text
+ * @returns {string} Repaired JSON text
+ */
+function repairJSON(text) {
+    console.log('[NT-Repair] Starting JSON repair...');
+    let repaired = text;
+
+    // 1. Fix missing commas between object properties (line breaks without commas)
+    // Match: }\n    "property" or ]\n    "property" without comma
+    repaired = repaired.replace(/([}\]])\s*\n\s*(")/g, '$1,\n    $2');
+    
+    // 2. Fix control characters (newlines, tabs in strings) by removing them
+    repaired = repaired.replace(/"([^"]*[\n\r\t][^"]*)"/g, (match, content) => {
+        const cleaned = content
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, '')
+            .replace(/\t/g, ' ');
+        return `"${cleaned}"`;
+    });
+
+    // 3. Fix trailing commas before closing brackets/braces
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+    // 4. Fix missing colons after property names  
+    // Pattern: "property"\n    value (missing colon) - be careful not to break valid JSON
+    repaired = repaired.replace(/"([^"]+)"\s+(?=["{\[])/g, '"$1": ');
+
+    console.log('[NT-Repair] Applied repairs, length change:', repaired.length - text.length);
+    
+    return repaired;
 }
 
 /**
@@ -4551,6 +4633,9 @@ function parseJSONResponse(text) {
 
         // Clean up common formatting issues
         text = text.trim();
+
+        // Apply JSON repair for common LLM syntax errors
+        text = repairJSON(text);
 
         console.log('[NT-Parse] Before JSON.parse, length:', text.length);
         console.log('[NT-Parse] First 200 chars:', text.substring(0, 200));
@@ -5719,8 +5804,8 @@ async function showMergeDialog(sourceName) {
             ui_notifications.error(`Merge failed: ${error.message}`, 'Merge Error');
         } finally {
             // Always update UI after merge attempt
-            ui_updateCharacterList();
-            ui_updateStatusDisplay();
+            await ui_updateCharacterList();
+            await ui_updateStatusDisplay();
         }
     });
 }
@@ -5744,8 +5829,8 @@ async function showCreateCharacterModal() {
             ui_notifications.error(`Failed to create character: ${error.message}`, 'Creation Error');
         } finally {
             // Always update UI after character creation attempt
-            ui_updateCharacterList();
-            ui_updateStatusDisplay();
+            await ui_updateCharacterList();
+            await ui_updateStatusDisplay();
         }
     });
 }
@@ -5777,8 +5862,8 @@ async function showPurgeConfirmation() {
             ui_notifications.error(`Failed to purge characters: ${error.message}`, 'Purge Error');
         } finally {
             // Always update UI after purge attempt
-            ui_updateCharacterList();
-            ui_updateStatusDisplay();
+            await ui_updateCharacterList();
+            await ui_updateStatusDisplay();
         }
     });
 }
@@ -5943,8 +6028,8 @@ function initializeUIHandlers() {
                 ui_notifications.error(`Failed to toggle ignore: ${error.message}`, 'Toggle Error');
             } finally {
                 // Always update UI after ignore toggle attempt
-                ui_updateCharacterList();
-                ui_updateStatusDisplay();
+                await ui_updateCharacterList();
+                await ui_updateStatusDisplay();
             }
         });
 
@@ -6074,8 +6159,8 @@ async function showEditLorebookModal(characterName) {
             }
             (0,core_settings/* setCharacter */.e7)(preferredName, character);
 
-            ui_updateCharacterList();
-            ui_updateStatusDisplay();
+            await ui_updateCharacterList();
+            await ui_updateStatusDisplay();
 
             ui_notifications.success(`Updated lorebook entry for ${preferredName}`);
             removeModal();
@@ -6282,14 +6367,14 @@ function bindSettingsHandlers() {
         $('#name_tracker_manual_analyze').on('click', async () => {
             const messageFreq = (0,core_settings/* getSetting */.PL)('messageFrequency', 10);
             await harvestMessages(messageFreq, true);
-            ui_updateCharacterList();
-            ui_updateStatusDisplay();
+            await ui_updateCharacterList();
+            await ui_updateStatusDisplay();
         });
 
         $('#name_tracker_scan_all').on('click', async () => {
             await scanEntireChat();
-            ui_updateCharacterList();
-            ui_updateStatusDisplay();
+            await ui_updateCharacterList();
+            await ui_updateStatusDisplay();
         });
 
         $('#name_tracker_create_character').on('click', async () => {
@@ -6305,8 +6390,8 @@ function bindSettingsHandlers() {
             const { undoLastMerge } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 551));
             const success = await undoLastMerge();
             if (success) {
-                ui_updateCharacterList();
-                ui_updateStatusDisplay();
+                await ui_updateCharacterList();
+                await ui_updateStatusDisplay();
             }
         });
 
@@ -6595,10 +6680,10 @@ function dumpContextToConsole() {
 
 /**
  * Update UI elements based on current settings
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function updateUI() {
-    return (0,errors/* withErrorBoundary */.Xc)('updateUI', () => {
+async function updateUI() {
+    return (0,errors/* withErrorBoundary */.Xc)('updateUI', async () => {
         // Update all form elements with current settings
         $('#name_tracker_enabled').prop('checked', (0,core_settings/* getSetting */.PL)('enabled', true));
         $('#name_tracker_auto_analyze').prop('checked', (0,core_settings/* getSetting */.PL)('autoAnalyze', true));
@@ -6615,8 +6700,8 @@ function updateUI() {
         $('#name_tracker_debug_mode').prop('checked', (0,core_settings/* getSetting */.PL)('debugMode', false));
 
         // Update character list and status
-        ui_updateCharacterList();
-        ui_updateStatusDisplay();
+        await ui_updateCharacterList();
+        await ui_updateStatusDisplay();
 
         ui_debug.log();
     });
@@ -6784,9 +6869,9 @@ async function processAnalysisResults(analyzedCharacters) {
 
         debugLog('All characters processed');
         console.log('[NT-Processing] 🟢 About to call updateCharacterList()');
-        const listResult = ui_updateCharacterList();
+        const listResult = await ui_updateCharacterList();
         console.log('[NT-Processing] 🟢 updateCharacterList() returned:', listResult);
-        const statusResult = ui_updateStatusDisplay();
+        const statusResult = await ui_updateStatusDisplay();
         console.log('[NT-Processing] 🟢 updateStatusDisplay() returned:', statusResult);
         console.log('[NT-Processing] 🟢 Current characters in storage:', (0,core_settings/* getCharacters */.bg)());
     });
@@ -7351,8 +7436,8 @@ Failed batches: ${failedBatches}`;
             }
 
             // Always update UI after batch processing (success or partial failure)
-            ui_updateCharacterList();
-            ui_updateStatusDisplay();
+            await ui_updateCharacterList();
+            await ui_updateStatusDisplay();
 
             return;
         }
@@ -7395,8 +7480,8 @@ Failed batches: ${failedBatches}`;
                 (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
             }
 
-            ui_updateCharacterList();
-            ui_updateStatusDisplay();
+            await ui_updateCharacterList();
+            await ui_updateStatusDisplay();
         }
     });
 }
@@ -7682,8 +7767,8 @@ async function scanEntireChat() {
         }
 
         // Always update UI after scan (success, partial failure, or abort)
-        ui_updateCharacterList();
-        ui_updateStatusDisplay();
+        await ui_updateCharacterList();
+        await ui_updateStatusDisplay();
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
@@ -7757,8 +7842,8 @@ async function onChatChanged() {
         set_settings('messageCounter', 0);
 
         // Always update UI when chat changes
-        updateCharacterList();
-        updateStatusDisplay();
+        await updateCharacterList();
+        await updateStatusDisplay();
 
         processing_debug.log();
     });
@@ -7982,7 +8067,7 @@ class NameTrackerExtension {
 
             // Update UI to reflect current settings
             console.log('[STnametracker] initializeUI: Updating UI...');
-            updateUI();
+            await updateUI();
             console.log('[STnametracker] initializeUI: UI updated');
 
             logger.debug('UI initialized');
