@@ -76,6 +76,15 @@ If a character is NOT mentioned or has no new information, do NOT include them i
 
 {{CHARACTER_ROSTER}}
 
+⚠️ REQUIRED: Always include the user character ({{user}}) in your response, even if minimal details
+For other characters from Current Lorebook Entries: only include if NEW information appears in these messages
+Returning only the user character is valid when no other character updates exist
+
+⚠️ CRITICAL INSTRUCTION: Only include characters with NEW information in these specific messages. If a character from the lorebook appears but provides no new details, DO NOT include them in your response.
+
+Example: Alice from lorebook says 'Hi' in message 5 → No new info → Omit Alice from response
+Example: {{user}} always appears → Always include {{user}} with any available details
+
 CRITICAL JSON REQUIREMENTS:
 - Your ENTIRE response must be valid JSON starting with { and ending with }
 - ALL property names MUST use double quotes: "name", "aliases", etc.
@@ -1200,6 +1209,33 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
 
             // Max retries/splits exceeded or non-retryable error
             throw error;
+        }
+
+        // Check for empty response and retry once with stronger emphasis
+        if (result && Array.isArray(result.characters) && result.characters.length === 0 && retryCount === 0) {
+            console.warn('[NT-LLM] Empty response detected, retrying with stronger user character emphasis...');
+            
+            // Add stronger user character requirement to the user prompt
+            const retryUserPrompt = userPrompt + '\n\nCRITICAL ERROR: Previous response was empty. You MUST return at minimum the user character ({{user}}) with any available details from these messages. An empty character list is INVALID.';
+            
+            try {
+                let retryResult;
+                if (llmConfig.source === 'ollama') {
+                    const retryFlatPrompt = systemMessage + '\n\n' + retryUserPrompt + '\n' + prefill;
+                    retryResult = await callOllama(retryFlatPrompt);
+                } else {
+                    retryResult = await callSillyTavern(systemMessage, retryUserPrompt, prefill, false);
+                }
+                
+                if (retryResult && Array.isArray(retryResult.characters) && retryResult.characters.length > 0) {
+                    console.log('[NT-LLM] Retry successful, got', retryResult.characters.length, 'characters');
+                    result = retryResult;
+                } else {
+                    console.error('[NT-LLM] Retry also returned empty, proceeding with empty result');
+                }
+            } catch (retryError) {
+                console.error('[NT-LLM] Retry failed:', retryError.message, 'proceeding with original empty result');
+            }
         }
 
         // Cache the result only if we have characters

@@ -430,7 +430,9 @@ export async function updateLorebookEntry(character, characterName) {
 ║ WorldInfo Structure: ${JSON.stringify(worldInfoStructure, null, 2)}
 ╚════════════════════════════════════════════════════════════════`);
 
-            await context.saveWorldInfo(lorebookName, worldInfo, true);
+            // Sanitize worldInfo to prevent Promise contamination in structuredClone
+            const sanitizedWorldInfo = JSON.parse(JSON.stringify(worldInfo));
+            await context.saveWorldInfo(lorebookName, sanitizedWorldInfo, true);
 
             console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
 ║ LOREBOOK SAVE COMPLETE
@@ -528,15 +530,20 @@ export async function viewInLorebook(characterName) {
             return;
         }
 
-        // Import the openWorldInfoEditor function from SillyTavern
+        // Import the world info functions from context
         const context = stContext.getContext();
 
-        // Open the lorebook editor
-        if (typeof context.openWorldInfoEditor === 'function') {
+        // Open the lorebook editor and make this chat's lorebook active
+        if (typeof context.reloadWorldInfoEditor === 'function') {
+            // Use reloadWorldInfoEditor to ensure the chat lorebook is active in the editor
+            context.reloadWorldInfoEditor(lorebookName, true);
+            notifications.success(`Opened lorebook for ${characterName}`);
+        } else if (typeof context.openWorldInfoEditor === 'function') {
+            // Fallback to openWorldInfoEditor
             await context.openWorldInfoEditor(lorebookName);
             notifications.success(`Opened lorebook for ${characterName}`);
         } else {
-            // Fallback: show the world info panel if openWorldInfoEditor doesn't exist
+            // Final fallback: show the world info panel
             $('#WorldInfo').click();
             notifications.info(`Please select "${lorebookName}" from the World Info panel`);
         }
@@ -561,7 +568,8 @@ export async function deleteLorebookEntry(character) {
             const worldInfo = await context.loadWorldInfo(lorebookName);
             if (worldInfo && worldInfo.entries && worldInfo.entries[character.lorebookEntryId]) {
                 delete worldInfo.entries[character.lorebookEntryId];
-                await context.saveWorldInfo(lorebookName, worldInfo, true);
+                const sanitizedWorldInfo = JSON.parse(JSON.stringify(worldInfo));
+                await context.saveWorldInfo(lorebookName, sanitizedWorldInfo, true);
 
                 debug.log();
                 return true;
@@ -609,7 +617,8 @@ export async function purgeLorebookEntries(characters) {
                 }
 
                 // Save the lorebook
-                await context.saveWorldInfo(lorebookName, worldInfo, true);
+                const sanitizedWorldInfo = JSON.parse(JSON.stringify(worldInfo));
+                await context.saveWorldInfo(lorebookName, sanitizedWorldInfo, true);
             }
         } catch (error) {
             console.error('Error purging lorebook entries:', error);

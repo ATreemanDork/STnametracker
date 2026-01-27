@@ -51,9 +51,10 @@ const MAX_RETRY_ATTEMPTS = 3;           // Maximum retries before halting proces
 const CONTEXT_REDUCTION_STEP = 5;       // Percentage to reduce context target on each failure
 
 // Batch Size Constraints (token-based, but with message-count limits for safety)
-const MIN_MESSAGES_PER_BATCH = 5;       // Never create batches smaller than this (unless last batch)
-const MAX_MESSAGES_PER_BATCH = 50;      // Cap batches at this size even if tokens allow more
-const TARGET_MESSAGES_PER_BATCH = 30;   // Aim for this size when possible (balance: not too small, not too large)
+// Reduced for incremental update strategy - smaller batches yield better focused character updates
+const MIN_MESSAGES_PER_BATCH = 3;       // Never create batches smaller than this (unless last batch)
+const MAX_MESSAGES_PER_BATCH = 10;      // Cap batches at this size even if tokens allow more
+const TARGET_MESSAGES_PER_BATCH = 7;    // Aim for this size when possible (optimal for focused analysis)
 const TARGET_MESSAGE_PERCENT = 35;      // Use 35% of max context for message data (conservative)
 
 // Error Recovery
@@ -118,6 +119,10 @@ async function createMessageBatches(messages, availableTokens, enforceMessageLim
 let processingQueue = [];
 let isProcessing = false;
 let abortScan = false;
+
+// Throughput tracking for progress bar metrics
+let batchTimestamps = []; // Store last 10 batch completion timestamps
+const THROUGHPUT_WINDOW_SIZE = 10;
 const currentProcessingState = {
     totalBatches: 0,
     currentBatch: 0,
@@ -613,6 +618,9 @@ export async function harvestMessages(messageCount, showProgress = true) {
             // Reset abort flag
             abortScan = false;
 
+            // Reset throughput tracking
+            batchTimestamps = [];
+
             // Calculate average batch size for user notification
             const avgBatchSize = Math.round(messagesToAnalyze.length / batches.length);
             const notification = `Analyzing ${messagesToAnalyze.length} messages in ${batches.length} batches (~${avgBatchSize} messages each). This may take a while. Continue?`;
@@ -685,6 +693,12 @@ export async function harvestMessages(messageCount, showProgress = true) {
                     }
 
                     successfulBatches++;
+
+                    // Track batch completion time for throughput metrics
+                    batchTimestamps.push(Date.now());
+                    if (batchTimestamps.length > THROUGHPUT_WINDOW_SIZE) {
+                        batchTimestamps.shift(); // Keep only last N timestamps
+                    }
 
                     // Small delay between batches to avoid rate limiting
                     if (i < batches.length - 1) {
@@ -885,7 +899,7 @@ async function showRescanModal(currentMessageIndex, lastScannedId) {
 }
 
 /**
- * Show progress bar for batch scanning
+ * Show progress bar for batch scanning with throughput metrics
  * @param {number} current - Current batch number (1-indexed)
  * @param {number} total - Total number of batches
  * @param {string} status - Status message
@@ -894,9 +908,25 @@ function showProgressBar(current, total, status = '') {
     const progressBarId = 'name_tracker_progress';
     const $existing = $(`.${progressBarId}`);
 
+    // Calculate throughput metrics if we have enough data
+    let throughputText = '';
+    if (batchTimestamps.length >= 2 && current > 0) {
+        // Calculate batches per minute from last N timestamps
+        const recentTimestamps = batchTimestamps.slice(-Math.min(THROUGHPUT_WINDOW_SIZE, batchTimestamps.length));
+        const timeSpan = recentTimestamps[recentTimestamps.length - 1] - recentTimestamps[0];
+        const batchesCompleted = recentTimestamps.length - 1;
+        
+        if (timeSpan > 0 && batchesCompleted > 0) {
+            const batchesPerMin = (batchesCompleted / (timeSpan / 60000)).toFixed(1);
+            const remainingBatches = total - current;
+            const estimatedMinutes = Math.ceil(remainingBatches / (batchesCompleted / (timeSpan / 60000)));
+            throughputText = ` • ${batchesPerMin} batches/min • ~${estimatedMinutes}min remaining`;
+        }
+    }
+
     if ($existing.length > 0) {
         // Update existing progress bar
-        if (status) $existing.find('.title').text(status);
+        if (status) $existing.find('.title').text(status + throughputText);
         $existing.find('.progress').text(current);
         $existing.find('.total').text(total);
         $existing.find('progress').val(current).attr('max', total);
@@ -912,7 +942,7 @@ function showProgressBar(current, total, status = '') {
             border: 1px solid var(--SmartThemeBorderColor);
             border-radius: 5px;
         ">
-            <div class="title" style="flex: 1; font-weight: bold;">${status || 'Name Tracker Scan'}</div>
+            <div class="title" style="flex: 1; font-weight: bold;">${status || 'Name Tracker Scan'}${throughputText}</div>
             <div style="margin: 0 10px;">(<span class="progress">${current}</span> / <span class="total">${total}</span>)</div>
             <progress value="${current}" max="${total}" style="flex: 2; margin: 0 10px;"></progress>
             <button class="menu_button fa-solid fa-stop" title="Abort scan" style="padding: 5px 10px;"></button>
@@ -978,8 +1008,8 @@ export async function scanEntireChat() {
         const maxPromptTokens = maxPromptResult.maxPrompt;
         const availableTokens = calculateAvailableTokens(maxPromptTokens);
 
-        // Build batches using shared helper
-        const batches = await createMessageBatches(context.chat, availableTokens, false);
+        // Build batches using shared helper with message limit enforcement
+        const batches = await createMessageBatches(context.chat, availableTokens, true);
 
         const numBatches = batches.length;
 
@@ -991,6 +1021,9 @@ export async function scanEntireChat() {
 
         // Reset abort flag
         abortScan = false;
+
+        // Reset throughput tracking
+        batchTimestamps = [];
 
         // Show progress bar
         showProgressBar(0, numBatches, 'Starting batch scan...');
@@ -1032,6 +1065,12 @@ export async function scanEntireChat() {
                 }
 
                 successfulBatches++;
+
+                // Track batch completion time for throughput metrics
+                batchTimestamps.push(Date.now());
+                if (batchTimestamps.length > THROUGHPUT_WINDOW_SIZE) {
+                    batchTimestamps.shift(); // Keep only last N timestamps
+                }
 
                 // Small delay between batches
                 if (i < numBatches - 1) {

@@ -97,17 +97,17 @@ export function updateCharacterList() {
                             ${reviewBadge}
                         </span>
                         <div class="char-actions">
-                            <button class="char-action-btn char-action-edit" data-name="${escapeHtml(character.preferredName)}" title="Edit lorebook entry">
-                                <i class="fa-solid fa-edit"></i>
-                            </button>
                             <button class="char-action-btn char-action-view" data-name="${escapeHtml(character.preferredName)}" title="View in lorebook">
                                 <i class="fa-solid fa-book"></i>
                             </button>
-                            <button class="char-action-btn char-action-merge" data-name="${escapeHtml(character.preferredName)}" title="Merge with another character">
-                                <i class="fa-solid fa-code-merge"></i>
+                            <button class="char-action-btn char-action-acknowledge ${character.needsReview ? 'needs-review' : ''}" data-name="${escapeHtml(character.preferredName)}" title="Acknowledge review">
+                                <i class="fa-solid fa-check"></i>
                             </button>
                             <button class="char-action-btn char-action-ignore" data-name="${escapeHtml(character.preferredName)}" title="${character.ignored ? 'Unignore' : 'Ignore'} character">
                                 <i class="fa-solid ${character.ignored ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                            </button>
+                            <button class="char-action-btn char-action-merge" data-name="${escapeHtml(character.preferredName)}" title="Merge with another character">
+                                <i class="fa-solid fa-code-merge"></i>
                             </button>
                         </div>
                     </div>
@@ -442,9 +442,19 @@ export function initializeUIHandlers() {
             await viewInLorebook(name);
         });
 
-        $(document).on('click', '.char-action-edit', async function() {
+        $(document).on('click', '.char-action-acknowledge', async function() {
             const name = $(this).data('name');
-            await showEditLorebookModal(name);
+            try {
+                const character = await getCharacter(name);
+                if (character) {
+                    character.needsReview = false;
+                    await setCharacter(name, character);
+                    await updateCharacterList();
+                    notifications.success(`Acknowledged review for ${name}`);
+                }
+            } catch (error) {
+                notifications.error(`Failed to acknowledge: ${error.message}`);
+            }
         });
 
         debug.log();

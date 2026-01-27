@@ -305,6 +305,43 @@ ___CSS_LOADER_EXPORT___.push([module.id, `/* Styles for the Name Tracker extensi
     font-size: 0.9em;
 }
 
+/* Character action buttons */
+.char-action-btn {
+    background: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeEmColor);
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.char-action-btn:hover {
+    background: var(--SmartThemeQuoteColor);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.char-action-btn:active {
+    transform: translateY(0);
+}
+
+.char-action-btn i {
+    pointer-events: none;
+}
+
+/* Red highlight for needs review */
+.char-action-btn.needs-review {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.char-action-btn.needs-review:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
 .menu_button.compact {
     padding: 5px 10px;
     font-size: 0.9em;
@@ -485,7 +522,7 @@ button:disabled {
 }
 
 
-`, "",{"version":3,"sources":["webpack://./style.css"],"names":[],"mappings":"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","sourcesContent":["/* Styles for the Name Tracker extension */\r\n\r\n.name-tracker-settings {\r\n    padding: 5px;\r\n}\r\n\r\n.name-tracker_block {\r\n    margin-bottom: 10px;\r\n}\r\n\r\n.name-tracker_block h4 {\r\n    margin-top: 10px;\r\n    margin-bottom: 10px;\r\n    font-weight: bold;\r\n}\r\n\r\n/* Status Display */\r\n.name-tracker-status-block {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    padding: 10px;\r\n}\r\n\r\n.name-tracker-status {\r\n    font-weight: bold;\r\n    color: var(--SmartThemeBodyColor);\r\n    padding: 5px;\r\n    text-align: center;\r\n}\r\n\r\n/* Character List */\r\n.name-tracker-character-list {\r\n    max-height: 400px;\r\n    overflow-y: auto;\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    padding: 5px;\r\n    margin-top: 5px;\r\n}\r\n\r\n.name-tracker-character {\r\n    padding: 10px;\r\n    margin-bottom: 10px;\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n}\r\n\r\n.name-tracker-character:last-child {\r\n    margin-bottom: 0;\r\n}\r\n\r\n/* Active/loaded character styling (characters that are loaded in SillyTavern) */\r\n.name-tracker-character.main-character {\r\n    border-left: 3px solid #4CAF50;\r\n    background-color: rgba(76, 175, 80, 0.05);\r\n}\r\n\r\n.character-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-bottom: 5px;\r\n}\r\n\r\n.character-name {\r\n    font-weight: bold;\r\n    font-size: 1.1em;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.character-name .fa-user {\r\n    color: #4CAF50;\r\n    margin-right: 5px;\r\n}\r\n\r\n.character-name.ignored {\r\n    color: var(--SmartThemeQuoteColor);\r\n    text-decoration: line-through;\r\n}\r\n\r\n.character-badge {\r\n    display: inline-block;\r\n    padding: 2px 8px;\r\n    border-radius: 3px;\r\n    font-size: 0.75em;\r\n    font-weight: bold;\r\n    margin-left: 5px;\r\n}\r\n\r\n.character-badge.main-char {\r\n    background-color: #4CAF50;\r\n    color: #fff;\r\n}\r\n\r\n.character-badge.ignored {\r\n    background-color: #666;\r\n    color: #fff;\r\n}\r\n\r\n.character-badge.unresolved {\r\n    background-color: #ff9800;\r\n    color: #000;\r\n}\r\n\r\n/* Lorebook entry editor modal */\r\n.lorebook-entry-editor h3 {\r\n    margin-top: 0;\r\n    margin-bottom: 20px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.editor-section {\r\n    margin-bottom: 15px;\r\n}\r\n\r\n.editor-section label {\r\n    display: block;\r\n    font-weight: bold;\r\n    margin-bottom: 5px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.editor-section small {\r\n    display: block;\r\n    margin-top: 3px;\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-size: 0.85em;\r\n}\r\n\r\n.editor-section input,\r\n.editor-section textarea {\r\n    width: 100%;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.character-aliases {\r\n    font-size: 0.9em;\r\n    color: var(--SmartThemeQuoteColor);\r\n    margin-bottom: 8px;\r\n    font-style: italic;\r\n}\r\n\r\n.lorebook-entry-id {\r\n    display: inline-block;\r\n    margin-left: 10px;\r\n    padding: 2px 6px;\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    font-family: monospace;\r\n    font-size: 0.85em;\r\n    font-style: normal;\r\n    color: var(--SmartThemeQuoteColor);\r\n}\r\n\r\n.character-details {\r\n    font-size: 0.85em;\r\n    color: var(--SmartThemeBodyColor);\r\n    margin: 8px 0;\r\n    padding: 8px;\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border-left: 2px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    line-height: 1.4;\r\n}\r\n\r\n.character-actions {\r\n    display: flex;\r\n    gap: 5px;\r\n    flex-wrap: wrap;\r\n    margin-top: 8px;\r\n}\r\n\r\n.character-actions .menu_button {\r\n    flex: 1;\r\n    min-width: 100px;\r\n    padding: 5px 10px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.menu_button.compact {\r\n    padding: 5px 10px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.name-tracker-empty {\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-style: italic;\r\n    text-align: center;\r\n    padding: 20px;\r\n}\r\n\r\n/* Ollama Settings */\r\n.ollama-settings {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border-left: 3px solid var(--SmartThemeBorderColor);\r\n    padding: 10px;\r\n    margin-top: 5px;\r\n    border-radius: 5px;\r\n}\r\n\r\n/* Merge Dialog */\r\n.merge-dialog {\r\n    padding: 15px;\r\n}\r\n\r\n.merge-dialog p {\r\n    margin-bottom: 10px;\r\n}\r\n\r\n.merge-dialog strong {\r\n    color: var(--SmartThemeBodyColor);\r\n    font-weight: bold;\r\n}\r\n\r\n.merge-warning {\r\n    color: #ff9800;\r\n    font-size: 0.9em;\r\n    margin-top: 10px;\r\n    padding: 10px;\r\n    background-color: rgba(255, 152, 0, 0.1);\r\n    border-left: 3px solid #ff9800;\r\n    border-radius: 3px;\r\n}\r\n\r\n/* Button states */\r\nbutton:disabled {\r\n    opacity: 0.5;\r\n    cursor: not-allowed;\r\n}\r\n\r\n/* Flex utilities */\r\n.flexGap5 {\r\n    gap: 5px;\r\n}\r\n\r\n.flex1 {\r\n    flex: 1;\r\n}\r\n\r\n/* Progress indicator */\r\n.name-tracker-progress {\r\n    margin: 10px 0;\r\n    padding: 10px;\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    text-align: center;\r\n}\r\n\r\n.name-tracker-progress .progress-text {\r\n    margin-bottom: 5px;\r\n    font-weight: bold;\r\n}\r\n\r\n.name-tracker-progress .progress-bar {\r\n    width: 100%;\r\n    height: 20px;\r\n    background-color: var(--black50a);\r\n    border-radius: 10px;\r\n    overflow: hidden;\r\n}\r\n\r\n.name-tracker-progress .progress-fill {\r\n    height: 100%;\r\n    background-color: var(--SmartThemeQuoteColor);\r\n    transition: width 0.3s ease;\r\n}\r\n\r\n/* Character details preview (for potential future use) */\r\n.character-details {\r\n    display: none;\r\n    margin-top: 10px;\r\n    padding: 10px;\r\n    background-color: var(--black30a);\r\n    border-radius: 5px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.character-details.expanded {\r\n    display: block;\r\n}\r\n\r\n.character-details-section {\r\n    margin-bottom: 8px;\r\n}\r\n\r\n.character-details-section:last-child {\r\n    margin-bottom: 0;\r\n}\r\n\r\n.character-details-label {\r\n    font-weight: bold;\r\n    color: var(--SmartThemeQuoteColor);\r\n    margin-right: 5px;\r\n}\r\n\r\n/* Responsive adjustments */\r\n@media (max-width: 768px) {\r\n    .character-actions {\r\n        flex-direction: column;\r\n    }\r\n    \r\n    .character-actions .menu_button {\r\n        width: 100%;\r\n    }\r\n}\r\n\r\n/* Animation for new characters */\r\n@keyframes fadeIn {\r\n    from {\r\n        opacity: 0;\r\n        transform: translateY(-10px);\r\n    }\r\n    to {\r\n        opacity: 1;\r\n        transform: translateY(0);\r\n    }\r\n}\r\n\r\n.name-tracker-character.new {\r\n    animation: fadeIn 0.3s ease;\r\n}\r\n\r\n/* System Prompt Editor */\r\n.system-prompt-editor h3 {\r\n    margin-top: 0;\r\n    margin-bottom: 10px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.system-prompt-editor p {\r\n    margin-bottom: 10px;\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-size: 0.9em;\r\n}\r\n\r\n#system_prompt_editor {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    color: var(--SmartThemeBodyColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    padding: 10px;\r\n    resize: vertical;\r\n}\r\n\r\n#system_prompt_editor:focus {\r\n    outline: none;\r\n    border-color: var(--SmartThemeEmColor);\r\n}\r\n\r\n.system-prompt-actions button {\r\n    min-width: 100px;\r\n}\r\n\r\n#system_prompt_reset {\r\n    margin-right: auto;\r\n}\r\n\r\n\r\n"],"sourceRoot":""}]);
+`, "",{"version":3,"sources":["webpack://./style.css"],"names":[],"mappings":"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","sourcesContent":["/* Styles for the Name Tracker extension */\r\n\r\n.name-tracker-settings {\r\n    padding: 5px;\r\n}\r\n\r\n.name-tracker_block {\r\n    margin-bottom: 10px;\r\n}\r\n\r\n.name-tracker_block h4 {\r\n    margin-top: 10px;\r\n    margin-bottom: 10px;\r\n    font-weight: bold;\r\n}\r\n\r\n/* Status Display */\r\n.name-tracker-status-block {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    padding: 10px;\r\n}\r\n\r\n.name-tracker-status {\r\n    font-weight: bold;\r\n    color: var(--SmartThemeBodyColor);\r\n    padding: 5px;\r\n    text-align: center;\r\n}\r\n\r\n/* Character List */\r\n.name-tracker-character-list {\r\n    max-height: 400px;\r\n    overflow-y: auto;\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    padding: 5px;\r\n    margin-top: 5px;\r\n}\r\n\r\n.name-tracker-character {\r\n    padding: 10px;\r\n    margin-bottom: 10px;\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n}\r\n\r\n.name-tracker-character:last-child {\r\n    margin-bottom: 0;\r\n}\r\n\r\n/* Active/loaded character styling (characters that are loaded in SillyTavern) */\r\n.name-tracker-character.main-character {\r\n    border-left: 3px solid #4CAF50;\r\n    background-color: rgba(76, 175, 80, 0.05);\r\n}\r\n\r\n.character-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-bottom: 5px;\r\n}\r\n\r\n.character-name {\r\n    font-weight: bold;\r\n    font-size: 1.1em;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.character-name .fa-user {\r\n    color: #4CAF50;\r\n    margin-right: 5px;\r\n}\r\n\r\n.character-name.ignored {\r\n    color: var(--SmartThemeQuoteColor);\r\n    text-decoration: line-through;\r\n}\r\n\r\n.character-badge {\r\n    display: inline-block;\r\n    padding: 2px 8px;\r\n    border-radius: 3px;\r\n    font-size: 0.75em;\r\n    font-weight: bold;\r\n    margin-left: 5px;\r\n}\r\n\r\n.character-badge.main-char {\r\n    background-color: #4CAF50;\r\n    color: #fff;\r\n}\r\n\r\n.character-badge.ignored {\r\n    background-color: #666;\r\n    color: #fff;\r\n}\r\n\r\n.character-badge.unresolved {\r\n    background-color: #ff9800;\r\n    color: #000;\r\n}\r\n\r\n/* Lorebook entry editor modal */\r\n.lorebook-entry-editor h3 {\r\n    margin-top: 0;\r\n    margin-bottom: 20px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.editor-section {\r\n    margin-bottom: 15px;\r\n}\r\n\r\n.editor-section label {\r\n    display: block;\r\n    font-weight: bold;\r\n    margin-bottom: 5px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.editor-section small {\r\n    display: block;\r\n    margin-top: 3px;\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-size: 0.85em;\r\n}\r\n\r\n.editor-section input,\r\n.editor-section textarea {\r\n    width: 100%;\r\n    box-sizing: border-box;\r\n}\r\n\r\n.character-aliases {\r\n    font-size: 0.9em;\r\n    color: var(--SmartThemeQuoteColor);\r\n    margin-bottom: 8px;\r\n    font-style: italic;\r\n}\r\n\r\n.lorebook-entry-id {\r\n    display: inline-block;\r\n    margin-left: 10px;\r\n    padding: 2px 6px;\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    font-family: monospace;\r\n    font-size: 0.85em;\r\n    font-style: normal;\r\n    color: var(--SmartThemeQuoteColor);\r\n}\r\n\r\n.character-details {\r\n    font-size: 0.85em;\r\n    color: var(--SmartThemeBodyColor);\r\n    margin: 8px 0;\r\n    padding: 8px;\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border-left: 2px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    line-height: 1.4;\r\n}\r\n\r\n.character-actions {\r\n    display: flex;\r\n    gap: 5px;\r\n    flex-wrap: wrap;\r\n    margin-top: 8px;\r\n}\r\n\r\n.character-actions .menu_button {\r\n    flex: 1;\r\n    min-width: 100px;\r\n    padding: 5px 10px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n/* Character action buttons */\r\n.char-action-btn {\r\n    background: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    color: var(--SmartThemeEmColor);\r\n    padding: 6px 10px;\r\n    border-radius: 4px;\r\n    cursor: pointer;\r\n    transition: all 0.2s ease;\r\n    font-size: 14px;\r\n}\r\n\r\n.char-action-btn:hover {\r\n    background: var(--SmartThemeQuoteColor);\r\n    transform: translateY(-1px);\r\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);\r\n}\r\n\r\n.char-action-btn:active {\r\n    transform: translateY(0);\r\n}\r\n\r\n.char-action-btn i {\r\n    pointer-events: none;\r\n}\r\n\r\n/* Red highlight for needs review */\r\n.char-action-btn.needs-review {\r\n    border-color: #dc3545;\r\n    color: #dc3545;\r\n}\r\n\r\n.char-action-btn.needs-review:hover {\r\n    background: #dc3545;\r\n    color: #fff;\r\n}\r\n\r\n.menu_button.compact {\r\n    padding: 5px 10px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.name-tracker-empty {\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-style: italic;\r\n    text-align: center;\r\n    padding: 20px;\r\n}\r\n\r\n/* Ollama Settings */\r\n.ollama-settings {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border-left: 3px solid var(--SmartThemeBorderColor);\r\n    padding: 10px;\r\n    margin-top: 5px;\r\n    border-radius: 5px;\r\n}\r\n\r\n/* Merge Dialog */\r\n.merge-dialog {\r\n    padding: 15px;\r\n}\r\n\r\n.merge-dialog p {\r\n    margin-bottom: 10px;\r\n}\r\n\r\n.merge-dialog strong {\r\n    color: var(--SmartThemeBodyColor);\r\n    font-weight: bold;\r\n}\r\n\r\n.merge-warning {\r\n    color: #ff9800;\r\n    font-size: 0.9em;\r\n    margin-top: 10px;\r\n    padding: 10px;\r\n    background-color: rgba(255, 152, 0, 0.1);\r\n    border-left: 3px solid #ff9800;\r\n    border-radius: 3px;\r\n}\r\n\r\n/* Button states */\r\nbutton:disabled {\r\n    opacity: 0.5;\r\n    cursor: not-allowed;\r\n}\r\n\r\n/* Flex utilities */\r\n.flexGap5 {\r\n    gap: 5px;\r\n}\r\n\r\n.flex1 {\r\n    flex: 1;\r\n}\r\n\r\n/* Progress indicator */\r\n.name-tracker-progress {\r\n    margin: 10px 0;\r\n    padding: 10px;\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 5px;\r\n    text-align: center;\r\n}\r\n\r\n.name-tracker-progress .progress-text {\r\n    margin-bottom: 5px;\r\n    font-weight: bold;\r\n}\r\n\r\n.name-tracker-progress .progress-bar {\r\n    width: 100%;\r\n    height: 20px;\r\n    background-color: var(--black50a);\r\n    border-radius: 10px;\r\n    overflow: hidden;\r\n}\r\n\r\n.name-tracker-progress .progress-fill {\r\n    height: 100%;\r\n    background-color: var(--SmartThemeQuoteColor);\r\n    transition: width 0.3s ease;\r\n}\r\n\r\n/* Character details preview (for potential future use) */\r\n.character-details {\r\n    display: none;\r\n    margin-top: 10px;\r\n    padding: 10px;\r\n    background-color: var(--black30a);\r\n    border-radius: 5px;\r\n    font-size: 0.9em;\r\n}\r\n\r\n.character-details.expanded {\r\n    display: block;\r\n}\r\n\r\n.character-details-section {\r\n    margin-bottom: 8px;\r\n}\r\n\r\n.character-details-section:last-child {\r\n    margin-bottom: 0;\r\n}\r\n\r\n.character-details-label {\r\n    font-weight: bold;\r\n    color: var(--SmartThemeQuoteColor);\r\n    margin-right: 5px;\r\n}\r\n\r\n/* Responsive adjustments */\r\n@media (max-width: 768px) {\r\n    .character-actions {\r\n        flex-direction: column;\r\n    }\r\n    \r\n    .character-actions .menu_button {\r\n        width: 100%;\r\n    }\r\n}\r\n\r\n/* Animation for new characters */\r\n@keyframes fadeIn {\r\n    from {\r\n        opacity: 0;\r\n        transform: translateY(-10px);\r\n    }\r\n    to {\r\n        opacity: 1;\r\n        transform: translateY(0);\r\n    }\r\n}\r\n\r\n.name-tracker-character.new {\r\n    animation: fadeIn 0.3s ease;\r\n}\r\n\r\n/* System Prompt Editor */\r\n.system-prompt-editor h3 {\r\n    margin-top: 0;\r\n    margin-bottom: 10px;\r\n    color: var(--SmartThemeBodyColor);\r\n}\r\n\r\n.system-prompt-editor p {\r\n    margin-bottom: 10px;\r\n    color: var(--SmartThemeQuoteColor);\r\n    font-size: 0.9em;\r\n}\r\n\r\n#system_prompt_editor {\r\n    background-color: var(--SmartThemeBlurTintColor);\r\n    color: var(--SmartThemeBodyColor);\r\n    border: 1px solid var(--SmartThemeBorderColor);\r\n    border-radius: 3px;\r\n    padding: 10px;\r\n    resize: vertical;\r\n}\r\n\r\n#system_prompt_editor:focus {\r\n    outline: none;\r\n    border-color: var(--SmartThemeEmColor);\r\n}\r\n\r\n.system-prompt-actions button {\r\n    min-width: 100px;\r\n}\r\n\r\n#system_prompt_reset {\r\n    margin-right: auto;\r\n}\r\n\r\n\r\n"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -639,34 +676,44 @@ class SillyTavernContext {
 
     /**
      * Load world info (lorebook)
-     * @param {string} lorebookName - Name of lorebook to load
+     * Direct passthrough to SillyTavern API - no error boundary wrapping
+     * to prevent Promise contamination in structuredClone operations
+     * @param {string} lorebookName - Name of lorebook
      * @returns {Promise<Object|null>} Lorebook data
      */
     async loadWorldInfo(lorebookName) {
-        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+        try {
             const context = this.getContext();
             if (!context.loadWorldInfo) {
                 throw new Error('loadWorldInfo not available');
             }
             return await context.loadWorldInfo(lorebookName);
-        });
+        } catch (error) {
+            console.error('[NT-Context] loadWorldInfo error:', error);
+            throw error;
+        }
     }
 
     /**
      * Save world info (lorebook)
+     * Direct passthrough to SillyTavern API - no error boundary wrapping
+     * to prevent Promise contamination in structuredClone operations
      * @param {string} lorebookName - Name of lorebook
      * @param {Object} data - Lorebook data
      * @param {boolean} create - Create if doesn't exist
      * @returns {Promise<void>}
      */
     async saveWorldInfo(lorebookName, data, create = false) {
-        return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
+        try {
             const context = this.getContext();
             if (!context.saveWorldInfo) {
                 throw new Error('saveWorldInfo not available');
             }
             return await context.saveWorldInfo(lorebookName, data, create);
-        });
+        } catch (error) {
+            console.error('[NT-Context] saveWorldInfo error:', error);
+            throw error;
+        }
     }
 
     /**
@@ -1415,7 +1462,9 @@ async function updateLorebookEntry(character, characterName) {
 ║ WorldInfo Structure: ${JSON.stringify(worldInfoStructure, null, 2)}
 ╚════════════════════════════════════════════════════════════════`);
 
-            await context.saveWorldInfo(lorebookName, worldInfo, true);
+            // Sanitize worldInfo to prevent Promise contamination in structuredClone
+            const sanitizedWorldInfo = JSON.parse(JSON.stringify(worldInfo));
+            await context.saveWorldInfo(lorebookName, sanitizedWorldInfo, true);
 
             console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
 ║ LOREBOOK SAVE COMPLETE
@@ -1513,15 +1562,20 @@ async function viewInLorebook(characterName) {
             return;
         }
 
-        // Import the openWorldInfoEditor function from SillyTavern
+        // Import the world info functions from context
         const context = core_context.stContext.getContext();
 
-        // Open the lorebook editor
-        if (typeof context.openWorldInfoEditor === 'function') {
+        // Open the lorebook editor and make this chat's lorebook active
+        if (typeof context.reloadWorldInfoEditor === 'function') {
+            // Use reloadWorldInfoEditor to ensure the chat lorebook is active in the editor
+            context.reloadWorldInfoEditor(lorebookName, true);
+            lorebook_notifications.success(`Opened lorebook for ${characterName}`);
+        } else if (typeof context.openWorldInfoEditor === 'function') {
+            // Fallback to openWorldInfoEditor
             await context.openWorldInfoEditor(lorebookName);
             lorebook_notifications.success(`Opened lorebook for ${characterName}`);
         } else {
-            // Fallback: show the world info panel if openWorldInfoEditor doesn't exist
+            // Final fallback: show the world info panel
             $('#WorldInfo').click();
             lorebook_notifications.info(`Please select "${lorebookName}" from the World Info panel`);
         }
@@ -1546,7 +1600,8 @@ async function deleteLorebookEntry(character) {
             const worldInfo = await context.loadWorldInfo(lorebookName);
             if (worldInfo && worldInfo.entries && worldInfo.entries[character.lorebookEntryId]) {
                 delete worldInfo.entries[character.lorebookEntryId];
-                await context.saveWorldInfo(lorebookName, worldInfo, true);
+                const sanitizedWorldInfo = JSON.parse(JSON.stringify(worldInfo));
+                await context.saveWorldInfo(lorebookName, sanitizedWorldInfo, true);
 
                 lorebook_debug.log();
                 return true;
@@ -1594,7 +1649,8 @@ async function purgeLorebookEntries(characters) {
                 }
 
                 // Save the lorebook
-                await context.saveWorldInfo(lorebookName, worldInfo, true);
+                const sanitizedWorldInfo = JSON.parse(JSON.stringify(worldInfo));
+                await context.saveWorldInfo(lorebookName, sanitizedWorldInfo, true);
             }
         } catch (error) {
             console.error('Error purging lorebook entries:', error);
@@ -2533,7 +2589,7 @@ async function getCharacter(name) {
         }
         const chars = await getCharacters();
         return chars[name] || null;
-    }, null);
+    });
 }
 
 /**
@@ -3093,6 +3149,7 @@ async function createCharacter(analyzedChar, isMainChar = false) {
             lorebookEntryId: null,
             lastUpdated: Date.now(),
             isMainChar: isMainChar || false,
+            needsReview: true,  // New characters always need review
         };
 
         debug.log();
@@ -3164,6 +3221,7 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
         }
 
         existingChar.lastUpdated = Date.now();
+        existingChar.needsReview = true;  // Updated characters need review
 
         // Update character in settings - AWAIT to ensure save completes
         await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .setCharacter */ .e7)(existingChar.preferredName, existingChar);
@@ -3839,6 +3897,15 @@ If a character appears in the new messages with additional/changed information, 
 If a character is NOT mentioned or has no new information, do NOT include them in your response.
 
 {{CHARACTER_ROSTER}}
+
+⚠️ REQUIRED: Always include the user character ({{user}}) in your response, even if minimal details
+For other characters from Current Lorebook Entries: only include if NEW information appears in these messages
+Returning only the user character is valid when no other character updates exist
+
+⚠️ CRITICAL INSTRUCTION: Only include characters with NEW information in these specific messages. If a character from the lorebook appears but provides no new details, DO NOT include them in your response.
+
+Example: Alice from lorebook says 'Hi' in message 5 → No new info → Omit Alice from response
+Example: {{user}} always appears → Always include {{user}} with any available details
 
 CRITICAL JSON REQUIREMENTS:
 - Your ENTIRE response must be valid JSON starting with { and ending with }
@@ -4966,6 +5033,33 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
             throw error;
         }
 
+        // Check for empty response and retry once with stronger emphasis
+        if (result && Array.isArray(result.characters) && result.characters.length === 0 && retryCount === 0) {
+            console.warn('[NT-LLM] Empty response detected, retrying with stronger user character emphasis...');
+            
+            // Add stronger user character requirement to the user prompt
+            const retryUserPrompt = userPrompt + '\n\nCRITICAL ERROR: Previous response was empty. You MUST return at minimum the user character ({{user}}) with any available details from these messages. An empty character list is INVALID.';
+            
+            try {
+                let retryResult;
+                if (llmConfig.source === 'ollama') {
+                    const retryFlatPrompt = systemMessage + '\n\n' + retryUserPrompt + '\n' + prefill;
+                    retryResult = await callOllama(retryFlatPrompt);
+                } else {
+                    retryResult = await callSillyTavern(systemMessage, retryUserPrompt, prefill, false);
+                }
+                
+                if (retryResult && Array.isArray(retryResult.characters) && retryResult.characters.length > 0) {
+                    console.log('[NT-LLM] Retry successful, got', retryResult.characters.length, 'characters');
+                    result = retryResult;
+                } else {
+                    console.error('[NT-LLM] Retry also returned empty, proceeding with empty result');
+                }
+            } catch (retryError) {
+                console.error('[NT-LLM] Retry failed:', retryError.message, 'proceeding with original empty result');
+            }
+        }
+
         // Cache the result only if we have characters
         if (result && Array.isArray(result.characters) && result.characters.length > 0) {
             if (analysisCache.size > 50) {
@@ -5747,17 +5841,17 @@ function ui_updateCharacterList() {
                             ${reviewBadge}
                         </span>
                         <div class="char-actions">
-                            <button class="char-action-btn char-action-edit" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="Edit lorebook entry">
-                                <i class="fa-solid fa-edit"></i>
-                            </button>
                             <button class="char-action-btn char-action-view" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="View in lorebook">
                                 <i class="fa-solid fa-book"></i>
                             </button>
-                            <button class="char-action-btn char-action-merge" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="Merge with another character">
-                                <i class="fa-solid fa-code-merge"></i>
+                            <button class="char-action-btn char-action-acknowledge ${character.needsReview ? 'needs-review' : ''}" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="Acknowledge review">
+                                <i class="fa-solid fa-check"></i>
                             </button>
                             <button class="char-action-btn char-action-ignore" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="${character.ignored ? 'Unignore' : 'Ignore'} character">
                                 <i class="fa-solid ${character.ignored ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                            </button>
+                            <button class="char-action-btn char-action-merge" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="Merge with another character">
+                                <i class="fa-solid fa-code-merge"></i>
                             </button>
                         </div>
                     </div>
@@ -6092,9 +6186,19 @@ function initializeUIHandlers() {
             await (0,lorebook/* viewInLorebook */._Z)(name);
         });
 
-        $(document).on('click', '.char-action-edit', async function() {
+        $(document).on('click', '.char-action-acknowledge', async function() {
             const name = $(this).data('name');
-            await showEditLorebookModal(name);
+            try {
+                const character = await (0,core_settings/* getCharacter */.qN)(name);
+                if (character) {
+                    character.needsReview = false;
+                    await (0,core_settings/* setCharacter */.e7)(name, character);
+                    await ui_updateCharacterList();
+                    ui_notifications.success(`Acknowledged review for ${name}`);
+                }
+            } catch (error) {
+                ui_notifications.error(`Failed to acknowledge: ${error.message}`);
+            }
         });
 
         ui_debug.log();
@@ -6107,8 +6211,8 @@ function initializeUIHandlers() {
  * @returns {Promise<void>}
  */
 async function showEditLorebookModal(characterName) {
-    return (0,errors/* withErrorBoundary */.Xc)('showEditLorebookModal', async () => {
-        const character = await (0,core_settings/* getCharacter */.qN)(characterName);
+    return withErrorBoundary('showEditLorebookModal', async () => {
+        const character = await getCharacter(characterName);
 
         if (!character) {
             ui_notifications.error('Character not found');
@@ -6120,26 +6224,26 @@ async function showEditLorebookModal(characterName) {
 
         const dialogHtml = `
             <div class="lorebook-entry-editor">
-                <h3>Edit Lorebook Entry: ${(0,helpers/* escapeHtml */.ZD)(characterName)}</h3>
+                <h3>Edit Lorebook Entry: ${escapeHtml(characterName)}</h3>
                 
                 <div class="editor-section">
                     <label for="entry-keys">Keys (comma-separated):</label>
-                    <input type="text" id="entry-keys" class="text_pole" value="${(0,helpers/* escapeHtml */.ZD)(currentKeys)}" 
-                           placeholder="${(0,helpers/* escapeHtml */.ZD)(characterName)}, aliases, nicknames">
+                    <input type="text" id="entry-keys" class="text_pole" value="${escapeHtml(currentKeys)}" 
+                           placeholder="${escapeHtml(characterName)}, aliases, nicknames">
                     <small>These words trigger this entry in the chat context</small>
                 </div>
                 
                 <div class="editor-section">
                     <label for="entry-content">Entry Content:</label>
                     <textarea id="entry-content" rows="10" class="text_pole" 
-                              placeholder="Description, personality, background, relationships...">${(0,helpers/* escapeHtml */.ZD)(character.notes || '')}</textarea>
+                              placeholder="Description, personality, background, relationships...">${escapeHtml(character.notes || '')}</textarea>
                     <small>This will be injected into context when keys are mentioned</small>
                 </div>
                 
                 <div class="editor-section">
                     <label for="entry-relationships">Relationships:</label>
                     <textarea id="entry-relationships" rows="3" class="text_pole" 
-                              placeholder="Friend of Alice; Enemy of Bob; Works for XYZ Corp">${(0,helpers/* escapeHtml */.ZD)((character.relationships || []).join('; '))}</textarea>
+                              placeholder="Friend of Alice; Enemy of Bob; Works for XYZ Corp">${escapeHtml((character.relationships || []).join('; '))}</textarea>
                     <small>One relationship per line or semicolon-separated</small>
                 </div>
             </div>
@@ -6209,9 +6313,9 @@ async function showEditLorebookModal(characterName) {
 
             // If preferred name changed, need to update the key in settings
             if (preferredName !== characterName) {
-                await (0,core_settings/* removeCharacter */.sr)(characterName);
+                await removeCharacter(characterName);
             }
-            await (0,core_settings/* setCharacter */.e7)(preferredName, character);
+            await setCharacter(preferredName, character);
 
             await ui_updateCharacterList();
             await ui_updateStatusDisplay();
@@ -6815,9 +6919,10 @@ const MAX_RETRY_ATTEMPTS = 3;           // Maximum retries before halting proces
 const CONTEXT_REDUCTION_STEP = 5;       // Percentage to reduce context target on each failure
 
 // Batch Size Constraints (token-based, but with message-count limits for safety)
-const MIN_MESSAGES_PER_BATCH = 5;       // Never create batches smaller than this (unless last batch)
-const MAX_MESSAGES_PER_BATCH = 50;      // Cap batches at this size even if tokens allow more
-const TARGET_MESSAGES_PER_BATCH = 30;   // Aim for this size when possible (balance: not too small, not too large)
+// Reduced for incremental update strategy - smaller batches yield better focused character updates
+const MIN_MESSAGES_PER_BATCH = 3;       // Never create batches smaller than this (unless last batch)
+const MAX_MESSAGES_PER_BATCH = 10;      // Cap batches at this size even if tokens allow more
+const TARGET_MESSAGES_PER_BATCH = 7;    // Aim for this size when possible (optimal for focused analysis)
 const TARGET_MESSAGE_PERCENT = 35;      // Use 35% of max context for message data (conservative)
 
 // Error Recovery
@@ -6882,6 +6987,10 @@ async function createMessageBatches(messages, availableTokens, enforceMessageLim
 let processingQueue = [];
 let isProcessing = false;
 let abortScan = false;
+
+// Throughput tracking for progress bar metrics
+let batchTimestamps = []; // Store last 10 batch completion timestamps
+const THROUGHPUT_WINDOW_SIZE = 10;
 const currentProcessingState = {
     totalBatches: 0,
     currentBatch: 0,
@@ -7377,6 +7486,9 @@ async function harvestMessages(messageCount, showProgress = true) {
             // Reset abort flag
             abortScan = false;
 
+            // Reset throughput tracking
+            batchTimestamps = [];
+
             // Calculate average batch size for user notification
             const avgBatchSize = Math.round(messagesToAnalyze.length / batches.length);
             const notification = `Analyzing ${messagesToAnalyze.length} messages in ${batches.length} batches (~${avgBatchSize} messages each). This may take a while. Continue?`;
@@ -7449,6 +7561,12 @@ async function harvestMessages(messageCount, showProgress = true) {
                     }
 
                     successfulBatches++;
+
+                    // Track batch completion time for throughput metrics
+                    batchTimestamps.push(Date.now());
+                    if (batchTimestamps.length > THROUGHPUT_WINDOW_SIZE) {
+                        batchTimestamps.shift(); // Keep only last N timestamps
+                    }
 
                     // Small delay between batches to avoid rate limiting
                     if (i < batches.length - 1) {
@@ -7649,7 +7767,7 @@ async function showRescanModal(currentMessageIndex, lastScannedId) {
 }
 
 /**
- * Show progress bar for batch scanning
+ * Show progress bar for batch scanning with throughput metrics
  * @param {number} current - Current batch number (1-indexed)
  * @param {number} total - Total number of batches
  * @param {string} status - Status message
@@ -7658,9 +7776,25 @@ function showProgressBar(current, total, status = '') {
     const progressBarId = 'name_tracker_progress';
     const $existing = $(`.${progressBarId}`);
 
+    // Calculate throughput metrics if we have enough data
+    let throughputText = '';
+    if (batchTimestamps.length >= 2 && current > 0) {
+        // Calculate batches per minute from last N timestamps
+        const recentTimestamps = batchTimestamps.slice(-Math.min(THROUGHPUT_WINDOW_SIZE, batchTimestamps.length));
+        const timeSpan = recentTimestamps[recentTimestamps.length - 1] - recentTimestamps[0];
+        const batchesCompleted = recentTimestamps.length - 1;
+        
+        if (timeSpan > 0 && batchesCompleted > 0) {
+            const batchesPerMin = (batchesCompleted / (timeSpan / 60000)).toFixed(1);
+            const remainingBatches = total - current;
+            const estimatedMinutes = Math.ceil(remainingBatches / (batchesCompleted / (timeSpan / 60000)));
+            throughputText = ` • ${batchesPerMin} batches/min • ~${estimatedMinutes}min remaining`;
+        }
+    }
+
     if ($existing.length > 0) {
         // Update existing progress bar
-        if (status) $existing.find('.title').text(status);
+        if (status) $existing.find('.title').text(status + throughputText);
         $existing.find('.progress').text(current);
         $existing.find('.total').text(total);
         $existing.find('progress').val(current).attr('max', total);
@@ -7676,7 +7810,7 @@ function showProgressBar(current, total, status = '') {
             border: 1px solid var(--SmartThemeBorderColor);
             border-radius: 5px;
         ">
-            <div class="title" style="flex: 1; font-weight: bold;">${status || 'Name Tracker Scan'}</div>
+            <div class="title" style="flex: 1; font-weight: bold;">${status || 'Name Tracker Scan'}${throughputText}</div>
             <div style="margin: 0 10px;">(<span class="progress">${current}</span> / <span class="total">${total}</span>)</div>
             <progress value="${current}" max="${total}" style="flex: 2; margin: 0 10px;"></progress>
             <button class="menu_button fa-solid fa-stop" title="Abort scan" style="padding: 5px 10px;"></button>
@@ -7742,8 +7876,8 @@ async function scanEntireChat() {
         const maxPromptTokens = maxPromptResult.maxPrompt;
         const availableTokens = calculateAvailableTokens(maxPromptTokens);
 
-        // Build batches using shared helper
-        const batches = await createMessageBatches(context.chat, availableTokens, false);
+        // Build batches using shared helper with message limit enforcement
+        const batches = await createMessageBatches(context.chat, availableTokens, true);
 
         const numBatches = batches.length;
 
@@ -7755,6 +7889,9 @@ async function scanEntireChat() {
 
         // Reset abort flag
         abortScan = false;
+
+        // Reset throughput tracking
+        batchTimestamps = [];
 
         // Show progress bar
         showProgressBar(0, numBatches, 'Starting batch scan...');
@@ -7796,6 +7933,12 @@ async function scanEntireChat() {
                 }
 
                 successfulBatches++;
+
+                // Track batch completion time for throughput metrics
+                batchTimestamps.push(Date.now());
+                if (batchTimestamps.length > THROUGHPUT_WINDOW_SIZE) {
+                    batchTimestamps.shift(); // Keep only last N timestamps
+                }
 
                 // Small delay between batches
                 if (i < numBatches - 1) {

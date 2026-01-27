@@ -136,34 +136,44 @@ class SillyTavernContext {
 
     /**
      * Load world info (lorebook)
-     * @param {string} lorebookName - Name of lorebook to load
+     * Direct passthrough to SillyTavern API - no error boundary wrapping
+     * to prevent Promise contamination in structuredClone operations
+     * @param {string} lorebookName - Name of lorebook
      * @returns {Promise<Object|null>} Lorebook data
      */
     async loadWorldInfo(lorebookName) {
-        return errorHandler.withErrorBoundary('Context', async () => {
+        try {
             const context = this.getContext();
             if (!context.loadWorldInfo) {
                 throw new Error('loadWorldInfo not available');
             }
             return await context.loadWorldInfo(lorebookName);
-        });
+        } catch (error) {
+            console.error('[NT-Context] loadWorldInfo error:', error);
+            throw error;
+        }
     }
 
     /**
      * Save world info (lorebook)
+     * Direct passthrough to SillyTavern API - no error boundary wrapping
+     * to prevent Promise contamination in structuredClone operations
      * @param {string} lorebookName - Name of lorebook
      * @param {Object} data - Lorebook data
      * @param {boolean} create - Create if doesn't exist
      * @returns {Promise<void>}
      */
     async saveWorldInfo(lorebookName, data, create = false) {
-        return errorHandler.withErrorBoundary('Context', async () => {
+        try {
             const context = this.getContext();
             if (!context.saveWorldInfo) {
                 throw new Error('saveWorldInfo not available');
             }
             return await context.saveWorldInfo(lorebookName, data, create);
-        });
+        } catch (error) {
+            console.error('[NT-Context] saveWorldInfo error:', error);
+            throw error;
+        }
     }
 
     /**

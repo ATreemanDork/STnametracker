@@ -180,6 +180,43 @@
     font-size: 0.9em;
 }
 
+/* Character action buttons */
+.char-action-btn {
+    background: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeEmColor);
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.char-action-btn:hover {
+    background: var(--SmartThemeQuoteColor);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.char-action-btn:active {
+    transform: translateY(0);
+}
+
+.char-action-btn i {
+    pointer-events: none;
+}
+
+/* Red highlight for needs review */
+.char-action-btn.needs-review {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.char-action-btn.needs-review:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
 .menu_button.compact {
     padding: 5px 10px;
     font-size: 0.9em;

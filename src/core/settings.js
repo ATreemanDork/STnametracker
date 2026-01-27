@@ -300,7 +300,7 @@ async function getCharacter(name) {
         }
         const chars = await getCharacters();
         return chars[name] || null;
-    }, null);
+    });
 }
 
 /**

@@ -416,6 +416,7 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
             lorebookEntryId: null,
             lastUpdated: Date.now(),
             isMainChar: isMainChar || false,
+            needsReview: true,  // New characters always need review
         };
 
         debug.log();
@@ -487,6 +488,7 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
         }
 
         existingChar.lastUpdated = Date.now();
+        existingChar.needsReview = true;  // Updated characters need review
 
         // Update character in settings - AWAIT to ensure save completes
         await setCharacter(existingChar.preferredName, existingChar);
