@@ -686,7 +686,7 @@ export function initializeMenuButtons() {
         // Add toggle auto-harvest button with visual state
         const autoAnalyze = await getSetting('autoAnalyze', true);
         const toggleIcon = autoAnalyze ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
-        addMenuButton(
+        await addMenuButton(
             'Toggle Auto-Harvest',
             toggleIcon,
             toggleAutoHarvest,
@@ -695,7 +695,7 @@ export function initializeMenuButtons() {
         );
 
         // Add character list button
-        addMenuButton(
+        await addMenuButton(
             'View Characters',
             'fa-solid fa-users',
             showCharacterListModal,
@@ -703,7 +703,7 @@ export function initializeMenuButtons() {
         );
 
         // Add open lorebook button
-        addMenuButton(
+        await addMenuButton(
             'Open Chat Lorebook',
             'fa-solid fa-book',
             openChatLorebook,

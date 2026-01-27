@@ -12,6 +12,12 @@ import { get_settings, getCharacters, getLLMConfig } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { simpleHash } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
+import { 
+    logRawResponse, 
+    logParseAttempt, 
+    logRegexExtraction, 
+    createParsingSession 
+} from '../../tests/debug-parser.js';
 
 const debug = createModuleLogger('llm');
 const notifications = new NotificationManager('LLM Integration');
@@ -836,6 +842,12 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                     console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
                 }
                 
+                // Log raw response for debugging if debug mode enabled
+                const debugMode = await get_settings('debugMode');
+                if (debugMode) {
+                    logRawResponse(resultText, 'SillyTavern');
+                }
+                
                 // Log actual response token usage
                 try {
                     const responseTokens = await context.getTokenCountAsync(resultText);
@@ -1117,7 +1129,15 @@ function repairJSON(text) {
  * @returns {Object} Parsed JSON object
  */
 export function parseJSONResponse(text) {
-    return withErrorBoundary('parseJSONResponse', () => {
+    return withErrorBoundary('parseJSONResponse', async () => {
+        // Create debug session if debug mode is enabled
+        const debugMode = await get_settings('debugMode');
+        const session = debugMode ? createParsingSession() : null;
+        
+        if (session) {
+            session.logStart('parseJSONResponse', text);
+        }
+        
         console.log('[NT-Parse] ========== PARSE START ==========');
         console.log('[NT-Parse] Input type:', typeof text);
         console.log('[NT-Parse] Input is null?:', text === null);
@@ -1160,45 +1180,79 @@ export function parseJSONResponse(text) {
         }
 
         // Remove any leading/trailing whitespace
+        const beforeTrim = text;
         text = text.trim();
         console.log('[NT-Parse] After trim, length:', text.length);
+        
+        if (session) {
+            session.logTransform('Trim whitespace', beforeTrim, text);
+        }
+        
         if (text.length === 0) {
             console.error('[NT-Parse] ❌ Text is empty after trim');
+            if (session) session.logEnd(false, new Error('Empty after trim'), text);
             throw new NameTrackerError('LLM returned empty response');
         }
 
-        // Extract JSON from markdown code blocks if present
-        if (text.includes('```')) {
-            console.log('[NT-Parse] 🔍 Found markdown code block, extracting JSON');
+        // Extract JSON from markdown code blocks ONLY if response starts with markdown
+        // This prevents false positives from backticks embedded in JSON string values
+        const startsWithMarkdown = /^```(?:json)?[\s\n]/.test(text);
+        
+        if (startsWithMarkdown) {
+            console.log('[NT-Parse] 🔍 Response starts with markdown code block, extracting JSON');
+            const beforeExtraction = text;
             
-            // More flexible extraction - look for JSON content between code blocks
-            const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+            // Extract content between first ``` and last ```
+            const codeBlockMatch = text.match(/^```(?:json)?[\s\n]+([\s\S]*?)```\s*$/);
             if (codeBlockMatch && codeBlockMatch[1]) {
                 text = codeBlockMatch[1].trim();
                 console.log('[NT-Parse] 📄 After markdown extraction, length:', text.length);
+                
+                if (session) {
+                    logRegexExtraction(beforeExtraction, '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/', text);
+                    session.logTransform('Extract markdown code block', beforeExtraction, text, {
+                        regex: '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/'
+                    });
+                }
             } else {
-                // If no proper code block, remove the backticks
-                text = text.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, '');
-                console.log('[NT-Parse] 🧹 Removed loose markdown backticks, length:', text.length);
+                console.warn('[NT-Parse] ⚠️ Starts with ``` but no matching closing ```, removing markdown markers');
+                // Remove opening and closing markers
+                text = text.replace(/^```(?:json)?[\s\n]+/, '').replace(/```\s*$/, '');
+                console.log('[NT-Parse] 🧹 Removed markdown markers, length:', text.length);
+                
+                if (session) {
+                    session.logTransform('Remove malformed markdown', beforeExtraction, text);
+                }
             }
+        } else if (text.includes('```')) {
+            // Backticks present but NOT at start - likely embedded in JSON strings
+            console.log('[NT-Parse] ℹ️ Found backticks in response but not at start - likely embedded in JSON strings, not extracting');
+            console.log('[NT-Parse] First 50 chars:', text.substring(0, 50));
         }
         
         // Remove any remaining XML/HTML tags that may interfere
         if (text.includes('<') || text.includes('>')) {
+            const beforeTagRemoval = text;
             const originalLength = text.length;
             text = text.replace(/<[^>]*>/g, '');
             console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
+            
+            if (session) {
+                session.logTransform('Remove XML/HTML tags', beforeTagRemoval, text);
+            }
         }
         
         // Check if response contains obvious error messages
         if (text.includes("I'm sorry") || text.includes("encountered a problem") || text.includes("Please try again")) {
             console.error(`[NT-Parse] 🚨 Response contains error message: "${text.substring(0, 200)}"`);
+            if (session) session.logEnd(false, new Error('LLM error message'), text);
             throw new Error('LLM generated an error response instead of JSON. Try adjusting your request.');
         }
         
         // Check if response is completely non-JSON (like pure XML tags or text)
         if (text.length < 20 || (!text.includes('{') && !text.includes('['))) {
             console.error(`[NT-Parse] 🚨 Response appears to be non-JSON content: "${text}"`);
+            if (session) session.logEnd(false, new Error('Non-JSON response'), text);
             throw new Error('LLM generated non-JSON response. Response may be censored or malformed.');
         }
 
@@ -1259,6 +1313,11 @@ export function parseJSONResponse(text) {
 
             console.log('[NT-Parse] ✅ Valid response with', parsed.characters.length, 'characters');
             console.log('[NT-Parse] ========== PARSE END (SUCCESS) ==========');
+            
+            if (session) {
+                session.logEnd(true, parsed, text);
+            }
+            
             return parsed;
         } catch (error) {
             console.error('[NT-Parse] ❌ JSON.parse failed:', error.message);
@@ -1338,6 +1397,10 @@ export function parseJSONResponse(text) {
             }
 
             console.log('[NT-Parse] ========== PARSE END (FAILED) ==========');
+            
+            if (session) {
+                session.logEnd(false, error, text);
+            }
             
             // Provide specific feedback about the JSON error
             let errorHelp = 'Failed to parse LLM response as JSON.';

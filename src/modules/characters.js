@@ -502,7 +502,7 @@ export async function findPotentialMatch(analyzedChar) {
         // Simple matching logic - can be enhanced with LLM-based similarity
         for (const existingChar of Object.values(chars)) {
             // Check for name similarity (simple approach)
-            const similarity = calculateNameSimilarity(analyzedChar.name, existingChar.preferredName);
+            const similarity = await calculateNameSimilarity(analyzedChar.name, existingChar.preferredName);
 
             if (similarity >= threshold) {
                 debug.log();
@@ -511,7 +511,7 @@ export async function findPotentialMatch(analyzedChar) {
 
             // Check aliases
             for (const alias of existingChar.aliases) {
-                const aliasSimilarity = calculateNameSimilarity(analyzedChar.name, alias);
+                const aliasSimilarity = await calculateNameSimilarity(analyzedChar.name, alias);
                 if (aliasSimilarity >= threshold) {
                     debug.log();
                     return existingChar;

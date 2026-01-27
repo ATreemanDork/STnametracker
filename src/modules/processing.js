@@ -680,17 +680,30 @@ export async function harvestMessages(messageCount, showProgress = true) {
                     console.log('[NT-Batch]    Characters is Array?:', Array.isArray(analysis?.characters));
                     console.log('[NT-Batch]    Characters length:', analysis?.characters?.length);
 
-                    // Process the analysis
-                    if (analysis.characters && Array.isArray(analysis.characters)) {
-                        console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
-                        await processAnalysisResults(analysis.characters);
-                        analysis.characters.forEach(char => uniqueCharacters.add(char.name));
-                        processedMessages += batch.length;
-                    } else {
-                        console.warn('[NT-Batch] ⚠️  Condition failed - not processing results');
-                        console.warn('[NT-Batch]    analysis:', analysis);
-                        console.warn('[NT-Batch]    analysis.characters:', analysis?.characters);
+                    // Process the analysis with enhanced null safety
+                    if (!analysis) {
+                        console.warn('[NT-Batch] ⚠️ Analysis returned null/undefined, skipping batch');
+                        failedBatches++;
+                        continue;
                     }
+                    
+                    if (!analysis.characters) {
+                        console.warn('[NT-Batch] ⚠️ Analysis missing characters property, skipping batch');
+                        failedBatches++;
+                        continue;
+                    }
+                    
+                    if (!Array.isArray(analysis.characters)) {
+                        console.warn('[NT-Batch] ⚠️ analysis.characters is not an array:', typeof analysis.characters);
+                        failedBatches++;
+                        continue;
+                    }
+                    
+                    // Valid analysis - process results
+                    console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
+                    await processAnalysisResults(analysis.characters);
+                    analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                    processedMessages += batch.length;
 
                     successfulBatches++;
 
@@ -830,7 +843,7 @@ export async function onMessageReceived(messageId) {
                 await set_settings('lastScannedMessageId', shouldRescan.fromMessage - 1);
 
                 // Queue a full scan from the specified message
-                addToQueue(async () => {
+                await addToQueue(async () => {
                     await harvestMessages(currentMessageIndex - shouldRescan.fromMessage + 1, true);
                 });
 
@@ -850,7 +863,7 @@ export async function onMessageReceived(messageId) {
             debug.log();
 
             // Queue harvest
-            addToQueue(async () => {
+            await addToQueue(async () => {
                 await harvestMessages(messageFreq, true);
                 // Update last scanned message ID after successful harvest
                 await set_settings('lastScannedMessageId', currentMessageIndex);
@@ -1056,13 +1069,30 @@ export async function scanEntireChat() {
                 // Call LLM for analysis with character context
                 const analysis = await callLLMAnalysis(batchMessages, characterRoster);
 
-                // Process the analysis
-                if (analysis.characters && Array.isArray(analysis.characters)) {
-                    await processAnalysisResults(analysis.characters);
-                    // Track unique characters
-                    analysis.characters.forEach(char => uniqueCharacters.add(char.name));
-                    processedMessages += batchMessages.length;
+                // Process the analysis with null safety
+                if (!analysis) {
+                    console.warn(`[NT-Processing] Batch ${i + 1}: Analysis returned null/undefined, skipping`);
+                    failedBatches++;
+                    continue;
                 }
+                
+                if (!analysis.characters) {
+                    console.warn(`[NT-Processing] Batch ${i + 1}: Analysis missing characters property, skipping`);
+                    failedBatches++;
+                    continue;
+                }
+                
+                if (!Array.isArray(analysis.characters)) {
+                    console.warn(`[NT-Processing] Batch ${i + 1}: analysis.characters is not an array (${typeof analysis.characters}), skipping`);
+                    failedBatches++;
+                    continue;
+                }
+                
+                // Process valid analysis results
+                await processAnalysisResults(analysis.characters);
+                // Track unique characters
+                analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                processedMessages += batchMessages.length;
 
                 successfulBatches++;
 

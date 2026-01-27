@@ -1814,6 +1814,1958 @@ async function getLorebookStats() {
 
 /***/ },
 
+/***/ 248
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  fR: () => (/* binding */ buildCharacterRoster),
+  au: () => (/* binding */ calculateMessageTokens),
+  Kr: () => (/* binding */ callLLMAnalysis),
+  getMaxPromptLength: () => (/* binding */ getMaxPromptLength),
+  Bw: () => (/* binding */ loadOllamaModels)
+});
+
+// UNUSED EXPORTS: callOllama, callSillyTavern, clearAnalysisCache, getCacheStats, getOllamaModelContext, getOllamaModels, parseJSONResponse
+
+// EXTERNAL MODULE: ./src/core/debug.js
+var debug = __webpack_require__(806);
+// EXTERNAL MODULE: ./src/core/errors.js
+var errors = __webpack_require__(462);
+// EXTERNAL MODULE: ./src/core/settings.js
+var core_settings = __webpack_require__(548);
+// EXTERNAL MODULE: ./src/core/context.js
+var core_context = __webpack_require__(102);
+// EXTERNAL MODULE: ./src/utils/helpers.js
+var helpers = __webpack_require__(854);
+// EXTERNAL MODULE: ./src/utils/notifications.js
+var notifications = __webpack_require__(695);
+;// ./tests/debug-parser.js
+/**
+ * JSON Parsing Debug Utilities for Name Tracker Extension
+ * 
+ * This module provides console-based debugging tools to trace LLM response
+ * transformations through the parsing pipeline. All logs use filterable prefixes
+ * for easy grep analysis.
+ * 
+ * Usage in console:
+ *   grep "\[NT-DEBUG-RAW\]"     - See full LLM responses
+ *   grep "\[NT-DEBUG-PARSE\]"   - See parsing transformation steps
+ *   grep "\[NT-DEBUG-FLOW\]"    - See overall flow tracking
+ * 
+ * @module tests/debug-parser
+ */
+
+/**
+ * Log raw LLM response before any processing
+ * @param {string} response - Raw response from LLM API
+ * @param {string} source - Source identifier ('SillyTavern' or 'Ollama')
+ */
+function logRawResponse(response, source = 'Unknown') {
+    console.log('[NT-DEBUG-RAW] ========================================');
+    console.log('[NT-DEBUG-RAW] Source:', source);
+    console.log('[NT-DEBUG-RAW] Type:', typeof response);
+    console.log('[NT-DEBUG-RAW] Length:', response?.length || 0);
+    console.log('[NT-DEBUG-RAW] First 500 chars:', response?.substring(0, 500) || 'null/undefined');
+    console.log('[NT-DEBUG-RAW] Last 500 chars:', response?.substring(Math.max(0, (response?.length || 0) - 500)) || 'null/undefined');
+    console.log('[NT-DEBUG-RAW] Full response:');
+    console.log(response);
+    console.log('[NT-DEBUG-RAW] ========================================');
+}
+
+/**
+ * Log parsing attempt with transformation details
+ * @param {string} stage - Current parsing stage
+ * @param {string} text - Text at current stage
+ * @param {Object} metadata - Additional context
+ */
+function logParseAttempt(stage, text, metadata = {}) {
+    console.log(`[NT-DEBUG-PARSE] ======= ${stage} =======`);
+    console.log('[NT-DEBUG-PARSE] Length:', text?.length || 0);
+    
+    if (metadata.previousLength !== undefined) {
+        const delta = (text?.length || 0) - metadata.previousLength;
+        console.log('[NT-DEBUG-PARSE] Delta:', delta >= 0 ? `+${delta}` : delta);
+        
+        // Alert on suspicious length changes
+        if (Math.abs(delta) > (metadata.previousLength * 0.9)) {
+            console.warn('[NT-DEBUG-PARSE] ⚠️ SUSPICIOUS LENGTH CHANGE! Lost', 
+                Math.abs(delta), 'characters (', 
+                ((Math.abs(delta) / metadata.previousLength) * 100).toFixed(1), '% of original)');
+        }
+    }
+    
+    if (text && typeof text === 'string') {
+        console.log('[NT-DEBUG-PARSE] First 300 chars:', text.substring(0, 300));
+        console.log('[NT-DEBUG-PARSE] Last 200 chars:', text.substring(Math.max(0, text.length - 200)));
+        
+        // Check for common issues
+        const issues = [];
+        if (text.includes('```')) issues.push('Contains markdown code blocks');
+        if (text.includes('<think>') || text.includes('</think>')) issues.push('Contains XML thinking tags');
+        if (!text.trim().startsWith('{')) issues.push('Does not start with {');
+        if (!text.trim().endsWith('}')) issues.push('Does not end with }');
+        if (text.includes('\\n') || text.includes('\\"')) issues.push('Contains escaped characters');
+        
+        if (issues.length > 0) {
+            console.log('[NT-DEBUG-PARSE] Issues detected:', issues.join(', '));
+        }
+    } else {
+        console.log('[NT-DEBUG-PARSE] Text is not a string or is null/undefined');
+    }
+    
+    if (metadata.action) {
+        console.log('[NT-DEBUG-PARSE] Action:', metadata.action);
+    }
+    
+    console.log('[NT-DEBUG-PARSE] =====================================');
+}
+
+/**
+ * Log transformation pipeline with before/after comparison
+ * @param {Array<Object>} transformations - Array of transformation steps
+ */
+function logTransformations(transformations) {
+    console.log('[NT-DEBUG-FLOW] ========== TRANSFORMATION PIPELINE ==========');
+    
+    transformations.forEach((transform, index) => {
+        console.log(`[NT-DEBUG-FLOW] Step ${index + 1}: ${transform.name}`);
+        console.log(`[NT-DEBUG-FLOW]   Before: ${transform.before} chars`);
+        console.log(`[NT-DEBUG-FLOW]   After:  ${transform.after} chars`);
+        console.log(`[NT-DEBUG-FLOW]   Delta:  ${transform.after - transform.before}`);
+        
+        if (transform.regex) {
+            console.log(`[NT-DEBUG-FLOW]   Regex:  ${transform.regex}`);
+        }
+        
+        if (transform.matches !== undefined) {
+            console.log(`[NT-DEBUG-FLOW]   Matches: ${transform.matches}`);
+        }
+    });
+    
+    const initialLength = transformations[0]?.before || 0;
+    const finalLength = transformations[transformations.length - 1]?.after || 0;
+    const totalDelta = finalLength - initialLength;
+    const percentChange = initialLength > 0 ? ((totalDelta / initialLength) * 100).toFixed(1) : 0;
+    
+    console.log('[NT-DEBUG-FLOW] ================================================');
+    console.log('[NT-DEBUG-FLOW] Initial length:', initialLength);
+    console.log('[NT-DEBUG-FLOW] Final length:', finalLength);
+    console.log('[NT-DEBUG-FLOW] Total delta:', totalDelta, `(${percentChange}%)`);
+    
+    if (Math.abs(totalDelta) > (initialLength * 0.5)) {
+        console.warn('[NT-DEBUG-FLOW] ⚠️ CRITICAL: Lost more than 50% of content through transformations!');
+    }
+    
+    console.log('[NT-DEBUG-FLOW] ================================================');
+}
+
+/**
+ * Compare regex extraction results
+ * @param {string} original - Original text
+ * @param {string} pattern - Regex pattern used
+ * @param {string} extracted - Extracted result
+ */
+function logRegexExtraction(original, pattern, extracted) {
+    console.log('[NT-DEBUG-PARSE] ========== REGEX EXTRACTION ==========');
+    console.log('[NT-DEBUG-PARSE] Pattern:', pattern);
+    console.log('[NT-DEBUG-PARSE] Original length:', original?.length || 0);
+    console.log('[NT-DEBUG-PARSE] Extracted length:', extracted?.length || 0);
+    
+    if ((original?.length || 0) > 0) {
+        const percentExtracted = ((extracted?.length || 0) / original.length * 100).toFixed(1);
+        console.log('[NT-DEBUG-PARSE] Extraction efficiency:', percentExtracted, '%');
+        
+        if (percentExtracted < 10) {
+            console.error('[NT-DEBUG-PARSE] ❌ EXTRACTION FAILURE: Extracted less than 10% of original content!');
+        }
+    }
+    
+    console.log('[NT-DEBUG-PARSE] Original (first 200 chars):', original?.substring(0, 200));
+    console.log('[NT-DEBUG-PARSE] Extracted (first 200 chars):', extracted?.substring(0, 200));
+    console.log('[NT-DEBUG-PARSE] =======================================');
+}
+
+/**
+ * Log JSON repair attempt details
+ * @param {string} original - Text before repair
+ * @param {string} repaired - Text after repair
+ * @param {Array<string>} repairsApplied - List of repair operations
+ */
+function logRepairAttempt(original, repaired, repairsApplied = []) {
+    console.log('[NT-DEBUG-PARSE] ========== JSON REPAIR ==========');
+    console.log('[NT-DEBUG-PARSE] Original length:', original?.length || 0);
+    console.log('[NT-DEBUG-PARSE] Repaired length:', repaired?.length || 0);
+    console.log('[NT-DEBUG-PARSE] Repairs applied:', repairsApplied.length);
+    
+    repairsApplied.forEach((repair, index) => {
+        console.log(`[NT-DEBUG-PARSE]   ${index + 1}. ${repair}`);
+    });
+    
+    if (original !== repaired) {
+        console.log('[NT-DEBUG-PARSE] Repair changed the text');
+        
+        // Show diff in critical areas
+        if (original.substring(0, 100) !== repaired.substring(0, 100)) {
+            console.log('[NT-DEBUG-PARSE] Beginning differs:');
+            console.log('[NT-DEBUG-PARSE]   Before:', original.substring(0, 100));
+            console.log('[NT-DEBUG-PARSE]   After:', repaired.substring(0, 100));
+        }
+        
+        if (original.substring(original.length - 100) !== repaired.substring(repaired.length - 100)) {
+            console.log('[NT-DEBUG-PARSE] Ending differs:');
+            console.log('[NT-DEBUG-PARSE]   Before:', original.substring(original.length - 100));
+            console.log('[NT-DEBUG-PARSE]   After:', repaired.substring(repaired.length - 100));
+        }
+    } else {
+        console.log('[NT-DEBUG-PARSE] No changes made during repair');
+    }
+    
+    console.log('[NT-DEBUG-PARSE] =================================');
+}
+
+/**
+ * Log final parse result or error
+ * @param {boolean} success - Whether parsing succeeded
+ * @param {Object|Error} result - Parsed object or error
+ * @param {string} finalText - Final text that was parsed (or failed to parse)
+ */
+function logParseResult(success, result, finalText) {
+    console.log('[NT-DEBUG-FLOW] ========== PARSE RESULT ==========');
+    console.log('[NT-DEBUG-FLOW] Success:', success);
+    
+    if (success) {
+        console.log('[NT-DEBUG-FLOW] Result type:', typeof result);
+        console.log('[NT-DEBUG-FLOW] Has characters array:', Array.isArray(result?.characters));
+        console.log('[NT-DEBUG-FLOW] Character count:', result?.characters?.length || 0);
+        
+        if (result?.characters && Array.isArray(result.characters)) {
+            result.characters.forEach((char, index) => {
+                console.log(`[NT-DEBUG-FLOW]   Character ${index + 1}: ${char.name || 'unnamed'}`);
+            });
+        }
+    } else {
+        console.error('[NT-DEBUG-FLOW] ❌ Parse failed');
+        console.error('[NT-DEBUG-FLOW] Error type:', result?.name || typeof result);
+        console.error('[NT-DEBUG-FLOW] Error message:', result?.message || String(result));
+        
+        if (result?.stack) {
+            console.error('[NT-DEBUG-FLOW] Stack trace:', result.stack);
+        }
+        
+        console.error('[NT-DEBUG-FLOW] Final text that failed to parse (first 300 chars):');
+        console.error(finalText?.substring(0, 300));
+        console.error('[NT-DEBUG-FLOW] Final text that failed to parse (last 200 chars):');
+        console.error(finalText?.substring(Math.max(0, (finalText?.length || 0) - 200)));
+    }
+    
+    console.log('[NT-DEBUG-FLOW] ==================================');
+}
+
+/**
+ * Create a complete parsing session log
+ * @returns {Object} Session object with methods to track parsing flow
+ */
+function createParsingSession() {
+    const sessionId = `parse-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const transformations = [];
+    
+    return {
+        sessionId,
+        
+        logStart(source, rawResponse) {
+            console.log(`[NT-DEBUG-FLOW] ========== PARSING SESSION START: ${sessionId} ==========`);
+            logRawResponse(rawResponse, source);
+        },
+        
+        logTransform(name, before, after, details = {}) {
+            const transform = {
+                name,
+                before: before?.length || 0,
+                after: after?.length || 0,
+                ...details
+            };
+            transformations.push(transform);
+            
+            logParseAttempt(name, after, {
+                previousLength: before?.length || 0,
+                action: details.action || name
+            });
+        },
+        
+        logEnd(success, result, finalText) {
+            logTransformations(transformations);
+            logParseResult(success, result, finalText);
+            console.log(`[NT-DEBUG-FLOW] ========== PARSING SESSION END: ${sessionId} ==========`);
+        }
+    };
+}
+
+;// ./src/modules/llm.js
+/**
+ * LLM Integration Module
+ *
+ * Handles LLM API calls to SillyTavern and Ollama for character analysis.
+ * Includes conservative parameter settings, token management, context window handling,
+ * and JSON parsing for deterministic character extraction.
+ */
+
+
+
+
+
+
+
+
+
+const llm_debug = (0,debug/* createModuleLogger */.Xv)('llm');
+const llm_notifications = new notifications/* NotificationManager */.h('LLM Integration');
+
+// ============================================================================
+// DEBUG CONFIGURATION
+// ============================================================================
+const DEBUG_LOGGING = false; // Default off to reduce console noise
+
+function debugLog(message, data = null) {
+    if (DEBUG_LOGGING) {
+        console.log(`[NT-LLM] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// CONFIGURATION CONSTANTS - Conservative parameters for deterministic output
+// ============================================================================
+// These hardcoded values ensure reliable JSON extraction with minimal hallucination.
+// They override user chat settings specifically for character analysis operations.
+
+// Generation Parameters (Anti-hallucination configuration)
+const GENERATION_TEMPERATURE = 0.2;     // Very low for deterministic output
+const GENERATION_TOP_P = 0.85;          // Slightly reduced nucleus sampling
+const GENERATION_TOP_K = 25;            // Standard focused sampling
+const GENERATION_REP_PEN = 1.1;         // Slight repetition penalty
+
+// Context Window Management
+// Reserved for future dynamic context management
+// eslint-disable-next-line no-unused-vars
+const RESPONSE_BUFFER_PERCENT = 25;     // Reserve 25% for response generation
+// eslint-disable-next-line no-unused-vars
+const SAFETY_MARGIN_PERCENT = 10;       // Reserve 10% safety margin
+// eslint-disable-next-line no-unused-vars
+const MIN_RESPONSE_TOKENS = 1000;       // Minimum tokens allowed for response
+
+// Ollama-Specific Parameters
+// eslint-disable-next-line no-unused-vars
+const OLLAMA_MIN_PREDICT = 500;         // Minimum tokens to predict
+// eslint-disable-next-line no-unused-vars
+const OLLAMA_MAX_PREDICT = 4000;        // Maximum tokens to predict
+
+// Cache Configuration
+// eslint-disable-next-line no-unused-vars
+const CACHE_MAX_ENTRIES = 50;           // Maximum cached analysis results
+// eslint-disable-next-line no-unused-vars
+const CACHE_INVALIDATION_TIME = 3600000; // 1 hour cache duration
+
+// LLM state management
+const analysisCache = new Map(); // Cache for LLM analysis results
+let ollamaModels = []; // Available Ollama models
+
+/**
+ * Default system prompt for character analysis
+ */
+const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
+
+/nothink
+
+[CURRENT LOREBOOK ENTRIES]
+The following characters have already been identified. Their information is shown in lorebook format (keys + content).
+If a character appears in the new messages with additional/changed information, include them in your response.
+If a character is NOT mentioned or has no new information, do NOT include them in your response.
+
+{{CHARACTER_ROSTER}}
+
+⚠️ REQUIRED: Always include the user character ({{user}}) in your response, even if minimal details
+For other characters from Current Lorebook Entries: only include if NEW information appears in these messages
+Returning only the user character is valid when no other character updates exist
+
+⚠️ CRITICAL INSTRUCTION: Only include characters with NEW information in these specific messages. If a character from the lorebook appears but provides no new details, DO NOT include them in your response.
+
+Example: Alice from lorebook says 'Hi' in message 5 → No new info → Omit Alice from response
+Example: {{user}} always appears → Always include {{user}} with any available details
+
+CRITICAL JSON REQUIREMENTS:
+⚠️ STRICT JSON FORMATTING - PARSING WILL FAIL IF NOT FOLLOWED ⚠️
+
+🚨 ABSOLUTELY NO XML TAGS: Do not use <think>, </think>, <thinking>, or any XML tags
+🚨 PURE JSON ONLY: Your response must be immediately parseable JSON with no wrappers
+
+MANDATORY SYNTAX RULES:
+- Your ENTIRE response must be valid JSON starting with { and ending with }
+- ALL property names MUST use double quotes: "name", "aliases", etc.
+- ALL string values MUST use double quotes and escape internal quotes: "He said \\"hello\\""
+- NO control characters (line breaks, tabs) inside string values
+- NO trailing commas before } or ]
+- EVERY property must have a colon: "name": "value" (not "name" "value")
+- NO markdown, NO explanations, NO text before or after the JSON
+
+⛔ ABSOLUTELY FORBIDDEN PATTERNS THAT BREAK PARSING:
+❌ <think>reasoning</think> or </think> or any XML tags
+❌ Code blocks: \\\`\\\`\\\`json { "characters": [...] } \\\`\\\`\\\`
+❌ "name": "John", "He is tall and strong", "age": 25
+   (orphaned description without property name)
+❌ "physical" "brown hair and blue eyes"
+   (missing colon)
+❌ "aliases": ["John", "Scout",]
+   (trailing comma)
+❌ Here's the analysis: { "characters": [...] }
+   (text before JSON)
+
+✅ CORRECT FORMAT ONLY:
+{
+  "characters": [
+    {
+      "name": "Full Name",
+      "physical": "description here",
+      "aliases": ["nick1", "nick2"]
+    }
+  ]
+}
+
+⚠️ VALIDATION CHECK: Before responding, verify:
+1. Starts with { immediately (no text before)
+2. Every string has opening AND closing quotes
+3. Every property has a colon after the name
+4. No orphaned text without property names
+5. Ends with } immediately (no text after)
+
+ONLY include characters mentioned in these specific messages or with new information
+DO NOT repeat unchanged characters from the Current Lorebook Entries
+
+DO NOT include:
+- Any text before the JSON
+- Any text after the JSON  
+- Code block markers like \\\`\\\`\\\`json
+- Explanations, commentary, or thinking tags
+- XML tags like <think> or </think> (these break JSON parsing)
+
+REQUIRED JSON structure (copy this exact format):
+{
+  "characters": [
+    {
+      "name": "Full character name (SINGLE NAME ONLY - never include aliases here)",
+      "aliases": ["Alternative names for THIS SAME person - nicknames, shortened names, titles"],
+      "physicalAge": "Age if mentioned",
+      "mentalAge": "Mental age if different",
+      "physical": "Physical description",
+      "personality": "Personality traits",
+      "sexuality": "Sexual orientation if mentioned",
+      "raceEthnicity": "Race/ethnicity if mentioned",
+      "roleSkills": "Job/role/skills",
+      "relationships": ["currentchar, otherchar, relationship"],
+      "confidence": 75
+    }
+  ]
+}
+
+CRITICAL FIELD SPECIFICATIONS:
+
+NAME FIELD RULES:
+- Use the MOST COMPLETE proper name mentioned (e.g., "John Blackwood")
+- NEVER include commas, slashes, or multiple names in the name field
+- NEVER combine name + alias (❌ "John Blackwood, John" ❌ "John/Scout")
+- If only a first name is known, use just that ("John")
+
+ALIASES FIELD RULES:
+- Include ALL other ways this character is referred to
+- Nicknames, shortened names, titles, alternative spellings
+- Examples: ["John", "Scout", "JB", "Mr. Blackwood"]
+
+RELATIONSHIPS FIELD - NATURAL LANGUAGE FORMAT:
+🚨 CRITICAL: ONLY use this format: "Character A is to Character B: relationship1, relationship2"
+
+⛔ FORBIDDEN FORMATS:
+- "Character, Other, relationship" (OLD TRIPLET FORMAT - DO NOT USE)
+- "Character A, Character B, relationship" (OLD TRIPLET FORMAT - DO NOT USE)
+
+✅ MANDATORY FORMAT: "Character A is to Character B: relationship1, relationship2"
+
+⚠️ CRITICAL NAMING REQUIREMENTS:
+- ALWAYS use the character's CANONICAL/PREFERRED name in relationships
+- If "John Blackwood" is the main name, use "John Blackwood" NOT "John" 
+- Maintain name consistency across ALL relationship entries
+- Multiple relationships for same pair: separate with commas
+
+✅ CORRECT examples:
+- "Dora is to John Blackwood: lover, submissive"
+- "Maya is to Sarah Chen: sister, gymnastics partner"
+- "John Blackwood is to Julia Martinez: son"
+- "Sarah Chen is to John Blackwood: rival, former colleague"
+
+❌ FORBIDDEN patterns:
+- "Dora, John, lover" (OLD FORMAT - NEVER USE)
+- "Dora, John Blackwood, lover" (OLD FORMAT - NEVER USE)
+- "John, Jasmine, friend" (OLD FORMAT - NEVER USE)
+- "Dora is to John: lover" + "Dora is to John Blackwood: lover" (inconsistent naming)
+- Narrative text: "Living in luxury penthouse since age 17"
+- Actions/events: "Takes charge of organizing rescue mission"
+
+🔄 RELATIONSHIP GUIDELINES:
+- List multiple relationship types for richer character connections
+- Use specific terms: "lover, dominant" instead of just "lover"
+- Family relationships can be combined: "sister, best friend"
+- Professional + personal: "boss, mentor" or "colleague, friend"
+- Avoid contradictions: don't use "dominant" and "submissive" together
+
+✅ RELATIONSHIP EXAMPLES:
+- "Emma is to David: wife, business partner"
+- "Marcus is to Elena: brother, protector"
+- "Jessica is to Robert: student, admirer"
+- "Alex is to Morgan: rival, former friend"
+
+CRITICAL: Relationships describe WHO this character is TO other characters.
+Focus on interpersonal connections: family, romantic, friendship, professional, rivalry relationships.
+
+Rules:
+- One entry per distinct person. NEVER combine two different people into one entry.
+- If the same person is referred by variants ("John", "John Blackwell", "Scout"), make ONE entry with name = best full name ("John Blackwell") and put other names in aliases.
+- Do NOT create names like "Jade/Jesse" or "Sarah and Maya". Instead, create separate entries: [{"name":"Jade"}, {"name":"Jesse"}].
+- Only extract clearly named speaking characters.
+- Skip generic references ("the waiter", "a woman").
+- Use most recent information for conflicts.
+- Empty array if no clear characters: {"characters":[]}
+- Confidence: 90+ (explicit), 70-89 (clear), 50-69 (mentioned), <50 (vague).
+
+FIELD EXAMPLES:
+
+NAME EXAMPLES:
+✅ "John Blackwood" (not "John Blackwood, John")
+✅ "Maria Santos" (not "Maria/Marie")  
+✅ "Alex" (when full name unknown)
+
+ALIAS EXAMPLES:
+✅ ["John", "Scout", "JB"] 
+✅ ["Marie", "Maria"]
+✅ ["Mom", "Mother", "Sarah"]
+
+RELATIONSHIP EXAMPLES:
+✅ ["Dora is to John Blackwood: lover, submissive", "Maya is to Sarah Chen: sister, gymnastics partner"]
+❌ ["Lives in penthouse", "Writing novels", "Leading group", "Met at bar"]
+❌ ["Dora, John, lover", "John, Jasmine, friend"] (OLD TRIPLET FORMAT - NEVER USE)
+❌ ["Dora is to John: lover", "Dora is to John Blackwood: submissive"] (split relationships)
+
+🔥 FINAL REMINDER - CRITICAL FOR SUCCESS:
+Your response must start with { immediately and end with } immediately.
+NO text, explanations, or markers before or after the JSON.
+Every description must have a property name: "physical": "tall", not just "tall".
+Validate your JSON syntax before responding - missing colons or orphaned strings will cause parsing failure.
+
+Your response must start with { immediately.`;
+
+/**
+ * Get the system prompt for analysis
+ * @returns {string} System prompt text
+ */
+async function getSystemPrompt() {
+    const settings = await (0,core_settings/* get_settings */.TJ)();
+    const prompt = settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+    // Ensure we return a string, not a Promise or object
+    return typeof prompt === 'string' ? prompt : DEFAULT_SYSTEM_PROMPT;
+}
+
+/**
+ * Load available Ollama models from the configured endpoint and cache them.
+ * @returns {Promise<Array>} Array of available models
+ */
+async function loadOllamaModels() {
+    return (0,errors/* withErrorBoundary */.Xc)('loadOllamaModels', async () => {
+        const ollamaEndpoint = await (0,core_settings/* get_settings */.TJ)('ollamaEndpoint', 'http://localhost:11434');
+
+        try {
+            const response = await fetch(`${ollamaEndpoint}/api/tags`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to load Ollama models: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            ollamaModels = Array.isArray(data?.models) ? data.models : [];
+            debugLog(`[OllamaModels] Found ${ollamaModels.length} models: ${ollamaModels.map(m => m.name).join(', ')}`);
+            return [...ollamaModels];
+        } catch (error) {
+            console.error('Error loading Ollama models:', error);
+            llm_notifications.error('Failed to load Ollama models. Check endpoint and try again.');
+            throw error;
+        }
+    });
+}
+
+/**
+ * Get cached Ollama models
+ * @returns {Array} Array of available models
+ */
+function getOllamaModels() {
+    return [...ollamaModels];
+}
+
+/**
+ * Get Ollama model context size
+ * @param {string} modelName - Name of the Ollama model
+ * @returns {Promise<number>} Context size in tokens, or default 4096
+ */
+async function getOllamaModelContext(modelName) {
+    return (0,errors/* withErrorBoundary */.Xc)('getOllamaModelContext', async () => {
+        const ollamaEndpoint = await (0,core_settings/* get_settings */.TJ)('ollamaEndpoint', 'http://localhost:11434');
+
+        if (!modelName) {
+            llm_debug.log();
+            return 4096;
+        }
+
+        try {
+            const response = await fetch(`${ollamaEndpoint}/api/show`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: modelName,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch model info: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            // Look for num_ctx in parameters array
+            if (data.parameters && Array.isArray(data.parameters)) {
+                for (const param of data.parameters) {
+                    const match = param.match(/num_ctx\\s+(\\d+)/);
+                    if (match) {
+                        const contextSize = parseInt(match[1]);
+                        llm_debug.log();
+                        return contextSize;
+                    }
+                }
+            }
+
+            // Fallback: check if it's in model details
+            if (data.model_info && data.model_info.num_ctx) {
+                const contextSize = parseInt(data.model_info.num_ctx);
+                llm_debug.log();
+                return contextSize;
+            }
+
+            llm_debug.log();
+            return 4096;
+        } catch (error) {
+            console.error('Error fetching Ollama model context:', error);
+            llm_debug.log();
+            return 4096;
+        }
+    });
+}
+
+/**
+ * Build a roster of known characters in lorebook format for context
+ * Returns keys and formatted content fields to support incremental updates
+ * @returns {string} Formatted roster text with lorebook entries
+ */
+async function buildCharacterRoster() {
+    return (0,errors/* withErrorBoundary */.Xc)('buildCharacterRoster', async () => {
+        const characters = await (0,core_settings/* getCharacters */.bg)();
+        const characterNames = Object.keys(characters);
+
+        if (characterNames.length === 0) {
+            return '(None - this is the first analysis)';
+        }
+
+        const entries = characterNames.map(name => {
+            const char = characters[name];
+            
+            // Build keys array (name + aliases)
+            const keys = [char.preferredName || name];
+            if (char.aliases && char.aliases.length > 0) {
+                keys.push(...char.aliases);
+            }
+            
+            // Build formatted content (same format as lorebook)
+            const contentParts = [];
+            
+            // Age info
+            if (char.physicalAge || char.mentalAge) {
+                const ageInfo = [];
+                if (char.physicalAge) ageInfo.push(`Physical: ${char.physicalAge}`);
+                if (char.mentalAge) ageInfo.push(`Mental: ${char.mentalAge}`);
+                contentParts.push(`**Age:** ${ageInfo.join(', ')}`);
+            }
+            
+            // Physical
+            if (char.physical) {
+                contentParts.push(`\\n**Physical Description:**\\n${char.physical}`);
+            }
+            
+            // Personality
+            if (char.personality) {
+                contentParts.push(`\\n**Personality:**\\n${char.personality}`);
+            }
+            
+            // Sexuality
+            if (char.sexuality) {
+                contentParts.push(`\\n**Sexuality:**\\n${char.sexuality}`);
+            }
+            
+            // Race/Ethnicity
+            if (char.raceEthnicity) {
+                contentParts.push(`**Race/Ethnicity:** ${char.raceEthnicity}`);
+            }
+            
+            // Role & Skills
+            if (char.roleSkills) {
+                contentParts.push(`\\n**Role & Skills:**\\n${char.roleSkills}`);
+            }
+            
+            // Relationships
+            if (char.relationships && char.relationships.length > 0) {
+                contentParts.push('\\n**Relationships:**');
+                char.relationships.forEach(rel => {
+                    contentParts.push(`- ${rel}`);
+                });
+            }
+            
+            const content = contentParts.join('\\n');
+            
+            return `
+---
+KEYS: ${keys.join(', ')}
+CONTENT:
+${content}
+`;
+        }).join('\\n');
+
+        return entries;
+    });
+}
+
+/**
+ * Get the maximum safe prompt length based on API context window
+ * Uses actual token counts from messages when available
+ * @returns {Promise<number>} Maximum prompt length in tokens
+ */
+async function getMaxPromptLength() {
+    return (0,errors/* withErrorBoundary */.Xc)('getMaxPromptLength', async () => {
+        const detectionLog = []; // Track detection attempts
+        const logEntry = (msg) => {
+            detectionLog.push(msg);
+            console.log(`[NT-MaxContext] ${msg}`);
+        };
+
+        try {
+            const llmConfig = await (0,core_settings/* getLLMConfig */.eU)();
+            let maxContext = 8192; // Default minimum context
+            let detectionMethod = 'fallback';
+
+            logEntry(`Starting context detection for LLM source: ${llmConfig.source}`);
+
+            if (llmConfig.source === 'ollama' && llmConfig.ollamaModel) {
+                logEntry(`Using Ollama model: ${llmConfig.ollamaModel}`);
+                // Get Ollama model's context size
+                maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
+                detectionMethod = 'ollama';
+            } else {
+                logEntry('Using SillyTavern context');
+                // Use SillyTavern's context
+                let context = null;
+
+                try {
+                    context = core_context.stContext.getContext();
+                    logEntry('Successfully retrieved SillyTavern context');
+                } catch (error) {
+                    logEntry(`ERROR: Failed to get context: ${error.message}`);
+                    context = null;
+                }
+
+                // Debug: Log all context properties
+                if (context) {
+                    try {
+                        const contextKeys = Object.keys(context);
+                        const relevantKeys = contextKeys.filter(k =>
+                            k.toLowerCase().includes('max') ||
+                            k.toLowerCase().includes('context') ||
+                            k.toLowerCase().includes('token') ||
+                            k.toLowerCase().includes('prompt'),
+                        );
+                        logEntry(`Available context properties: ${relevantKeys.join(', ')}`);
+                    } catch (e) {
+                        logEntry(`Error analyzing context keys: ${e.message}`);
+                    }
+                }
+
+                // Try multiple possible paths for max context
+                let detectedMaxContext = null;
+
+                // Method 1: Direct maxContext property (PRIMARY)
+                logEntry('Method 1: Checking context.maxContext...');
+                if (context && typeof context.maxContext === 'number' && context.maxContext > 0) {
+                    detectedMaxContext = context.maxContext;
+                    logEntry(`✓ Method 1 SUCCESS: context.maxContext = ${detectedMaxContext}`);
+                    detectionMethod = 'context.maxContext';
+                } else {
+                    const reason = !context ? 'context is null' :
+                        typeof context.maxContext !== 'number' ? `type is ${typeof context.maxContext}` :
+                            context.maxContext <= 0 ? `value is ${context.maxContext}` : 'unknown';
+                    logEntry(`✗ Method 1 FAILED: ${reason}`);
+                }
+
+                // Method 2: extensionSettings.common.maxContext path
+                if (!detectedMaxContext) {
+                    logEntry('Method 2: Checking context.extensionSettings.common.maxContext...');
+                    if (context?.extensionSettings?.common) {
+                        if (typeof context.extensionSettings.common.maxContext === 'number' && context.extensionSettings.common.maxContext > 0) {
+                            detectedMaxContext = context.extensionSettings.common.maxContext;
+                            logEntry(`✓ Method 2 SUCCESS: extensionSettings.common.maxContext = ${detectedMaxContext}`);
+                            detectionMethod = 'extensionSettings.common.maxContext';
+                        } else {
+                            logEntry('✗ Method 2 FAILED: extensionSettings.common exists but maxContext is invalid');
+                        }
+                    } else {
+                        logEntry('✗ Method 2 FAILED: extensionSettings.common path does not exist');
+                    }
+                }
+
+                // Method 3: chat.maxContextSize path
+                if (!detectedMaxContext) {
+                    logEntry('Method 3: Checking context.chat.maxContextSize...');
+                    if (context?.chat && typeof context.chat === 'object' && !Array.isArray(context.chat)) {
+                        if (typeof context.chat.maxContextSize === 'number' && context.chat.maxContextSize > 0) {
+                            detectedMaxContext = context.chat.maxContextSize;
+                            logEntry(`✓ Method 3 SUCCESS: chat.maxContextSize = ${detectedMaxContext}`);
+                            detectionMethod = 'chat.maxContextSize';
+                        } else {
+                            logEntry('✗ Method 3 FAILED: chat exists but maxContextSize is invalid');
+                        }
+                    } else {
+                        logEntry('✗ Method 3 FAILED: chat path does not exist or is an array');
+                    }
+                }
+
+                // Method 4: token_limit
+                if (!detectedMaxContext) {
+                    logEntry('Method 4: Checking context.token_limit...');
+                    if (context && typeof context.token_limit === 'number' && context.token_limit > 0) {
+                        detectedMaxContext = context.token_limit;
+                        logEntry(`✓ Method 4 SUCCESS: token_limit = ${detectedMaxContext}`);
+                        detectionMethod = 'token_limit';
+                    } else {
+                        logEntry('✗ Method 4 FAILED: token_limit is not valid');
+                    }
+                }
+
+                // Method 5: amount_gen (maximum generation tokens)
+                if (!detectedMaxContext) {
+                    logEntry('Method 5: Checking context.amount_gen (fallback)...');
+                    if (context && typeof context.amount_gen === 'number' && context.amount_gen > 0) {
+                        // amount_gen is typically small (generation limit), not context size
+                        // Use as indicator if no other value found
+                        detectedMaxContext = context.amount_gen * 4; // Rough estimate
+                        logEntry(`✓ Method 5 FALLBACK: amount_gen = ${context.amount_gen}, estimated context = ${detectedMaxContext}`);
+                        detectionMethod = 'amount_gen_estimate';
+                    } else {
+                        logEntry('✗ Method 5 FAILED: amount_gen is not valid');
+                    }
+                }
+
+                // Method 6: Check settings object directly
+                if (!detectedMaxContext) {
+                    logEntry('Method 6: Checking context.settings.max_context...');
+                    if (context && typeof context.settings === 'object') {
+                        if (typeof context.settings.max_context === 'number' && context.settings.max_context > 0) {
+                            detectedMaxContext = context.settings.max_context;
+                            logEntry(`✓ Method 6 SUCCESS: settings.max_context = ${detectedMaxContext}`);
+                            detectionMethod = 'settings.max_context';
+                        } else {
+                            logEntry('✗ Method 6 FAILED: settings exists but max_context is invalid');
+                        }
+                    } else {
+                        logEntry('✗ Method 6 FAILED: settings path does not exist');
+                    }
+                }
+
+                // Final check: is detected value reasonable?
+                if (detectedMaxContext && (typeof detectedMaxContext !== 'number' || detectedMaxContext < 100)) {
+                    logEntry(`WARNING: Detected maxContext is not valid: ${detectedMaxContext}, type: ${typeof detectedMaxContext}`);
+                    detectedMaxContext = null;
+                }
+
+                // Check if context is fully loaded
+                if (!context || !detectedMaxContext) {
+                    logEntry('WARNING: Could not detect maxContext from any path, using fallback (8192)');
+                    logEntry(`Context exists: ${!!context}, detectedMaxContext: ${detectedMaxContext}`);
+                    if (context) {
+                        try {
+                            const allKeys = Object.keys(context).sort();
+                            logEntry(`Full context object keys (first 20): ${allKeys.slice(0, 20).join(', ')}${allKeys.length > 20 ? `... (${allKeys.length - 20} more)` : ''}`);
+                        } catch (e) {
+                            logEntry(`Could not enumerate context keys: ${e.message}`);
+                        }
+                    }
+                    maxContext = 8192; // Use minimum required context as fallback
+                    detectionMethod = 'fallback';
+                } else {
+                    maxContext = Math.floor(detectedMaxContext);
+                    logEntry(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
+                    detectionMethod = detectionMethod; // Keep the method that worked
+                }
+            }
+
+            // Validate minimum context requirement (8K minimum)
+            if (maxContext < 8192) {
+                const errorMsg = `Model context too small: ${maxContext} tokens. Minimum required: 8192 tokens. Please use a model with larger context.`;
+                logEntry(errorMsg);
+                throw new errors/* NameTrackerError */.S_(errorMsg);
+            }
+
+            // Use generous context allocation for prompts (60% for prompt, 40% for response)
+            // Remove artificial 50K ceiling to use full available context
+            const tokensForPrompt = Math.floor(maxContext * 0.6);
+
+            logEntry(`Token allocation: maxContext=${maxContext}, promptAllocation=${tokensForPrompt}, responseAllocation=${maxContext - tokensForPrompt}`);
+            logEntry(`Final detection method: ${detectionMethod}`);
+
+            const finalValue = Math.max(1000, tokensForPrompt);
+            logEntry(`Returning maxPromptLength: ${finalValue}`);
+
+            // Return object with detection details
+            return {
+                maxPrompt: finalValue,
+                detectionMethod: detectionMethod,
+                maxContext: maxContext,
+                debugLog: detectionLog.join('\n'),
+            };
+        } catch (error) {
+            const errorMsg = `ERROR in getMaxPromptLength: ${error.message}`;
+            logEntry(errorMsg);
+            console.error('[NT-MaxContext] Stack:', error.stack);
+            // Return conservative fallback on any error with details
+            return {
+                maxPrompt: 4915, // Based on 8192 minimum context with 60% allocation
+                detectionMethod: 'error',
+                maxContext: 8192, // Minimum required context
+                debugLog: detectionLog.join('\n') + '\nFATAL ERROR: ' + error.message,
+            };
+        }
+    });
+}
+
+/**
+ * Calculate total token count for a batch of messages
+ * Uses pre-calculated token counts from SillyTavern when available
+ * @param {Array} messages - Array of chat message objects
+ * @returns {Promise<number>} Total token count
+ */
+async function calculateMessageTokens(messages) {
+    return (0,errors/* withErrorBoundary */.Xc)('calculateMessageTokens', async () => {
+        const context = core_context.stContext.getContext();
+        let totalTokens = 0;
+
+        // Try to use pre-calculated token counts from message objects
+        for (const msg of messages) {
+            if (msg && typeof msg === 'object' && msg.extra && typeof msg.extra.token_count === 'number') {
+                // SillyTavern stores token count in extra.token_count
+                totalTokens += msg.extra.token_count;
+            } else {
+                // Fallback: use getTokenCountAsync for the message text
+                const text = msg?.mes || msg?.message || String(msg);
+                if (text && context.getTokenCountAsync) {
+                    try {
+                        const count = await context.getTokenCountAsync(text);
+                        totalTokens += count;
+                    // eslint-disable-next-line no-unused-vars
+                    } catch (_error) {
+                        llm_debug.log();
+                        // Final fallback: rough estimate (4 chars per token)
+                        totalTokens += Math.ceil(text.length / 4);
+                    }
+                } else {
+                    // Character-based estimate
+                    totalTokens += Math.ceil(text.length / 4);
+                }
+            }
+        }
+
+        return totalTokens;
+    });
+}
+
+/**
+ * Call SillyTavern's LLM using systemPrompt + prompt structure
+ * Works in both Chat Completion and Text Completion modes
+ * Retries up to 3 times with 2s delay on parse failures
+ * @param {string} systemPrompt - System-level instructions
+ * @param {string} prompt - User data/instructions to analyze
+ * @param {string} prefill - Optional response prefill (e.g., "{" to force JSON)
+ * @returns {Promise<Object>} Parsed JSON response
+ */
+async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive = false) {
+    return (0,errors/* withErrorBoundary */.Xc)('callSillyTavern', async () => {
+        llm_debug.log();
+
+        // Use SillyTavern.getContext() as recommended in official docs
+        const context = core_context.stContext.getContext();
+
+        // Check if we have an active API connection
+        if (!context.onlineStatus) {
+            throw new errors/* NameTrackerError */.S_('No API connection available. Please connect to an API first.');
+        }
+
+        if (DEBUG_LOGGING) {
+            console.log('[NT-ST-Call] Starting SillyTavern LLM call');
+            console.log('[NT-ST-Call] System prompt length:', systemPrompt.length, 'characters');
+            console.log('[NT-ST-Call] User prompt length:', prompt.length, 'characters');
+            if (prefill) console.log('[NT-ST-Call] Prefill:', prefill);
+            console.log('[NT-ST-Call] ========== PROMPT STRUCTURE START ==========');
+            console.log('SYSTEM:', systemPrompt);
+            console.log('USER:', prompt);
+            if (prefill) console.log('PREFILL:', prefill);
+            console.log('[NT-ST-Call] ========== PROMPT STRUCTURE END ==========');
+        }
+
+        // Calculate token counts separately for better tracking
+        const maxContext = context.maxContext || 8192;
+        let systemTokens, userTokens, totalPromptTokens;
+        
+        try {
+            systemTokens = await context.getTokenCountAsync(systemPrompt);
+            const userPromptText = prompt + (prefill ? '\n' + prefill : '');
+            userTokens = await context.getTokenCountAsync(userPromptText);
+            totalPromptTokens = systemTokens + userTokens;
+        } catch (_error) {
+            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
+            // Fallback to character-based estimation
+            systemTokens = Math.ceil(systemPrompt.length / 4);
+            const userPromptText = prompt + (prefill ? '\n' + prefill : '');
+            userTokens = Math.ceil(userPromptText.length / 4);
+            totalPromptTokens = systemTokens + userTokens;
+        }
+
+        // Calculate response length with 20% buffer
+        const bufferTokens = Math.ceil(maxContext * 0.20); // 20% buffer
+        const calculatedResponseLength = Math.max(1024, maxContext - totalPromptTokens - bufferTokens);
+        
+        // Log context usage tracking
+        console.log('[NT-CONTEXT] ========== Context Usage Tracking ==========');
+        console.log('[NT-CONTEXT] maxContext:', maxContext);
+        console.log('[NT-CONTEXT] systemTokens:', systemTokens);
+        console.log('[NT-CONTEXT] userTokens:', userTokens);
+        console.log('[NT-CONTEXT] totalPromptTokens:', totalPromptTokens);
+        console.log('[NT-CONTEXT] bufferTokens (20%):', bufferTokens);
+        console.log('[NT-CONTEXT] calculatedResponseLength:', calculatedResponseLength);
+        console.log('[NT-CONTEXT] contextUtilization:', ((totalPromptTokens / maxContext) * 100).toFixed(1) + '%');
+        
+        const maxTokens = calculatedResponseLength;
+        llm_debug.log();
+
+        // Retry logic: attempt up to 2 times with a short delay
+        const MAX_RETRIES = 2;
+        const RETRY_DELAY_MS = 2000;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                if (DEBUG_LOGGING) {
+                    console.log(`[NT-ST-Call] Attempt ${attempt}/${MAX_RETRIES}`);
+                    console.log('[NT-ST-Call] 🔧 DEBUG: Token allocation details:');
+                    console.log(`[NT-ST-Call] - maxContext: ${maxContext}`);
+                    console.log(`[NT-ST-Call] - systemTokens: ${systemTokens}`);
+                    console.log(`[NT-ST-Call] - userTokens: ${userTokens}`);
+                    console.log(`[NT-ST-Call] - totalPromptTokens: ${totalPromptTokens}`);
+                    console.log(`[NT-ST-Call] - calculated maxTokens: ${maxTokens}`);
+                    console.log(`[NT-ST-Call] - buffer used: ${bufferTokens} tokens (20%)`);
+                    console.log(`[NT-ST-Call] - actual responseLength param: ${maxTokens}`);
+                    console.log('[NT-ST-Call] Calling generateRaw with params:', {
+                        temperature: GENERATION_TEMPERATURE,
+                        top_p: GENERATION_TOP_P,
+                        top_k: GENERATION_TOP_K,
+                        rep_pen: GENERATION_REP_PEN,
+                        responseLength: maxTokens,
+                    });
+                }
+
+                const result = await context.generateRaw({
+                    systemPrompt,
+                    prompt,
+                    prefill,
+                    temperature: GENERATION_TEMPERATURE,
+                    top_p: GENERATION_TOP_P,
+                    top_k: GENERATION_TOP_K,
+                    rep_pen: GENERATION_REP_PEN,
+                    responseLength: maxTokens // Use all available tokens for response (no 2048 limit)
+                });
+
+                if (DEBUG_LOGGING) {
+                    console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
+                    console.log('[NT-ST-Call] Response type:', typeof result);
+                    console.log(JSON.stringify(result, null, 2));
+                    console.log('[NT-ST-Call] ========== RAW API RESPONSE END ==========');
+
+                    console.log('[NT-ST-Call] Raw result type:', typeof result);
+                    console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
+                }
+
+                // Extract text from chat completion response
+                // Chat format: { choices: [{ message: { content: "..." } }] }
+                // Text format: { choices: [{ text: "..." }] }
+                let resultText = result;
+
+                if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
+                    // Try chat completion format first
+                    if (result.choices[0]?.message?.content) {
+                        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
+                        resultText = result.choices[0].message.content;
+                    }
+                    // Fall back to text completion format
+                    else if (result.choices[0]?.text) {
+                        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
+                        resultText = result.choices[0].text;
+                    }
+                }
+
+                if (DEBUG_LOGGING) {
+                    console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
+                    console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
+                    if (resultText && typeof resultText === 'string') {
+                        console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
+                    }
+                    console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
+                    console.log(resultText);
+                    console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
+                }
+                
+                // Log raw response for debugging if debug mode enabled
+                const debugMode = await (0,core_settings/* get_settings */.TJ)('debugMode');
+                if (debugMode) {
+                    logRawResponse(resultText, 'SillyTavern');
+                }
+                
+                // Log actual response token usage
+                try {
+                    const responseTokens = await context.getTokenCountAsync(resultText);
+                    console.log('[NT-CONTEXT] actualResponseTokens:', responseTokens);
+                    console.log('[NT-CONTEXT] responseEfficiency:', ((responseTokens / calculatedResponseLength) * 100).toFixed(1) + '%');
+                    console.log('[NT-CONTEXT] totalTokensUsed:', totalPromptTokens + responseTokens);
+                    console.log('[NT-CONTEXT] totalContextUsed:', (((totalPromptTokens + responseTokens) / maxContext) * 100).toFixed(1) + '%');
+                } catch (_error) {
+                    console.log('[NT-CONTEXT] responseTokenCountError:', _error.message);
+                    const estimatedTokens = Math.ceil(resultText.length / 4);
+                    console.log('[NT-CONTEXT] estimatedResponseTokens:', estimatedTokens);
+                }
+                console.log('[NT-CONTEXT] ===============================================');
+                
+                llm_debug.log();
+
+                // The result should be a string
+                if (!resultText || typeof resultText !== 'string') {
+                    throw new errors/* NameTrackerError */.S_('Empty or invalid response from SillyTavern LLM');
+                }
+
+                // Pre-validation: Check if response follows JSON format requirements
+                console.log('[NT-ST-Call] 🔍 Pre-validation checks...');
+                
+                const trimmedResult = resultText.trim();
+                
+                // Check for common format violations before parsing
+                if (!trimmedResult.startsWith('{')) {
+                    console.warn('[NT-ST-Call] ⚠️ Response does not start with { - attempting extraction');
+                    // Try to find JSON in the response
+                    const jsonMatch = trimmedResult.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        resultText = jsonMatch[0];
+                        console.log('[NT-ST-Call] ✅ Extracted JSON from response');
+                    } else {
+                        console.error('[NT-ST-Call] ❌ No valid JSON found in response');
+                        throw new errors/* NameTrackerError */.S_('LLM response does not contain valid JSON format');
+                    }
+                }
+                
+                // Check for orphaned strings (common parsing issue)
+                const orphanedStringPattern = /"[^"]+",\s*"[^"]*[a-zA-Z][^"]*",\s*"[a-zA-Z_]/;
+                if (orphanedStringPattern.test(resultText)) {
+                    console.warn('[NT-ST-Call] ⚠️ Detected potential orphaned strings in response');
+                    console.log('[NT-ST-Call] Response will need JSON repair during parsing');
+                }
+
+                // If we used a prefill, prepend it to complete the JSON
+                if (prefill) {
+                    if (DEBUG_LOGGING) console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
+                    resultText = prefill + resultText;
+
+                    // If the prefill opened an object but response doesn't close it, add closing brace
+                    // Count braces to see if balanced
+                    const openBraces = (resultText.match(/{/g) || []).length;
+                    const closeBraces = (resultText.match(/}/g) || []).length;
+
+                    if (openBraces > closeBraces) {
+                        const missing = openBraces - closeBraces;
+                        if (DEBUG_LOGGING) console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
+                        resultText += '}'.repeat(missing);
+                    }
+
+                    if (DEBUG_LOGGING) console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
+                }
+
+                const parsed = await parseJSONResponse(resultText);
+                console.log('[NT-ST-Call] parseJSONResponse returned type:', typeof parsed);
+                console.log('[NT-ST-Call] parseJSONResponse returned value:', parsed);
+                console.log('[NT-ST-Call] parsed.characters exists?:', parsed && 'characters' in parsed);
+                console.log('[NT-ST-Call] parsed.characters type:', typeof parsed?.characters);
+                console.log('[NT-ST-Call] parsed.characters is Array?:', Array.isArray(parsed?.characters));
+                const parsedCount = Array.isArray(parsed?.characters) ? parsed.characters.length : 0;
+                console.log('[NT-ST-Call] ✅ Successfully parsed on attempt', attempt, 'characters:', parsedCount);
+                console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
+                return parsed;
+
+            } catch (error) {
+                lastError = error;
+                console.error(`[NT-ST-Call] ❌ Attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
+                console.error('[NT-ST-Call] Error details:', error);
+
+                if (attempt < MAX_RETRIES) {
+                    const waitStart = Date.now();
+                    const waitSeconds = Math.round(RETRY_DELAY_MS / 100) / 10; // one decimal place
+                    console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms (~${waitSeconds}s) before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                    const waited = Date.now() - waitStart;
+                    console.log(`[NT-ST-Call] Waited ${waited}ms before next attempt`);
+                }
+            }
+        }
+
+        // All retries failed
+        if (interactive) {
+            const shouldContinue = confirm(
+                `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
+                `Last error: ${lastError.message}\n\n` +
+                'Check console for detailed logs. Continue processing remaining batches?',
+            );
+
+            if (!shouldContinue) {
+                throw new errors/* NameTrackerError */.S_('User aborted after parse failures');
+            }
+            // Return empty result if user wants to continue
+            return { characters: [] };
+        }
+
+        // Non-interactive mode: throw to allow outer logic to retry/split
+        const err = new errors/* NameTrackerError */.S_(`Failed to parse LLM response as JSON after ${MAX_RETRIES} attempts (non-interactive mode)`);
+        err.code = 'JSON_PARSE_FAILED';
+        err.lastError = lastError;
+        throw err;
+    });
+}
+
+/**
+ * Call Ollama API with optimized parameters for JSON extraction
+ * Uses low temperature and focused sampling for deterministic, structured output
+ * @param {string} prompt - The complete prompt to send
+ * @returns {Promise<Object>} Parsed JSON response
+ */
+async function callOllama(prompt) {
+    return (0,errors/* withErrorBoundary */.Xc)('callOllama', async () => {
+        const llmConfig = await (0,core_settings/* getLLMConfig */.eU)();
+
+        if (!llmConfig.ollamaModel) {
+            throw new errors/* NameTrackerError */.S_('No Ollama model selected');
+        }
+
+        llm_debug.log();
+
+        // Calculate response tokens: use generous allocation within available context  
+        const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
+        const promptTokens = Math.ceil(prompt.length / 4); // Rough estimate
+        const maxTokens = Math.max(8192, maxContext - promptTokens - 1000); // Generous response allocation with safety buffer
+        llm_debug.log();
+
+        const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: llmConfig.ollamaModel,
+                prompt: prompt,
+                stream: false,
+                format: 'json',
+                // Ollama-specific generation parameters for structured output
+                // Using same conservative settings as SillyTavern for consistency
+                options: {
+                    temperature: GENERATION_TEMPERATURE,      // Very low for deterministic output
+                    top_p: GENERATION_TOP_P,                  // Focused sampling
+                    top_k: GENERATION_TOP_K,                  // Standard focused sampling
+                    repeat_penalty: GENERATION_REP_PEN,       // Slight repetition penalty
+                    num_predict: maxTokens,  // Dynamic: generous allocation using remaining context after prompt
+                },
+            }),
+        });
+
+        if (!response.ok) {
+            throw new errors/* NameTrackerError */.S_(`Ollama API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        llm_debug.log();
+        llm_debug.log();
+
+        return await parseJSONResponse(data.response);
+    });
+}
+
+/**
+ * Repair common JSON syntax errors in LLM responses
+ * @param {string} text - Potentially malformed JSON text
+ * @returns {string} Repaired JSON text
+ */
+function repairJSON(text) {
+    console.log('[NT-Repair] Starting JSON repair...');
+    let repaired = text;
+
+    // 0. Remove XML thinking tags completely (critical fix for recent failures)
+    repaired = repaired.replace(/<\/think>/gi, '');
+    repaired = repaired.replace(/<think[^>]*>/gi, '');
+    repaired = repaired.replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
+    repaired = repaired.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    if (repaired !== text) {
+        console.log('[NT-Repair] 🧹 Removed XML thinking tags');
+    }
+
+    // 1. Fix major structural issue: orphaned string values without property names
+    // This is the most common issue causing parse failures
+    // Pattern: "property": "value", "orphaned description text", "nextProperty":
+    // Step 1: Find and fix orphaned strings that should be in physical/personality fields
+    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]*(?:breast|body|hair|skin|face|eyes|tall|short|curvy|slim|muscular|describe|appear|look|physic)[^"]*)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/gi, (match, name, orphanedDesc, nextProp) => {
+        console.log(`[NT-Repair] 🔧 Fixing orphaned physical description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
+        return `"name": "${name}", "physical": "${orphanedDesc}", "${nextProp}":`;
+    });
+
+    // Step 2: Fix personality/mental descriptions
+    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]*(?:personality|character|behavior|emotion|feel|think|mental|psych|mood)[^"]*)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/gi, (match, name, orphanedDesc, nextProp) => {
+        console.log(`[NT-Repair] 🔧 Fixing orphaned personality description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
+        return `"name": "${name}", "personality": "${orphanedDesc}", "${nextProp}":`;
+    });
+
+    // Step 3: Generic fallback - assign any remaining orphaned strings to physical field
+    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]{20,})",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/g, (match, name, orphanedDesc, nextProp) => {
+        console.log(`[NT-Repair] 🔧 Fixing generic orphaned description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
+        return `"name": "${name}", "physical": "${orphanedDesc}", "${nextProp}":`;
+    });
+
+    // 2. Fix orphaned strings anywhere in character objects (not just after name)
+    // Pattern: }: value, "nextProp": (missing property name before value)
+    repaired = repaired.replace(/},\s*"([^"]{15,})",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/g, (match, orphanedDesc, nextProp) => {
+        console.log(`[NT-Repair] 🔧 Fixing orphaned string before ${nextProp}: ${orphanedDesc.substring(0, 50)}...`);
+        return `}, "physical": "${orphanedDesc}", "${nextProp}":`;
+    });
+
+    // 3. Fix missing commas between object properties (line breaks without commas)
+    repaired = repaired.replace(/([}\]])\s*\n\s*(")/g, '$1,\n    $2');
+    
+    // 4. Fix control characters (newlines, tabs, etc. in strings) - ENHANCED
+    repaired = repaired.replace(/"([^"]*[\n\r\t\f\b\v][^"]*)"/g, (match, content) => {
+        const cleaned = content
+            .replace(/\n/g, ' ')     // newlines -> space
+            .replace(/\r/g, '')      // carriage returns -> remove
+            .replace(/\t/g, ' ')     // tabs -> space  
+            .replace(/\f/g, ' ')     // form feeds -> space
+            .replace(/\b/g, '')      // backspace -> remove
+            .replace(/\v/g, ' ')     // vertical tabs -> space
+            .replace(/\s+/g, ' ')    // collapse multiple spaces
+            .trim();                 // remove leading/trailing space
+        console.log(`[NT-Repair] 🧹 Cleaned control characters: ${content.length} -> ${cleaned.length} chars`);
+        return `"${cleaned}"`;
+    });
+
+    // 5. Remove error messages that get mixed into JSON
+    repaired = repaired.replace(/,\s*"[^"]*I'm sorry for[^"]*"/gi, '');
+    repaired = repaired.replace(/,\s*"[^"]*encountered a problem[^"]*"/gi, '');
+    repaired = repaired.replace(/,\s*"[^"]*Please try again[^"]*"/gi, '');
+    repaired = repaired.replace(/"[^"]*I'm sorry[^"]*"\s*,/gi, '');
+    
+    // Remove property names that are error messages (missing opening quote)
+    repaired = repaired.replace(/,\s*[A-Za-z]+"\s*:\s*"[^"]*I'm sorry[^"]*/gi, '');
+
+    // 6. Fix missing quotes around property names (critical fix)
+    // Pattern: ,Affected": or }Affected": (missing opening quote)
+    repaired = repaired.replace(/([,{]\s*)([A-Za-z_][A-Za-z0-9_]*)("):/g, '$1"$2$3:');
+
+    // 7. Fix trailing commas before closing brackets/braces
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+    // 6. Fix missing colons after property names  
+    repaired = repaired.replace(/"([^"]+)"\s+(?=["{\[])/g, '"$1": ');
+
+    // 7. Fix double commas introduced by repairs
+    repaired = repaired.replace(/,,+/g, ',');
+
+    // 8. Fix property names with spaces
+    repaired = repaired.replace(/"([^"]*\s[^"]*)"\s*:/g, (match, propName) => {
+        const cleanProp = propName.replace(/\s+/g, '');
+        return `"${cleanProp}":`;
+    });
+
+    // 9. Final validation: ensure all character objects have required fields
+    repaired = repaired.replace(/"name":\s*"([^"]*)"(?!\s*,\s*"(?:aliases|physical|personality))/g, (match, name) => {
+        console.log(`[NT-Repair] 🔧 Adding missing fields for character: ${name}`);
+        return `"name": "${name}", "aliases": [], "physical": "", "personality": ""`;
+    });
+
+    console.log('[NT-Repair] Applied repairs, length change:', repaired.length - text.length);
+    
+    return repaired;
+}
+
+/**
+ * Parse JSON response from LLM, handling various formats
+ * @param {string} text - Raw text response from LLM
+ * @returns {Object} Parsed JSON object
+ */
+function parseJSONResponse(text) {
+    return (0,errors/* withErrorBoundary */.Xc)('parseJSONResponse', async () => {
+        // Create debug session if debug mode is enabled
+        const debugMode = await (0,core_settings/* get_settings */.TJ)('debugMode');
+        const session = debugMode ? createParsingSession() : null;
+        
+        if (session) {
+            session.logStart('parseJSONResponse', text);
+        }
+        
+        console.log('[NT-Parse] ========== PARSE START ==========');
+        console.log('[NT-Parse] Input type:', typeof text);
+        console.log('[NT-Parse] Input is null?:', text === null);
+        console.log('[NT-Parse] Input is undefined?:', text === undefined);
+
+        if (typeof text === 'object' && text !== null) {
+            console.log('[NT-Parse] Input is an OBJECT (not string). Keys:', Object.keys(text));
+            console.log('[NT-Parse] Full object:', JSON.stringify(text).substring(0, 500));
+
+            // If it's already an object with characters, return it
+            if (text.characters && Array.isArray(text.characters)) {
+                console.log('[NT-Parse] Object already has characters array, returning as-is');
+                return text;
+            }
+        }
+
+        console.log('[NT-Parse] Input length:', text ? text.length : 'null');
+        if (text && typeof text === 'string') {
+            console.log('[NT-Parse] First 300 chars:', text.substring(0, 300));
+            console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
+        }
+
+        if (!text || typeof text !== 'string') {
+            console.error('[NT-Parse] ❌ INVALID: Response is not a string:', typeof text);
+            console.error('[NT-Parse] ❌ Response value:', text);
+            throw new errors/* NameTrackerError */.S_('LLM returned empty or invalid response');
+        }
+
+        // CRITICAL: Unescape JSON-escaped string from SillyTavern
+        // The API returns escaped JSON string that needs to be unescaped first
+        try {
+            // If text looks like a JSON-escaped string, unescape it
+            if (text.includes('\\n') || text.includes('\\"')) {
+                console.log('[NT-Parse] 🔧 Unescaping JSON-encoded string from SillyTavern');
+                text = JSON.parse('"' + text.replace(/"/g, '\\"') + '"');
+                console.log('[NT-Parse] ✅ Successfully unescaped response');
+            }
+        } catch (unescapeError) {
+            console.log('[NT-Parse] ⚠️ Could not unescape response, proceeding with raw text');
+        }
+
+        // Remove any leading/trailing whitespace
+        const beforeTrim = text;
+        text = text.trim();
+        console.log('[NT-Parse] After trim, length:', text.length);
+        
+        if (session) {
+            session.logTransform('Trim whitespace', beforeTrim, text);
+        }
+        
+        if (text.length === 0) {
+            console.error('[NT-Parse] ❌ Text is empty after trim');
+            if (session) session.logEnd(false, new Error('Empty after trim'), text);
+            throw new errors/* NameTrackerError */.S_('LLM returned empty response');
+        }
+
+        // Extract JSON from markdown code blocks ONLY if response starts with markdown
+        // This prevents false positives from backticks embedded in JSON string values
+        const startsWithMarkdown = /^```(?:json)?[\s\n]/.test(text);
+        
+        if (startsWithMarkdown) {
+            console.log('[NT-Parse] 🔍 Response starts with markdown code block, extracting JSON');
+            const beforeExtraction = text;
+            
+            // Extract content between first ``` and last ```
+            const codeBlockMatch = text.match(/^```(?:json)?[\s\n]+([\s\S]*?)```\s*$/);
+            if (codeBlockMatch && codeBlockMatch[1]) {
+                text = codeBlockMatch[1].trim();
+                console.log('[NT-Parse] 📄 After markdown extraction, length:', text.length);
+                
+                if (session) {
+                    logRegexExtraction(beforeExtraction, '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/', text);
+                    session.logTransform('Extract markdown code block', beforeExtraction, text, {
+                        regex: '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/'
+                    });
+                }
+            } else {
+                console.warn('[NT-Parse] ⚠️ Starts with ``` but no matching closing ```, removing markdown markers');
+                // Remove opening and closing markers
+                text = text.replace(/^```(?:json)?[\s\n]+/, '').replace(/```\s*$/, '');
+                console.log('[NT-Parse] 🧹 Removed markdown markers, length:', text.length);
+                
+                if (session) {
+                    session.logTransform('Remove malformed markdown', beforeExtraction, text);
+                }
+            }
+        } else if (text.includes('```')) {
+            // Backticks present but NOT at start - likely embedded in JSON strings
+            console.log('[NT-Parse] ℹ️ Found backticks in response but not at start - likely embedded in JSON strings, not extracting');
+            console.log('[NT-Parse] First 50 chars:', text.substring(0, 50));
+        }
+        
+        // Remove any remaining XML/HTML tags that may interfere
+        if (text.includes('<') || text.includes('>')) {
+            const beforeTagRemoval = text;
+            const originalLength = text.length;
+            text = text.replace(/<[^>]*>/g, '');
+            console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
+            
+            if (session) {
+                session.logTransform('Remove XML/HTML tags', beforeTagRemoval, text);
+            }
+        }
+        
+        // Check if response contains obvious error messages
+        if (text.includes("I'm sorry") || text.includes("encountered a problem") || text.includes("Please try again")) {
+            console.error(`[NT-Parse] 🚨 Response contains error message: "${text.substring(0, 200)}"`);
+            if (session) session.logEnd(false, new Error('LLM error message'), text);
+            throw new Error('LLM generated an error response instead of JSON. Try adjusting your request.');
+        }
+        
+        // Check if response is completely non-JSON (like pure XML tags or text)
+        if (text.length < 20 || (!text.includes('{') && !text.includes('['))) {
+            console.error(`[NT-Parse] 🚨 Response appears to be non-JSON content: "${text}"`);
+            if (session) session.logEnd(false, new Error('Non-JSON response'), text);
+            throw new Error('LLM generated non-JSON response. Response may be censored or malformed.');
+        }
+
+        // Try to find JSON object in the text (look for first { to last })
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+
+        console.log('[NT-Parse] Brace search: first={' + firstBrace + ', last=' + lastBrace + '}');
+
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            const beforeText = text.substring(0, firstBrace);
+            const jsonText = text.substring(firstBrace, lastBrace + 1);
+            const afterText = text.substring(lastBrace + 1);
+
+            console.log('[NT-Parse] Text before JSON:', beforeText.substring(0, 100));
+            console.log('[NT-Parse] Extracted JSON length:', jsonText.length);
+            console.log('[NT-Parse] Text after JSON:', afterText.substring(0, 100));
+
+            text = jsonText;
+        }
+
+        // Remove common prefixes that LLMs add
+        text = text.replace(/^(?:Here's the analysis:|Here is the JSON:|Result:|Output:)\s*/i, '');
+
+        // Clean up common formatting issues
+        text = text.trim();
+
+        // Apply JSON repair for common LLM syntax errors
+        text = repairJSON(text);
+
+        console.log('[NT-Parse] Before JSON.parse, length:', text.length);
+        console.log('[NT-Parse] First 200 chars:', text.substring(0, 200));
+        console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
+
+        try {
+            console.log('[NT-Parse] Attempting JSON.parse...');
+            const parsed = JSON.parse(text);
+
+            console.log('[NT-Parse] ✅ Successfully parsed JSON');
+            console.log('[NT-Parse] Parsed type:', typeof parsed);
+            console.log('[NT-Parse] Parsed keys:', Object.keys(parsed));
+            console.log('[NT-Parse] Full parsed object:', JSON.stringify(parsed).substring(0, 500));
+
+            // Validate structure
+            if (!parsed.characters) {
+                console.warn('[NT-Parse] ⚠️  parsed.characters is undefined or null');
+                console.warn('[NT-Parse] Available keys in object:', Object.keys(parsed));
+            } else if (!Array.isArray(parsed.characters)) {
+                console.warn('[NT-Parse] ⚠️  parsed.characters exists but is NOT an array. Type:', typeof parsed.characters);
+                console.warn('[NT-Parse] Value:', parsed.characters);
+            }
+
+            if (!parsed.characters || !Array.isArray(parsed.characters)) {
+                console.warn('[NT-Parse] ❌ Response missing characters array, returning empty');
+                console.warn('[NT-Parse] Full parsed object:', parsed);
+                return { characters: [] };
+            }
+
+            console.log('[NT-Parse] ✅ Valid response with', parsed.characters.length, 'characters');
+            console.log('[NT-Parse] ========== PARSE END (SUCCESS) ==========');
+            
+            if (session) {
+                session.logEnd(true, parsed, text);
+            }
+            
+            return parsed;
+        } catch (error) {
+            console.error('[NT-Parse] ❌ JSON.parse failed:', error.message);
+            console.error('[NT-Parse] ❌ Error at position:', error.name);
+            console.log('[NT-Parse] Text being parsed (first 500 chars):', text.substring(0, 500));
+            console.log('[NT-Parse] Text being parsed (last 200 chars):', text.substring(Math.max(0, text.length - 200)));
+
+            // Additional targeted repairs for specific common errors
+            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
+                console.log('[NT-Parse] Attempting targeted repair for missing property names...');
+                
+                let targetedRepair = text;
+                
+                // Specific fix for pattern: "name": "value", "orphaned description", "nextProp":
+                // This is the exact pattern causing most failures
+                targetedRepair = targetedRepair.replace(
+                    /"name":\s*"([^"]*)",\s*"([^"]+)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":\s*/g,
+                    (match, name, orphanedText, nextProp) => {
+                        console.log(`[NT-Parse] 🎯 Targeted repair: assigning "${orphanedText.substring(0, 30)}..." to physical for ${name}`);
+                        return `"name": "${name}", "physical": "${orphanedText}", "${nextProp}": `;
+                    }
+                );
+                
+                // Try parsing again with targeted repair
+                try {
+                    const repairedParsed = JSON.parse(targetedRepair);
+                    console.log('[NT-Parse] ✅ Targeted repair successful!');
+                    console.log('[NT-Parse] ========== PARSE END (TARGETED REPAIR) ==========');
+                    return repairedParsed;
+                } catch (repairError) {
+                    console.error('[NT-Parse] ❌ Targeted repair also failed:', repairError.message);
+                }
+            }
+
+            // Check if response was truncated (common issue with long responses)
+            if (text.includes('"characters"') && !text.trim().endsWith('}')) {
+                console.log('[NT-Parse] Detected truncated response, attempting recovery...');
+
+                // Try to salvage partial data by attempting to close the JSON
+                let salvaged = text;
+
+                // Count open vs closed braces to determine how many we need
+                const openBraces = (text.match(/\{/g) || []).length;
+                const closeBraces = (text.match(/\}/g) || []).length;
+                const openBrackets = (text.match(/\[/g) || []).length;
+                const closeBrackets = (text.match(/\]/g) || []).length;
+
+                console.log('[NT-Parse] Recovery attempt - braces: open=' + openBraces + ' close=' + closeBraces + ', brackets: open=' + openBrackets + ' close=' + closeBrackets);
+
+                // Try to close incomplete strings and objects
+                if (salvaged.match(/"[^"]*$/)) {
+                    // Has unclosed quote
+                    console.log('[NT-Parse] Adding closing quote');
+                    salvaged += '"';
+                }
+
+                // Close missing brackets/braces
+                for (let i = 0; i < (openBrackets - closeBrackets); i++) {
+                    salvaged += ']';
+                }
+                for (let i = 0; i < (openBraces - closeBraces); i++) {
+                    salvaged += '}';
+                }
+
+                console.log('[NT-Parse] Salvaged text length:', salvaged.length);
+                console.log('[NT-Parse] Attempting to parse salvaged content...');
+
+                try {
+                    const recovered = JSON.parse(salvaged);
+                    console.log('[NT-Parse] ✅ Successfully recovered JSON with', recovered.characters?.length || 0, 'characters');
+                    console.log('[NT-Parse] ========== PARSE END (RECOVERED) ==========');
+                    return recovered;
+                } catch (e) {
+                    console.error('[NT-Parse] ❌ Recovery failed:', e.message);
+                    console.error('[NT-Parse] Salvaged text (first 500):', salvaged.substring(0, 500));
+                }
+            }
+
+            console.log('[NT-Parse] ========== PARSE END (FAILED) ==========');
+            
+            if (session) {
+                session.logEnd(false, error, text);
+            }
+            
+            // Provide specific feedback about the JSON error
+            let errorHelp = 'Failed to parse LLM response as JSON.';
+            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
+                errorHelp = 'JSON parsing failed: Missing colon after property name or orphaned string without property. The LLM likely generated a description without specifying which field it belongs to.';
+            } else if (error.message.includes('Unexpected token')) {
+                errorHelp = 'JSON parsing failed: Unexpected character found. Check for missing quotes, commas, or control characters.';
+            } else if (error.message.includes('Unexpected end')) {
+                errorHelp = 'JSON parsing failed: Response appears truncated. Try analyzing fewer messages at once.';
+            }
+            
+            throw new errors/* NameTrackerError */.S_(errorHelp);
+        }
+    });
+}
+
+/**
+ * Call LLM for character analysis with automatic batch splitting if prompt is too long
+ * and adaptive splitting when parse/output failures occur.
+ * @param {Array} messageObjs - Array of message objects (with .mes property) or strings
+ * @param {string} knownCharacters - Roster of previously identified characters
+ * @param {number} depth - Recursion depth (for logging)
+ * @param {number} retryCount - Number of retries attempted (simple backoff)
+ * @param {number} splitAttempts - Number of times this failing batch has been split
+ * @returns {Promise<Object>} Analysis result with merged characters
+ */
+async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, retryCount = 0, splitAttempts = 0) {
+    return (0,errors/* withErrorBoundary */.Xc)('callLLMAnalysis', async () => {
+        const llmConfig = await (0,core_settings/* getLLMConfig */.eU)();
+        const maxPromptResult = await getMaxPromptLength(); // Dynamic based on API context window
+        const maxPromptTokens = maxPromptResult.maxPrompt;
+        const MAX_SIMPLE_RETRIES = 1;   // retry count after first failure (total 2 attempts)
+        const MAX_SPLIT_ATTEMPTS = 2;   // how many times we can split on failure (up to 4 chunks)
+
+        llm_debug.log();
+
+        // Extract message text
+        const messages = messageObjs.map(msg => {
+            if (typeof msg === 'string') return msg;
+            if (msg.mes) return msg.mes;
+            if (msg.message) return msg.message;
+            return JSON.stringify(msg);
+        });
+
+        // Create cache key
+        const cacheKey = (0,helpers/* simpleHash */.tx)(messages.join('\\n') + llmConfig.source + llmConfig.ollamaModel);
+
+        // Check cache
+        if (analysisCache.has(cacheKey)) {
+            llm_debug.log();
+            return analysisCache.get(cacheKey);
+        }
+
+        // Build the prompt
+        const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\\n${msg}`).join('\\n\\n');
+
+        // Get system prompt and ensure it's a string
+        let systemPrompt = getSystemPrompt();
+        console.log('[NT-Prompt] getSystemPrompt() returned type:', typeof systemPrompt);
+
+        // Handle if it's a Promise
+        if (systemPrompt && typeof systemPrompt === 'object' && typeof systemPrompt.then === 'function') {
+            console.warn('[NT-Prompt] getSystemPrompt returned Promise, awaiting...');
+            systemPrompt = await systemPrompt;
+            console.log('[NT-Prompt] After await, type:', typeof systemPrompt);
+        }
+
+        // Handle if it's still an object after await
+        if (typeof systemPrompt !== 'string') {
+            console.warn('[NT-Prompt] systemPrompt is not a string, using default. Type:', typeof systemPrompt, 'Value:', systemPrompt);
+            systemPrompt = DEFAULT_SYSTEM_PROMPT;
+        }
+
+        // Get character roster and ensure it's a string
+        let rosterStr = knownCharacters || '';
+        console.log('[NT-Prompt] knownCharacters type:', typeof rosterStr);
+
+        // Handle if it's a Promise
+        if (rosterStr && typeof rosterStr === 'object' && typeof rosterStr.then === 'function') {
+            console.warn('[NT-Prompt] knownCharacters is Promise, awaiting...');
+            rosterStr = await rosterStr;
+            console.log('[NT-Prompt] After await, type:', typeof rosterStr);
+        }
+
+        // Ensure it's a string
+        rosterStr = String(rosterStr || '');
+
+        console.log('[NT-Prompt] Final systemPrompt length:', systemPrompt.length);
+        console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
+        console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
+
+        // Inject character roster into system prompt using template placeholder
+        const systemMessage = systemPrompt.replace('{{CHARACTER_ROSTER}}', rosterStr);
+
+        // Build user prompt with data
+        const userPrompt = '[DATA TO ANALYZE]\n' + messagesText;
+
+        // No prefill - let model generate complete JSON from system prompt guidance
+        const prefill = '';
+
+        // Calculate actual token count for the combined messages
+        let promptTokens;
+        const combinedText = systemMessage + '\n\n' + userPrompt;
+        try {
+            promptTokens = await calculateMessageTokens([{ mes: combinedText }]);
+            llm_debug.log();
+        } catch {
+            llm_debug.log();
+            // Fallback to character-based estimate
+            promptTokens = Math.ceil(combinedText.length / 4);
+        }
+
+        // If prompt is too long, split into sub-batches
+        if (promptTokens > maxPromptTokens && messageObjs.length > 1) {
+            llm_debug.log();
+
+            // Split roughly in half
+            const midpoint = Math.floor(messageObjs.length / 2);
+            const firstHalf = messageObjs.slice(0, midpoint);
+            const secondHalf = messageObjs.slice(midpoint);
+
+            llm_debug.log();
+
+            // Analyze both halves in parallel
+            const [result1, result2] = await Promise.all([
+                callLLMAnalysis(firstHalf, knownCharacters, depth + 1, 0, splitAttempts),
+                callLLMAnalysis(secondHalf, knownCharacters, depth + 1, 0, splitAttempts),
+            ]);
+
+            // Merge the results
+            const mergedResult = {
+                characters: [
+                    ...(result1.characters || []),
+                    ...(result2.characters || []),
+                ],
+            };
+
+            llm_debug.log();
+            return mergedResult;
+        }
+
+        // Prompt is acceptable length, proceed with analysis
+        llm_debug.log(`Calling LLM with prompt (${promptTokens} tokens)...`);
+        console.log(`[NT-Prompt] Composition: SYSTEM(${systemMessage.length} chars) + USER(${userPrompt.length} chars) + PREFILL`);
+
+        let result;
+
+        try {
+            if (llmConfig.source === 'ollama') {
+                // Ollama still uses flat prompt for now
+                const flatPrompt = systemMessage + '\n\n' + userPrompt + '\n' + prefill;
+                result = await callOllama(flatPrompt);
+            } else {
+                // Use non-interactive mode so outer logic can handle retries/splitting
+                result = await callSillyTavern(systemMessage, userPrompt, prefill, false);
+            }
+        } catch (error) {
+            const isRetryable = error.message.includes('JSON')
+                || error.message.includes('empty')
+                || error.message.includes('truncated');
+
+            // First retry: try the same batch once with backoff
+            if (isRetryable && retryCount < MAX_SIMPLE_RETRIES) {
+                llm_debug.log();
+
+                const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
+                await new Promise(resolve => setTimeout(resolve, delay));
+
+                return await callLLMAnalysis(messageObjs, knownCharacters, depth, retryCount + 1, splitAttempts);
+            }
+
+            // Subsequent retries: split the current failing batch into halves (up to 4 chunks total)
+            if (isRetryable && messageObjs.length > 1 && splitAttempts < MAX_SPLIT_ATTEMPTS) {
+                const midpoint = Math.floor(messageObjs.length / 2);
+                const firstHalf = messageObjs.slice(0, midpoint);
+                const secondHalf = messageObjs.slice(midpoint);
+
+                const [result1, result2] = await Promise.all([
+                    callLLMAnalysis(firstHalf, knownCharacters, depth + 1, 0, splitAttempts + 1),
+                    callLLMAnalysis(secondHalf, knownCharacters, depth + 1, 0, splitAttempts + 1),
+                ]);
+
+                return {
+                    characters: [
+                        ...(result1.characters || []),
+                        ...(result2.characters || []),
+                    ],
+                };
+            }
+
+            // Max retries/splits exceeded or non-retryable error
+            throw error;
+        }
+
+        // Check for empty response and retry once with stronger emphasis
+        if (result && Array.isArray(result.characters) && result.characters.length === 0 && retryCount === 0) {
+            console.warn('[NT-LLM] Empty response detected, retrying with stronger user character emphasis...');
+            
+            // Add stronger user character requirement to the user prompt
+            const retryUserPrompt = userPrompt + '\n\nCRITICAL ERROR: Previous response was empty. You MUST return at minimum the user character ({{user}}) with any available details from these messages. An empty character list is INVALID.';
+            
+            try {
+                let retryResult;
+                if (llmConfig.source === 'ollama') {
+                    const retryFlatPrompt = systemMessage + '\n\n' + retryUserPrompt + '\n' + prefill;
+                    retryResult = await callOllama(retryFlatPrompt);
+                } else {
+                    retryResult = await callSillyTavern(systemMessage, retryUserPrompt, prefill, false);
+                }
+                
+                if (retryResult && Array.isArray(retryResult.characters) && retryResult.characters.length > 0) {
+                    console.log('[NT-LLM] Retry successful, got', retryResult.characters.length, 'characters');
+                    result = retryResult;
+                } else {
+                    console.error('[NT-LLM] Retry also returned empty, proceeding with empty result');
+                }
+            } catch (retryError) {
+                console.error('[NT-LLM] Retry failed:', retryError.message, 'proceeding with original empty result');
+            }
+        }
+
+        // Cache the result only if we have characters
+        if (result && Array.isArray(result.characters) && result.characters.length > 0) {
+            if (analysisCache.size > 50) {
+                // Clear oldest entries if cache is getting too large
+                const firstKey = analysisCache.keys().next().value;
+                analysisCache.delete(firstKey);
+            }
+            analysisCache.set(cacheKey, result);
+        } else {
+            console.warn('[NT-Cache] Skipping cache because result is empty or has no characters');
+        }
+
+        llm_debug.log();
+        return result;
+    });
+}
+
+/**
+ * Clear the analysis cache
+ */
+function clearAnalysisCache() {
+    analysisCache.clear();
+    llm_debug.log();
+}
+
+/**
+ * Get analysis cache statistics
+ * @returns {Object} Cache statistics
+ */
+function getCacheStats() {
+    return {
+        size: analysisCache.size,
+        entries: [...analysisCache.keys()].map(key => ({
+            key: key.substring(0, 8) + '...',
+            timestamp: Date.now(),
+        })),
+    };
+}
+
+// End of module
+
+
+/***/ },
+
 /***/ 314
 (module) {
 
@@ -1996,11 +3948,11 @@ class ErrorHandler {
 
                 return result;
             } catch (error) {
-                console.log(`[STnametracker] Error caught in ${moduleName}:`, error);
+                console.log(`[NT-Errors] Error caught in ${moduleName}:`, error);
                 lastError = error;
 
                 if (attempt < retries) {
-                    console.log(`[STnametracker] Retrying operation in ${moduleName}, attempt ${attempt + 1}/${retries + 1}:`, error.message);
+                    console.log(`[NT-Errors] Retrying operation in ${moduleName}, attempt ${attempt + 1}/${retries + 1}:`, error.message);
                     logger.warn(`Retrying operation in ${moduleName}, attempt ${attempt + 1}/${retries + 1}:`, error.message);
                     await this.delay(Math.pow(2, attempt) * 100); // Exponential backoff
                     continue;
@@ -2009,7 +3961,7 @@ class ErrorHandler {
         }
 
         // All retries failed
-        console.log(`[STnametracker] All retries failed in ${moduleName}, tracking error:`, lastError);
+        console.log(`[NT-Errors] All retries failed in ${moduleName}, tracking error:`, lastError);
         const trackedError = this.trackError(lastError, moduleName, {
             operation: operation.name || 'anonymous',
             duration: Date.now() - startTime,
@@ -2018,7 +3970,7 @@ class ErrorHandler {
         });
 
         if (!silent) {
-            console.log(`[STnametracker] Notifying user of error in ${moduleName}`);
+            console.log(`[NT-Errors] Notifying user of error in ${moduleName}`);
             this.notifyUser(trackedError);
         }
 
@@ -3256,7 +5208,7 @@ async function findPotentialMatch(analyzedChar) {
         // Simple matching logic - can be enhanced with LLM-based similarity
         for (const existingChar of Object.values(chars)) {
             // Check for name similarity (simple approach)
-            const similarity = calculateNameSimilarity(analyzedChar.name, existingChar.preferredName);
+            const similarity = await calculateNameSimilarity(analyzedChar.name, existingChar.preferredName);
 
             if (similarity >= threshold) {
                 debug.log();
@@ -3265,7 +5217,7 @@ async function findPotentialMatch(analyzedChar) {
 
             // Check aliases
             for (const alias of existingChar.aliases) {
-                const aliasSimilarity = calculateNameSimilarity(analyzedChar.name, alias);
+                const aliasSimilarity = await calculateNameSimilarity(analyzedChar.name, alias);
                 if (aliasSimilarity >= threshold) {
                     debug.log();
                     return existingChar;
@@ -4235,1593 +6187,6 @@ logger.debug('Notifications module loaded');
 
 /***/ },
 
-/***/ 744
-(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
-
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   Bw: () => (/* binding */ loadOllamaModels),
-/* harmony export */   Kr: () => (/* binding */ callLLMAnalysis),
-/* harmony export */   au: () => (/* binding */ calculateMessageTokens),
-/* harmony export */   fR: () => (/* binding */ buildCharacterRoster),
-/* harmony export */   getMaxPromptLength: () => (/* binding */ getMaxPromptLength)
-/* harmony export */ });
-/* unused harmony exports getOllamaModels, getOllamaModelContext, callSillyTavern, callOllama, parseJSONResponse, clearAnalysisCache, getCacheStats */
-/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
-/* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
-/* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
-/* harmony import */ var _core_context_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(102);
-/* harmony import */ var _utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(854);
-/* harmony import */ var _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(695);
-/**
- * LLM Integration Module
- *
- * Handles LLM API calls to SillyTavern and Ollama for character analysis.
- * Includes conservative parameter settings, token management, context window handling,
- * and JSON parsing for deterministic character extraction.
- */
-
-
-
-
-
-
-
-
-const debug = (0,_core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* .createModuleLogger */ .Xv)('llm');
-const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__/* .NotificationManager */ .h('LLM Integration');
-
-// ============================================================================
-// DEBUG CONFIGURATION
-// ============================================================================
-const DEBUG_LOGGING = false; // Default off to reduce console noise
-
-function debugLog(message, data = null) {
-    if (DEBUG_LOGGING) {
-        console.log(`[NT-LLM] ${message}`, data || '');
-    }
-}
-
-// ============================================================================
-// CONFIGURATION CONSTANTS - Conservative parameters for deterministic output
-// ============================================================================
-// These hardcoded values ensure reliable JSON extraction with minimal hallucination.
-// They override user chat settings specifically for character analysis operations.
-
-// Generation Parameters (Anti-hallucination configuration)
-const GENERATION_TEMPERATURE = 0.2;     // Very low for deterministic output
-const GENERATION_TOP_P = 0.85;          // Slightly reduced nucleus sampling
-const GENERATION_TOP_K = 25;            // Standard focused sampling
-const GENERATION_REP_PEN = 1.1;         // Slight repetition penalty
-
-// Context Window Management
-// Reserved for future dynamic context management
-// eslint-disable-next-line no-unused-vars
-const RESPONSE_BUFFER_PERCENT = 25;     // Reserve 25% for response generation
-// eslint-disable-next-line no-unused-vars
-const SAFETY_MARGIN_PERCENT = 10;       // Reserve 10% safety margin
-// eslint-disable-next-line no-unused-vars
-const MIN_RESPONSE_TOKENS = 1000;       // Minimum tokens allowed for response
-
-// Ollama-Specific Parameters
-// eslint-disable-next-line no-unused-vars
-const OLLAMA_MIN_PREDICT = 500;         // Minimum tokens to predict
-// eslint-disable-next-line no-unused-vars
-const OLLAMA_MAX_PREDICT = 4000;        // Maximum tokens to predict
-
-// Cache Configuration
-// eslint-disable-next-line no-unused-vars
-const CACHE_MAX_ENTRIES = 50;           // Maximum cached analysis results
-// eslint-disable-next-line no-unused-vars
-const CACHE_INVALIDATION_TIME = 3600000; // 1 hour cache duration
-
-// LLM state management
-const analysisCache = new Map(); // Cache for LLM analysis results
-let ollamaModels = []; // Available Ollama models
-
-/**
- * Default system prompt for character analysis
- */
-const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
-
-/nothink
-
-[CURRENT LOREBOOK ENTRIES]
-The following characters have already been identified. Their information is shown in lorebook format (keys + content).
-If a character appears in the new messages with additional/changed information, include them in your response.
-If a character is NOT mentioned or has no new information, do NOT include them in your response.
-
-{{CHARACTER_ROSTER}}
-
-⚠️ REQUIRED: Always include the user character ({{user}}) in your response, even if minimal details
-For other characters from Current Lorebook Entries: only include if NEW information appears in these messages
-Returning only the user character is valid when no other character updates exist
-
-⚠️ CRITICAL INSTRUCTION: Only include characters with NEW information in these specific messages. If a character from the lorebook appears but provides no new details, DO NOT include them in your response.
-
-Example: Alice from lorebook says 'Hi' in message 5 → No new info → Omit Alice from response
-Example: {{user}} always appears → Always include {{user}} with any available details
-
-CRITICAL JSON REQUIREMENTS:
-⚠️ STRICT JSON FORMATTING - PARSING WILL FAIL IF NOT FOLLOWED ⚠️
-
-🚨 ABSOLUTELY NO XML TAGS: Do not use <think>, </think>, <thinking>, or any XML tags
-🚨 PURE JSON ONLY: Your response must be immediately parseable JSON with no wrappers
-
-MANDATORY SYNTAX RULES:
-- Your ENTIRE response must be valid JSON starting with { and ending with }
-- ALL property names MUST use double quotes: "name", "aliases", etc.
-- ALL string values MUST use double quotes and escape internal quotes: "He said \\"hello\\""
-- NO control characters (line breaks, tabs) inside string values
-- NO trailing commas before } or ]
-- EVERY property must have a colon: "name": "value" (not "name" "value")
-- NO markdown, NO explanations, NO text before or after the JSON
-
-⛔ ABSOLUTELY FORBIDDEN PATTERNS THAT BREAK PARSING:
-❌ <think>reasoning</think> or </think> or any XML tags
-❌ Code blocks: \\\`\\\`\\\`json { "characters": [...] } \\\`\\\`\\\`
-❌ "name": "John", "He is tall and strong", "age": 25
-   (orphaned description without property name)
-❌ "physical" "brown hair and blue eyes"
-   (missing colon)
-❌ "aliases": ["John", "Scout",]
-   (trailing comma)
-❌ Here's the analysis: { "characters": [...] }
-   (text before JSON)
-
-✅ CORRECT FORMAT ONLY:
-{
-  "characters": [
-    {
-      "name": "Full Name",
-      "physical": "description here",
-      "aliases": ["nick1", "nick2"]
-    }
-  ]
-}
-
-⚠️ VALIDATION CHECK: Before responding, verify:
-1. Starts with { immediately (no text before)
-2. Every string has opening AND closing quotes
-3. Every property has a colon after the name
-4. No orphaned text without property names
-5. Ends with } immediately (no text after)
-
-ONLY include characters mentioned in these specific messages or with new information
-DO NOT repeat unchanged characters from the Current Lorebook Entries
-
-DO NOT include:
-- Any text before the JSON
-- Any text after the JSON  
-- Code block markers like \\\`\\\`\\\`json
-- Explanations, commentary, or thinking tags
-- XML tags like <think> or </think> (these break JSON parsing)
-
-REQUIRED JSON structure (copy this exact format):
-{
-  "characters": [
-    {
-      "name": "Full character name (SINGLE NAME ONLY - never include aliases here)",
-      "aliases": ["Alternative names for THIS SAME person - nicknames, shortened names, titles"],
-      "physicalAge": "Age if mentioned",
-      "mentalAge": "Mental age if different",
-      "physical": "Physical description",
-      "personality": "Personality traits",
-      "sexuality": "Sexual orientation if mentioned",
-      "raceEthnicity": "Race/ethnicity if mentioned",
-      "roleSkills": "Job/role/skills",
-      "relationships": ["currentchar, otherchar, relationship"],
-      "confidence": 75
-    }
-  ]
-}
-
-CRITICAL FIELD SPECIFICATIONS:
-
-NAME FIELD RULES:
-- Use the MOST COMPLETE proper name mentioned (e.g., "John Blackwood")
-- NEVER include commas, slashes, or multiple names in the name field
-- NEVER combine name + alias (❌ "John Blackwood, John" ❌ "John/Scout")
-- If only a first name is known, use just that ("John")
-
-ALIASES FIELD RULES:
-- Include ALL other ways this character is referred to
-- Nicknames, shortened names, titles, alternative spellings
-- Examples: ["John", "Scout", "JB", "Mr. Blackwood"]
-
-RELATIONSHIPS FIELD - NATURAL LANGUAGE FORMAT:
-🚨 CRITICAL: ONLY use this format: "Character A is to Character B: relationship1, relationship2"
-
-⛔ FORBIDDEN FORMATS:
-- "Character, Other, relationship" (OLD TRIPLET FORMAT - DO NOT USE)
-- "Character A, Character B, relationship" (OLD TRIPLET FORMAT - DO NOT USE)
-
-✅ MANDATORY FORMAT: "Character A is to Character B: relationship1, relationship2"
-
-⚠️ CRITICAL NAMING REQUIREMENTS:
-- ALWAYS use the character's CANONICAL/PREFERRED name in relationships
-- If "John Blackwood" is the main name, use "John Blackwood" NOT "John" 
-- Maintain name consistency across ALL relationship entries
-- Multiple relationships for same pair: separate with commas
-
-✅ CORRECT examples:
-- "Dora is to John Blackwood: lover, submissive"
-- "Maya is to Sarah Chen: sister, gymnastics partner"
-- "John Blackwood is to Julia Martinez: son"
-- "Sarah Chen is to John Blackwood: rival, former colleague"
-
-❌ FORBIDDEN patterns:
-- "Dora, John, lover" (OLD FORMAT - NEVER USE)
-- "Dora, John Blackwood, lover" (OLD FORMAT - NEVER USE)
-- "John, Jasmine, friend" (OLD FORMAT - NEVER USE)
-- "Dora is to John: lover" + "Dora is to John Blackwood: lover" (inconsistent naming)
-- Narrative text: "Living in luxury penthouse since age 17"
-- Actions/events: "Takes charge of organizing rescue mission"
-
-🔄 RELATIONSHIP GUIDELINES:
-- List multiple relationship types for richer character connections
-- Use specific terms: "lover, dominant" instead of just "lover"
-- Family relationships can be combined: "sister, best friend"
-- Professional + personal: "boss, mentor" or "colleague, friend"
-- Avoid contradictions: don't use "dominant" and "submissive" together
-
-✅ RELATIONSHIP EXAMPLES:
-- "Emma is to David: wife, business partner"
-- "Marcus is to Elena: brother, protector"
-- "Jessica is to Robert: student, admirer"
-- "Alex is to Morgan: rival, former friend"
-
-CRITICAL: Relationships describe WHO this character is TO other characters.
-Focus on interpersonal connections: family, romantic, friendship, professional, rivalry relationships.
-
-Rules:
-- One entry per distinct person. NEVER combine two different people into one entry.
-- If the same person is referred by variants ("John", "John Blackwell", "Scout"), make ONE entry with name = best full name ("John Blackwell") and put other names in aliases.
-- Do NOT create names like "Jade/Jesse" or "Sarah and Maya". Instead, create separate entries: [{"name":"Jade"}, {"name":"Jesse"}].
-- Only extract clearly named speaking characters.
-- Skip generic references ("the waiter", "a woman").
-- Use most recent information for conflicts.
-- Empty array if no clear characters: {"characters":[]}
-- Confidence: 90+ (explicit), 70-89 (clear), 50-69 (mentioned), <50 (vague).
-
-FIELD EXAMPLES:
-
-NAME EXAMPLES:
-✅ "John Blackwood" (not "John Blackwood, John")
-✅ "Maria Santos" (not "Maria/Marie")  
-✅ "Alex" (when full name unknown)
-
-ALIAS EXAMPLES:
-✅ ["John", "Scout", "JB"] 
-✅ ["Marie", "Maria"]
-✅ ["Mom", "Mother", "Sarah"]
-
-RELATIONSHIP EXAMPLES:
-✅ ["Dora is to John Blackwood: lover, submissive", "Maya is to Sarah Chen: sister, gymnastics partner"]
-❌ ["Lives in penthouse", "Writing novels", "Leading group", "Met at bar"]
-❌ ["Dora, John, lover", "John, Jasmine, friend"] (OLD TRIPLET FORMAT - NEVER USE)
-❌ ["Dora is to John: lover", "Dora is to John Blackwood: submissive"] (split relationships)
-
-🔥 FINAL REMINDER - CRITICAL FOR SUCCESS:
-Your response must start with { immediately and end with } immediately.
-NO text, explanations, or markers before or after the JSON.
-Every description must have a property name: "physical": "tall", not just "tall".
-Validate your JSON syntax before responding - missing colons or orphaned strings will cause parsing failure.
-
-Your response must start with { immediately.`;
-
-/**
- * Get the system prompt for analysis
- * @returns {string} System prompt text
- */
-async function getSystemPrompt() {
-    const settings = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)();
-    const prompt = settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT;
-    // Ensure we return a string, not a Promise or object
-    return typeof prompt === 'string' ? prompt : DEFAULT_SYSTEM_PROMPT;
-}
-
-/**
- * Load available Ollama models from the configured endpoint and cache them.
- * @returns {Promise<Array>} Array of available models
- */
-async function loadOllamaModels() {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('loadOllamaModels', async () => {
-        const ollamaEndpoint = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('ollamaEndpoint', 'http://localhost:11434');
-
-        try {
-            const response = await fetch(`${ollamaEndpoint}/api/tags`);
-
-            if (!response.ok) {
-                throw new Error(`Failed to load Ollama models: ${response.status} ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            ollamaModels = Array.isArray(data?.models) ? data.models : [];
-            debugLog(`[OllamaModels] Found ${ollamaModels.length} models: ${ollamaModels.map(m => m.name).join(', ')}`);
-            return [...ollamaModels];
-        } catch (error) {
-            console.error('Error loading Ollama models:', error);
-            notifications.error('Failed to load Ollama models. Check endpoint and try again.');
-            throw error;
-        }
-    });
-}
-
-/**
- * Get cached Ollama models
- * @returns {Array} Array of available models
- */
-function getOllamaModels() {
-    return [...ollamaModels];
-}
-
-/**
- * Get Ollama model context size
- * @param {string} modelName - Name of the Ollama model
- * @returns {Promise<number>} Context size in tokens, or default 4096
- */
-async function getOllamaModelContext(modelName) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('getOllamaModelContext', async () => {
-        const ollamaEndpoint = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('ollamaEndpoint', 'http://localhost:11434');
-
-        if (!modelName) {
-            debug.log();
-            return 4096;
-        }
-
-        try {
-            const response = await fetch(`${ollamaEndpoint}/api/show`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: modelName,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch model info: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-
-            // Look for num_ctx in parameters array
-            if (data.parameters && Array.isArray(data.parameters)) {
-                for (const param of data.parameters) {
-                    const match = param.match(/num_ctx\\s+(\\d+)/);
-                    if (match) {
-                        const contextSize = parseInt(match[1]);
-                        debug.log();
-                        return contextSize;
-                    }
-                }
-            }
-
-            // Fallback: check if it's in model details
-            if (data.model_info && data.model_info.num_ctx) {
-                const contextSize = parseInt(data.model_info.num_ctx);
-                debug.log();
-                return contextSize;
-            }
-
-            debug.log();
-            return 4096;
-        } catch (error) {
-            console.error('Error fetching Ollama model context:', error);
-            debug.log();
-            return 4096;
-        }
-    });
-}
-
-/**
- * Build a roster of known characters in lorebook format for context
- * Returns keys and formatted content fields to support incremental updates
- * @returns {string} Formatted roster text with lorebook entries
- */
-async function buildCharacterRoster() {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('buildCharacterRoster', async () => {
-        const characters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
-        const characterNames = Object.keys(characters);
-
-        if (characterNames.length === 0) {
-            return '(None - this is the first analysis)';
-        }
-
-        const entries = characterNames.map(name => {
-            const char = characters[name];
-            
-            // Build keys array (name + aliases)
-            const keys = [char.preferredName || name];
-            if (char.aliases && char.aliases.length > 0) {
-                keys.push(...char.aliases);
-            }
-            
-            // Build formatted content (same format as lorebook)
-            const contentParts = [];
-            
-            // Age info
-            if (char.physicalAge || char.mentalAge) {
-                const ageInfo = [];
-                if (char.physicalAge) ageInfo.push(`Physical: ${char.physicalAge}`);
-                if (char.mentalAge) ageInfo.push(`Mental: ${char.mentalAge}`);
-                contentParts.push(`**Age:** ${ageInfo.join(', ')}`);
-            }
-            
-            // Physical
-            if (char.physical) {
-                contentParts.push(`\\n**Physical Description:**\\n${char.physical}`);
-            }
-            
-            // Personality
-            if (char.personality) {
-                contentParts.push(`\\n**Personality:**\\n${char.personality}`);
-            }
-            
-            // Sexuality
-            if (char.sexuality) {
-                contentParts.push(`\\n**Sexuality:**\\n${char.sexuality}`);
-            }
-            
-            // Race/Ethnicity
-            if (char.raceEthnicity) {
-                contentParts.push(`**Race/Ethnicity:** ${char.raceEthnicity}`);
-            }
-            
-            // Role & Skills
-            if (char.roleSkills) {
-                contentParts.push(`\\n**Role & Skills:**\\n${char.roleSkills}`);
-            }
-            
-            // Relationships
-            if (char.relationships && char.relationships.length > 0) {
-                contentParts.push('\\n**Relationships:**');
-                char.relationships.forEach(rel => {
-                    contentParts.push(`- ${rel}`);
-                });
-            }
-            
-            const content = contentParts.join('\\n');
-            
-            return `
----
-KEYS: ${keys.join(', ')}
-CONTENT:
-${content}
-`;
-        }).join('\\n');
-
-        return entries;
-    });
-}
-
-/**
- * Get the maximum safe prompt length based on API context window
- * Uses actual token counts from messages when available
- * @returns {Promise<number>} Maximum prompt length in tokens
- */
-async function getMaxPromptLength() {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('getMaxPromptLength', async () => {
-        const detectionLog = []; // Track detection attempts
-        const logEntry = (msg) => {
-            detectionLog.push(msg);
-            console.log(`[NT-MaxContext] ${msg}`);
-        };
-
-        try {
-            const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
-            let maxContext = 8192; // Default minimum context
-            let detectionMethod = 'fallback';
-
-            logEntry(`Starting context detection for LLM source: ${llmConfig.source}`);
-
-            if (llmConfig.source === 'ollama' && llmConfig.ollamaModel) {
-                logEntry(`Using Ollama model: ${llmConfig.ollamaModel}`);
-                // Get Ollama model's context size
-                maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
-                detectionMethod = 'ollama';
-            } else {
-                logEntry('Using SillyTavern context');
-                // Use SillyTavern's context
-                let context = null;
-
-                try {
-                    context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
-                    logEntry('Successfully retrieved SillyTavern context');
-                } catch (error) {
-                    logEntry(`ERROR: Failed to get context: ${error.message}`);
-                    context = null;
-                }
-
-                // Debug: Log all context properties
-                if (context) {
-                    try {
-                        const contextKeys = Object.keys(context);
-                        const relevantKeys = contextKeys.filter(k =>
-                            k.toLowerCase().includes('max') ||
-                            k.toLowerCase().includes('context') ||
-                            k.toLowerCase().includes('token') ||
-                            k.toLowerCase().includes('prompt'),
-                        );
-                        logEntry(`Available context properties: ${relevantKeys.join(', ')}`);
-                    } catch (e) {
-                        logEntry(`Error analyzing context keys: ${e.message}`);
-                    }
-                }
-
-                // Try multiple possible paths for max context
-                let detectedMaxContext = null;
-
-                // Method 1: Direct maxContext property (PRIMARY)
-                logEntry('Method 1: Checking context.maxContext...');
-                if (context && typeof context.maxContext === 'number' && context.maxContext > 0) {
-                    detectedMaxContext = context.maxContext;
-                    logEntry(`✓ Method 1 SUCCESS: context.maxContext = ${detectedMaxContext}`);
-                    detectionMethod = 'context.maxContext';
-                } else {
-                    const reason = !context ? 'context is null' :
-                        typeof context.maxContext !== 'number' ? `type is ${typeof context.maxContext}` :
-                            context.maxContext <= 0 ? `value is ${context.maxContext}` : 'unknown';
-                    logEntry(`✗ Method 1 FAILED: ${reason}`);
-                }
-
-                // Method 2: extensionSettings.common.maxContext path
-                if (!detectedMaxContext) {
-                    logEntry('Method 2: Checking context.extensionSettings.common.maxContext...');
-                    if (context?.extensionSettings?.common) {
-                        if (typeof context.extensionSettings.common.maxContext === 'number' && context.extensionSettings.common.maxContext > 0) {
-                            detectedMaxContext = context.extensionSettings.common.maxContext;
-                            logEntry(`✓ Method 2 SUCCESS: extensionSettings.common.maxContext = ${detectedMaxContext}`);
-                            detectionMethod = 'extensionSettings.common.maxContext';
-                        } else {
-                            logEntry('✗ Method 2 FAILED: extensionSettings.common exists but maxContext is invalid');
-                        }
-                    } else {
-                        logEntry('✗ Method 2 FAILED: extensionSettings.common path does not exist');
-                    }
-                }
-
-                // Method 3: chat.maxContextSize path
-                if (!detectedMaxContext) {
-                    logEntry('Method 3: Checking context.chat.maxContextSize...');
-                    if (context?.chat && typeof context.chat === 'object' && !Array.isArray(context.chat)) {
-                        if (typeof context.chat.maxContextSize === 'number' && context.chat.maxContextSize > 0) {
-                            detectedMaxContext = context.chat.maxContextSize;
-                            logEntry(`✓ Method 3 SUCCESS: chat.maxContextSize = ${detectedMaxContext}`);
-                            detectionMethod = 'chat.maxContextSize';
-                        } else {
-                            logEntry('✗ Method 3 FAILED: chat exists but maxContextSize is invalid');
-                        }
-                    } else {
-                        logEntry('✗ Method 3 FAILED: chat path does not exist or is an array');
-                    }
-                }
-
-                // Method 4: token_limit
-                if (!detectedMaxContext) {
-                    logEntry('Method 4: Checking context.token_limit...');
-                    if (context && typeof context.token_limit === 'number' && context.token_limit > 0) {
-                        detectedMaxContext = context.token_limit;
-                        logEntry(`✓ Method 4 SUCCESS: token_limit = ${detectedMaxContext}`);
-                        detectionMethod = 'token_limit';
-                    } else {
-                        logEntry('✗ Method 4 FAILED: token_limit is not valid');
-                    }
-                }
-
-                // Method 5: amount_gen (maximum generation tokens)
-                if (!detectedMaxContext) {
-                    logEntry('Method 5: Checking context.amount_gen (fallback)...');
-                    if (context && typeof context.amount_gen === 'number' && context.amount_gen > 0) {
-                        // amount_gen is typically small (generation limit), not context size
-                        // Use as indicator if no other value found
-                        detectedMaxContext = context.amount_gen * 4; // Rough estimate
-                        logEntry(`✓ Method 5 FALLBACK: amount_gen = ${context.amount_gen}, estimated context = ${detectedMaxContext}`);
-                        detectionMethod = 'amount_gen_estimate';
-                    } else {
-                        logEntry('✗ Method 5 FAILED: amount_gen is not valid');
-                    }
-                }
-
-                // Method 6: Check settings object directly
-                if (!detectedMaxContext) {
-                    logEntry('Method 6: Checking context.settings.max_context...');
-                    if (context && typeof context.settings === 'object') {
-                        if (typeof context.settings.max_context === 'number' && context.settings.max_context > 0) {
-                            detectedMaxContext = context.settings.max_context;
-                            logEntry(`✓ Method 6 SUCCESS: settings.max_context = ${detectedMaxContext}`);
-                            detectionMethod = 'settings.max_context';
-                        } else {
-                            logEntry('✗ Method 6 FAILED: settings exists but max_context is invalid');
-                        }
-                    } else {
-                        logEntry('✗ Method 6 FAILED: settings path does not exist');
-                    }
-                }
-
-                // Final check: is detected value reasonable?
-                if (detectedMaxContext && (typeof detectedMaxContext !== 'number' || detectedMaxContext < 100)) {
-                    logEntry(`WARNING: Detected maxContext is not valid: ${detectedMaxContext}, type: ${typeof detectedMaxContext}`);
-                    detectedMaxContext = null;
-                }
-
-                // Check if context is fully loaded
-                if (!context || !detectedMaxContext) {
-                    logEntry('WARNING: Could not detect maxContext from any path, using fallback (8192)');
-                    logEntry(`Context exists: ${!!context}, detectedMaxContext: ${detectedMaxContext}`);
-                    if (context) {
-                        try {
-                            const allKeys = Object.keys(context).sort();
-                            logEntry(`Full context object keys (first 20): ${allKeys.slice(0, 20).join(', ')}${allKeys.length > 20 ? `... (${allKeys.length - 20} more)` : ''}`);
-                        } catch (e) {
-                            logEntry(`Could not enumerate context keys: ${e.message}`);
-                        }
-                    }
-                    maxContext = 8192; // Use minimum required context as fallback
-                    detectionMethod = 'fallback';
-                } else {
-                    maxContext = Math.floor(detectedMaxContext);
-                    logEntry(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
-                    detectionMethod = detectionMethod; // Keep the method that worked
-                }
-            }
-
-            // Validate minimum context requirement (8K minimum)
-            if (maxContext < 8192) {
-                const errorMsg = `Model context too small: ${maxContext} tokens. Minimum required: 8192 tokens. Please use a model with larger context.`;
-                logEntry(errorMsg);
-                throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_(errorMsg);
-            }
-
-            // Use generous context allocation for prompts (60% for prompt, 40% for response)
-            // Remove artificial 50K ceiling to use full available context
-            const tokensForPrompt = Math.floor(maxContext * 0.6);
-
-            logEntry(`Token allocation: maxContext=${maxContext}, promptAllocation=${tokensForPrompt}, responseAllocation=${maxContext - tokensForPrompt}`);
-            logEntry(`Final detection method: ${detectionMethod}`);
-
-            const finalValue = Math.max(1000, tokensForPrompt);
-            logEntry(`Returning maxPromptLength: ${finalValue}`);
-
-            // Return object with detection details
-            return {
-                maxPrompt: finalValue,
-                detectionMethod: detectionMethod,
-                maxContext: maxContext,
-                debugLog: detectionLog.join('\n'),
-            };
-        } catch (error) {
-            const errorMsg = `ERROR in getMaxPromptLength: ${error.message}`;
-            logEntry(errorMsg);
-            console.error('[NT-MaxContext] Stack:', error.stack);
-            // Return conservative fallback on any error with details
-            return {
-                maxPrompt: 4915, // Based on 8192 minimum context with 60% allocation
-                detectionMethod: 'error',
-                maxContext: 8192, // Minimum required context
-                debugLog: detectionLog.join('\n') + '\nFATAL ERROR: ' + error.message,
-            };
-        }
-    });
-}
-
-/**
- * Calculate total token count for a batch of messages
- * Uses pre-calculated token counts from SillyTavern when available
- * @param {Array} messages - Array of chat message objects
- * @returns {Promise<number>} Total token count
- */
-async function calculateMessageTokens(messages) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('calculateMessageTokens', async () => {
-        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
-        let totalTokens = 0;
-
-        // Try to use pre-calculated token counts from message objects
-        for (const msg of messages) {
-            if (msg && typeof msg === 'object' && msg.extra && typeof msg.extra.token_count === 'number') {
-                // SillyTavern stores token count in extra.token_count
-                totalTokens += msg.extra.token_count;
-            } else {
-                // Fallback: use getTokenCountAsync for the message text
-                const text = msg?.mes || msg?.message || String(msg);
-                if (text && context.getTokenCountAsync) {
-                    try {
-                        const count = await context.getTokenCountAsync(text);
-                        totalTokens += count;
-                    // eslint-disable-next-line no-unused-vars
-                    } catch (_error) {
-                        debug.log();
-                        // Final fallback: rough estimate (4 chars per token)
-                        totalTokens += Math.ceil(text.length / 4);
-                    }
-                } else {
-                    // Character-based estimate
-                    totalTokens += Math.ceil(text.length / 4);
-                }
-            }
-        }
-
-        return totalTokens;
-    });
-}
-
-/**
- * Call SillyTavern's LLM using systemPrompt + prompt structure
- * Works in both Chat Completion and Text Completion modes
- * Retries up to 3 times with 2s delay on parse failures
- * @param {string} systemPrompt - System-level instructions
- * @param {string} prompt - User data/instructions to analyze
- * @param {string} prefill - Optional response prefill (e.g., "{" to force JSON)
- * @returns {Promise<Object>} Parsed JSON response
- */
-async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive = false) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callSillyTavern', async () => {
-        debug.log();
-
-        // Use SillyTavern.getContext() as recommended in official docs
-        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
-
-        // Check if we have an active API connection
-        if (!context.onlineStatus) {
-            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('No API connection available. Please connect to an API first.');
-        }
-
-        if (DEBUG_LOGGING) {
-            console.log('[NT-ST-Call] Starting SillyTavern LLM call');
-            console.log('[NT-ST-Call] System prompt length:', systemPrompt.length, 'characters');
-            console.log('[NT-ST-Call] User prompt length:', prompt.length, 'characters');
-            if (prefill) console.log('[NT-ST-Call] Prefill:', prefill);
-            console.log('[NT-ST-Call] ========== PROMPT STRUCTURE START ==========');
-            console.log('SYSTEM:', systemPrompt);
-            console.log('USER:', prompt);
-            if (prefill) console.log('PREFILL:', prefill);
-            console.log('[NT-ST-Call] ========== PROMPT STRUCTURE END ==========');
-        }
-
-        // Get token count for combined text
-        const combinedText = systemPrompt + '\n\n' + prompt + (prefill ? '\n' + prefill : '');
-        let promptTokens;
-        try {
-            promptTokens = await context.getTokenCountAsync(combinedText);
-            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Token count:', promptTokens);
-            debug.log();
-        } catch (_error) {
-            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Token count failed, estimating:', _error.message);
-            debug.log();
-            promptTokens = Math.ceil(combinedText.length / 4);
-            if (DEBUG_LOGGING) console.log('[NT-ST-Call] Estimated tokens:', promptTokens);
-            debug.log();
-        }
-
-        // Calculate response tokens: use all available context space
-        const maxContext = context.maxContext || 8192;
-        // promptTokens is already calculated above via getTokenCountAsync or estimation
-        // Use all remaining context space for response (no artificial limits)
-        const maxTokens = Math.max(8192, maxContext - promptTokens - 500); // Use all available space with minimal safety buffer
-        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Prompt tokens:', promptTokens, 'Response tokens (unlimited):', maxTokens);
-        debug.log();
-
-        // Retry logic: attempt up to 2 times with a short delay
-        const MAX_RETRIES = 2;
-        const RETRY_DELAY_MS = 2000;
-        let lastError = null;
-
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            try {
-                if (DEBUG_LOGGING) {
-                    console.log(`[NT-ST-Call] Attempt ${attempt}/${MAX_RETRIES}`);
-                    console.log('[NT-ST-Call] Calling generateRaw with params:', {
-                        temperature: GENERATION_TEMPERATURE,
-                        top_p: GENERATION_TOP_P,
-                        top_k: GENERATION_TOP_K,
-                        rep_pen: GENERATION_REP_PEN,
-                        responseLength: maxTokens,
-                    });
-                }
-
-                const result = await context.generateRaw({
-                    systemPrompt,
-                    prompt,
-                    prefill,
-                    temperature: GENERATION_TEMPERATURE,
-                    top_p: GENERATION_TOP_P,
-                    top_k: GENERATION_TOP_K,
-                    rep_pen: GENERATION_REP_PEN,
-                    responseLength: maxTokens // Use all available tokens for response (no 2048 limit)
-                });
-
-                if (DEBUG_LOGGING) {
-                    console.log('[NT-ST-Call] ========== RAW API RESPONSE START ==========');
-                    console.log('[NT-ST-Call] Response type:', typeof result);
-                    console.log(JSON.stringify(result, null, 2));
-                    console.log('[NT-ST-Call] ========== RAW API RESPONSE END ==========');
-
-                    console.log('[NT-ST-Call] Raw result type:', typeof result);
-                    console.log('[NT-ST-Call] Raw result object:', JSON.stringify(result).substring(0, 500));
-                }
-
-                // Extract text from chat completion response
-                // Chat format: { choices: [{ message: { content: "..." } }] }
-                // Text format: { choices: [{ text: "..." }] }
-                let resultText = result;
-
-                if (typeof result === 'object' && result.choices && Array.isArray(result.choices)) {
-                    // Try chat completion format first
-                    if (result.choices[0]?.message?.content) {
-                        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Detected chat completion format, extracting from choices[0].message.content');
-                        resultText = result.choices[0].message.content;
-                    }
-                    // Fall back to text completion format
-                    else if (result.choices[0]?.text) {
-                        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Detected text completion format, extracting from choices[0].text');
-                        resultText = result.choices[0].text;
-                    }
-                }
-
-                if (DEBUG_LOGGING) {
-                    console.log('[NT-ST-Call] Extracted text type:', typeof resultText);
-                    console.log('[NT-ST-Call] Extracted text length:', resultText ? resultText.length : 'null');
-                    if (resultText && typeof resultText === 'string') {
-                        console.log('[NT-ST-Call] Extracted text preview:', resultText.substring(0, 300));
-                    }
-                    console.log('[NT-ST-Call] ========== EXTRACTED TEXT START ==========');
-                    console.log(resultText);
-                    console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
-                }
-                debug.log();
-
-                // The result should be a string
-                if (!resultText || typeof resultText !== 'string') {
-                    throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('Empty or invalid response from SillyTavern LLM');
-                }
-
-                // Pre-validation: Check if response follows JSON format requirements
-                console.log('[NT-ST-Call] 🔍 Pre-validation checks...');
-                
-                const trimmedResult = resultText.trim();
-                
-                // Check for common format violations before parsing
-                if (!trimmedResult.startsWith('{')) {
-                    console.warn('[NT-ST-Call] ⚠️ Response does not start with { - attempting extraction');
-                    // Try to find JSON in the response
-                    const jsonMatch = trimmedResult.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) {
-                        resultText = jsonMatch[0];
-                        console.log('[NT-ST-Call] ✅ Extracted JSON from response');
-                    } else {
-                        console.error('[NT-ST-Call] ❌ No valid JSON found in response');
-                        throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('LLM response does not contain valid JSON format');
-                    }
-                }
-                
-                // Check for orphaned strings (common parsing issue)
-                const orphanedStringPattern = /"[^"]+",\s*"[^"]*[a-zA-Z][^"]*",\s*"[a-zA-Z_]/;
-                if (orphanedStringPattern.test(resultText)) {
-                    console.warn('[NT-ST-Call] ⚠️ Detected potential orphaned strings in response');
-                    console.log('[NT-ST-Call] Response will need JSON repair during parsing');
-                }
-
-                // If we used a prefill, prepend it to complete the JSON
-                if (prefill) {
-                    if (DEBUG_LOGGING) console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
-                    resultText = prefill + resultText;
-
-                    // If the prefill opened an object but response doesn't close it, add closing brace
-                    // Count braces to see if balanced
-                    const openBraces = (resultText.match(/{/g) || []).length;
-                    const closeBraces = (resultText.match(/}/g) || []).length;
-
-                    if (openBraces > closeBraces) {
-                        const missing = openBraces - closeBraces;
-                        if (DEBUG_LOGGING) console.log(`[NT-ST-Call] Adding ${missing} closing brace(s) to complete JSON`);
-                        resultText += '}'.repeat(missing);
-                    }
-
-                    if (DEBUG_LOGGING) console.log('[NT-ST-Call] Combined text preview:', resultText.substring(0, 300));
-                }
-
-                const parsed = await parseJSONResponse(resultText);
-                console.log('[NT-ST-Call] parseJSONResponse returned type:', typeof parsed);
-                console.log('[NT-ST-Call] parseJSONResponse returned value:', parsed);
-                console.log('[NT-ST-Call] parsed.characters exists?:', parsed && 'characters' in parsed);
-                console.log('[NT-ST-Call] parsed.characters type:', typeof parsed?.characters);
-                console.log('[NT-ST-Call] parsed.characters is Array?:', Array.isArray(parsed?.characters));
-                const parsedCount = Array.isArray(parsed?.characters) ? parsed.characters.length : 0;
-                console.log('[NT-ST-Call] ✅ Successfully parsed on attempt', attempt, 'characters:', parsedCount);
-                console.log('[NT-ST-Call] Parsed result:', JSON.stringify(parsed).substring(0, 300));
-                return parsed;
-
-            } catch (error) {
-                lastError = error;
-                console.error(`[NT-ST-Call] ❌ Attempt ${attempt}/${MAX_RETRIES} failed:`, error.message);
-                console.error('[NT-ST-Call] Error details:', error);
-
-                if (attempt < MAX_RETRIES) {
-                    const waitStart = Date.now();
-                    const waitSeconds = Math.round(RETRY_DELAY_MS / 100) / 10; // one decimal place
-                    console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms (~${waitSeconds}s) before retry...`);
-                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-                    const waited = Date.now() - waitStart;
-                    console.log(`[NT-ST-Call] Waited ${waited}ms before next attempt`);
-                }
-            }
-        }
-
-        // All retries failed
-        if (interactive) {
-            const shouldContinue = confirm(
-                `Failed to parse LLM response after ${MAX_RETRIES} attempts.\n\n` +
-                `Last error: ${lastError.message}\n\n` +
-                'Check console for detailed logs. Continue processing remaining batches?',
-            );
-
-            if (!shouldContinue) {
-                throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('User aborted after parse failures');
-            }
-            // Return empty result if user wants to continue
-            return { characters: [] };
-        }
-
-        // Non-interactive mode: throw to allow outer logic to retry/split
-        const err = new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_(`Failed to parse LLM response as JSON after ${MAX_RETRIES} attempts (non-interactive mode)`);
-        err.code = 'JSON_PARSE_FAILED';
-        err.lastError = lastError;
-        throw err;
-    });
-}
-
-/**
- * Call Ollama API with optimized parameters for JSON extraction
- * Uses low temperature and focused sampling for deterministic, structured output
- * @param {string} prompt - The complete prompt to send
- * @returns {Promise<Object>} Parsed JSON response
- */
-async function callOllama(prompt) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callOllama', async () => {
-        const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
-
-        if (!llmConfig.ollamaModel) {
-            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('No Ollama model selected');
-        }
-
-        debug.log();
-
-        // Calculate response tokens: use generous allocation within available context  
-        const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
-        const promptTokens = Math.ceil(prompt.length / 4); // Rough estimate
-        const maxTokens = Math.max(8192, maxContext - promptTokens - 1000); // Generous response allocation with safety buffer
-        debug.log();
-
-        const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: llmConfig.ollamaModel,
-                prompt: prompt,
-                stream: false,
-                format: 'json',
-                // Ollama-specific generation parameters for structured output
-                // Using same conservative settings as SillyTavern for consistency
-                options: {
-                    temperature: GENERATION_TEMPERATURE,      // Very low for deterministic output
-                    top_p: GENERATION_TOP_P,                  // Focused sampling
-                    top_k: GENERATION_TOP_K,                  // Standard focused sampling
-                    repeat_penalty: GENERATION_REP_PEN,       // Slight repetition penalty
-                    num_predict: maxTokens,  // Dynamic: generous allocation using remaining context after prompt
-                },
-            }),
-        });
-
-        if (!response.ok) {
-            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_(`Ollama API error: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        debug.log();
-        debug.log();
-
-        return await parseJSONResponse(data.response);
-    });
-}
-
-/**
- * Repair common JSON syntax errors in LLM responses
- * @param {string} text - Potentially malformed JSON text
- * @returns {string} Repaired JSON text
- */
-function repairJSON(text) {
-    console.log('[NT-Repair] Starting JSON repair...');
-    let repaired = text;
-
-    // 0. Remove XML thinking tags completely (critical fix for recent failures)
-    repaired = repaired.replace(/<\/think>/gi, '');
-    repaired = repaired.replace(/<think[^>]*>/gi, '');
-    repaired = repaired.replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
-    repaired = repaired.replace(/<think>[\s\S]*?<\/think>/gi, '');
-    if (repaired !== text) {
-        console.log('[NT-Repair] 🧹 Removed XML thinking tags');
-    }
-
-    // 1. Fix major structural issue: orphaned string values without property names
-    // This is the most common issue causing parse failures
-    // Pattern: "property": "value", "orphaned description text", "nextProperty":
-    // Step 1: Find and fix orphaned strings that should be in physical/personality fields
-    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]*(?:breast|body|hair|skin|face|eyes|tall|short|curvy|slim|muscular|describe|appear|look|physic)[^"]*)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/gi, (match, name, orphanedDesc, nextProp) => {
-        console.log(`[NT-Repair] 🔧 Fixing orphaned physical description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
-        return `"name": "${name}", "physical": "${orphanedDesc}", "${nextProp}":`;
-    });
-
-    // Step 2: Fix personality/mental descriptions
-    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]*(?:personality|character|behavior|emotion|feel|think|mental|psych|mood)[^"]*)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/gi, (match, name, orphanedDesc, nextProp) => {
-        console.log(`[NT-Repair] 🔧 Fixing orphaned personality description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
-        return `"name": "${name}", "personality": "${orphanedDesc}", "${nextProp}":`;
-    });
-
-    // Step 3: Generic fallback - assign any remaining orphaned strings to physical field
-    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]{20,})",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/g, (match, name, orphanedDesc, nextProp) => {
-        console.log(`[NT-Repair] 🔧 Fixing generic orphaned description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
-        return `"name": "${name}", "physical": "${orphanedDesc}", "${nextProp}":`;
-    });
-
-    // 2. Fix orphaned strings anywhere in character objects (not just after name)
-    // Pattern: }: value, "nextProp": (missing property name before value)
-    repaired = repaired.replace(/},\s*"([^"]{15,})",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/g, (match, orphanedDesc, nextProp) => {
-        console.log(`[NT-Repair] 🔧 Fixing orphaned string before ${nextProp}: ${orphanedDesc.substring(0, 50)}...`);
-        return `}, "physical": "${orphanedDesc}", "${nextProp}":`;
-    });
-
-    // 3. Fix missing commas between object properties (line breaks without commas)
-    repaired = repaired.replace(/([}\]])\s*\n\s*(")/g, '$1,\n    $2');
-    
-    // 4. Fix control characters (newlines, tabs, etc. in strings) - ENHANCED
-    repaired = repaired.replace(/"([^"]*[\n\r\t\f\b\v][^"]*)"/g, (match, content) => {
-        const cleaned = content
-            .replace(/\n/g, ' ')     // newlines -> space
-            .replace(/\r/g, '')      // carriage returns -> remove
-            .replace(/\t/g, ' ')     // tabs -> space  
-            .replace(/\f/g, ' ')     // form feeds -> space
-            .replace(/\b/g, '')      // backspace -> remove
-            .replace(/\v/g, ' ')     // vertical tabs -> space
-            .replace(/\s+/g, ' ')    // collapse multiple spaces
-            .trim();                 // remove leading/trailing space
-        console.log(`[NT-Repair] 🧹 Cleaned control characters: ${content.length} -> ${cleaned.length} chars`);
-        return `"${cleaned}"`;
-    });
-
-    // 5. Remove error messages that get mixed into JSON
-    repaired = repaired.replace(/,\s*"[^"]*I'm sorry for[^"]*"/gi, '');
-    repaired = repaired.replace(/,\s*"[^"]*encountered a problem[^"]*"/gi, '');
-    repaired = repaired.replace(/,\s*"[^"]*Please try again[^"]*"/gi, '');
-    repaired = repaired.replace(/"[^"]*I'm sorry[^"]*"\s*,/gi, '');
-    
-    // Remove property names that are error messages (missing opening quote)
-    repaired = repaired.replace(/,\s*[A-Za-z]+"\s*:\s*"[^"]*I'm sorry[^"]*/gi, '');
-
-    // 6. Fix missing quotes around property names (critical fix)
-    // Pattern: ,Affected": or }Affected": (missing opening quote)
-    repaired = repaired.replace(/([,{]\s*)([A-Za-z_][A-Za-z0-9_]*)("):/g, '$1"$2$3:');
-
-    // 7. Fix trailing commas before closing brackets/braces
-    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
-
-    // 6. Fix missing colons after property names  
-    repaired = repaired.replace(/"([^"]+)"\s+(?=["{\[])/g, '"$1": ');
-
-    // 7. Fix double commas introduced by repairs
-    repaired = repaired.replace(/,,+/g, ',');
-
-    // 8. Fix property names with spaces
-    repaired = repaired.replace(/"([^"]*\s[^"]*)"\s*:/g, (match, propName) => {
-        const cleanProp = propName.replace(/\s+/g, '');
-        return `"${cleanProp}":`;
-    });
-
-    // 9. Final validation: ensure all character objects have required fields
-    repaired = repaired.replace(/"name":\s*"([^"]*)"(?!\s*,\s*"(?:aliases|physical|personality))/g, (match, name) => {
-        console.log(`[NT-Repair] 🔧 Adding missing fields for character: ${name}`);
-        return `"name": "${name}", "aliases": [], "physical": "", "personality": ""`;
-    });
-
-    console.log('[NT-Repair] Applied repairs, length change:', repaired.length - text.length);
-    
-    return repaired;
-}
-
-/**
- * Parse JSON response from LLM, handling various formats
- * @param {string} text - Raw text response from LLM
- * @returns {Object} Parsed JSON object
- */
-function parseJSONResponse(text) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('parseJSONResponse', () => {
-        console.log('[NT-Parse] ========== PARSE START ==========');
-        console.log('[NT-Parse] Input type:', typeof text);
-        console.log('[NT-Parse] Input is null?:', text === null);
-        console.log('[NT-Parse] Input is undefined?:', text === undefined);
-
-        if (typeof text === 'object' && text !== null) {
-            console.log('[NT-Parse] Input is an OBJECT (not string). Keys:', Object.keys(text));
-            console.log('[NT-Parse] Full object:', JSON.stringify(text).substring(0, 500));
-
-            // If it's already an object with characters, return it
-            if (text.characters && Array.isArray(text.characters)) {
-                console.log('[NT-Parse] Object already has characters array, returning as-is');
-                return text;
-            }
-        }
-
-        console.log('[NT-Parse] Input length:', text ? text.length : 'null');
-        if (text && typeof text === 'string') {
-            console.log('[NT-Parse] First 300 chars:', text.substring(0, 300));
-            console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
-        }
-
-        if (!text || typeof text !== 'string') {
-            console.error('[NT-Parse] ❌ INVALID: Response is not a string:', typeof text);
-            console.error('[NT-Parse] ❌ Response value:', text);
-            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('LLM returned empty or invalid response');
-        }
-
-        // CRITICAL: Unescape JSON-escaped string from SillyTavern
-        // The API returns escaped JSON string that needs to be unescaped first
-        try {
-            // If text looks like a JSON-escaped string, unescape it
-            if (text.includes('\\n') || text.includes('\\"')) {
-                console.log('[NT-Parse] 🔧 Unescaping JSON-encoded string from SillyTavern');
-                text = JSON.parse('"' + text.replace(/"/g, '\\"') + '"');
-                console.log('[NT-Parse] ✅ Successfully unescaped response');
-            }
-        } catch (unescapeError) {
-            console.log('[NT-Parse] ⚠️ Could not unescape response, proceeding with raw text');
-        }
-
-        // Remove any leading/trailing whitespace
-        text = text.trim();
-        console.log('[NT-Parse] After trim, length:', text.length);
-        if (text.length === 0) {
-            console.error('[NT-Parse] ❌ Text is empty after trim');
-            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('LLM returned empty response');
-        }
-
-        // Extract JSON from markdown code blocks if present
-        if (text.includes('```')) {
-            console.log('[NT-Parse] 🔍 Found markdown code block, extracting JSON');
-            
-            // More flexible extraction - look for JSON content between code blocks
-            const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-            if (codeBlockMatch && codeBlockMatch[1]) {
-                text = codeBlockMatch[1].trim();
-                console.log('[NT-Parse] 📄 After markdown extraction, length:', text.length);
-            } else {
-                // If no proper code block, remove the backticks
-                text = text.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, '');
-                console.log('[NT-Parse] 🧹 Removed loose markdown backticks, length:', text.length);
-            }
-        }
-        
-        // Remove any remaining XML/HTML tags that may interfere
-        if (text.includes('<') || text.includes('>')) {
-            const originalLength = text.length;
-            text = text.replace(/<[^>]*>/g, '');
-            console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
-        }
-        
-        // Check if response contains obvious error messages
-        if (text.includes("I'm sorry") || text.includes("encountered a problem") || text.includes("Please try again")) {
-            console.error(`[NT-Parse] 🚨 Response contains error message: "${text.substring(0, 200)}"`);
-            throw new Error('LLM generated an error response instead of JSON. Try adjusting your request.');
-        }
-        
-        // Check if response is completely non-JSON (like pure XML tags or text)
-        if (text.length < 20 || (!text.includes('{') && !text.includes('['))) {
-            console.error(`[NT-Parse] 🚨 Response appears to be non-JSON content: "${text}"`);
-            throw new Error('LLM generated non-JSON response. Response may be censored or malformed.');
-        }
-
-        // Try to find JSON object in the text (look for first { to last })
-        const firstBrace = text.indexOf('{');
-        const lastBrace = text.lastIndexOf('}');
-
-        console.log('[NT-Parse] Brace search: first={' + firstBrace + ', last=' + lastBrace + '}');
-
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            const beforeText = text.substring(0, firstBrace);
-            const jsonText = text.substring(firstBrace, lastBrace + 1);
-            const afterText = text.substring(lastBrace + 1);
-
-            console.log('[NT-Parse] Text before JSON:', beforeText.substring(0, 100));
-            console.log('[NT-Parse] Extracted JSON length:', jsonText.length);
-            console.log('[NT-Parse] Text after JSON:', afterText.substring(0, 100));
-
-            text = jsonText;
-        }
-
-        // Remove common prefixes that LLMs add
-        text = text.replace(/^(?:Here's the analysis:|Here is the JSON:|Result:|Output:)\s*/i, '');
-
-        // Clean up common formatting issues
-        text = text.trim();
-
-        // Apply JSON repair for common LLM syntax errors
-        text = repairJSON(text);
-
-        console.log('[NT-Parse] Before JSON.parse, length:', text.length);
-        console.log('[NT-Parse] First 200 chars:', text.substring(0, 200));
-        console.log('[NT-Parse] Last 100 chars:', text.substring(Math.max(0, text.length - 100)));
-
-        try {
-            console.log('[NT-Parse] Attempting JSON.parse...');
-            const parsed = JSON.parse(text);
-
-            console.log('[NT-Parse] ✅ Successfully parsed JSON');
-            console.log('[NT-Parse] Parsed type:', typeof parsed);
-            console.log('[NT-Parse] Parsed keys:', Object.keys(parsed));
-            console.log('[NT-Parse] Full parsed object:', JSON.stringify(parsed).substring(0, 500));
-
-            // Validate structure
-            if (!parsed.characters) {
-                console.warn('[NT-Parse] ⚠️  parsed.characters is undefined or null');
-                console.warn('[NT-Parse] Available keys in object:', Object.keys(parsed));
-            } else if (!Array.isArray(parsed.characters)) {
-                console.warn('[NT-Parse] ⚠️  parsed.characters exists but is NOT an array. Type:', typeof parsed.characters);
-                console.warn('[NT-Parse] Value:', parsed.characters);
-            }
-
-            if (!parsed.characters || !Array.isArray(parsed.characters)) {
-                console.warn('[NT-Parse] ❌ Response missing characters array, returning empty');
-                console.warn('[NT-Parse] Full parsed object:', parsed);
-                return { characters: [] };
-            }
-
-            console.log('[NT-Parse] ✅ Valid response with', parsed.characters.length, 'characters');
-            console.log('[NT-Parse] ========== PARSE END (SUCCESS) ==========');
-            return parsed;
-        } catch (error) {
-            console.error('[NT-Parse] ❌ JSON.parse failed:', error.message);
-            console.error('[NT-Parse] ❌ Error at position:', error.name);
-            console.log('[NT-Parse] Text being parsed (first 500 chars):', text.substring(0, 500));
-            console.log('[NT-Parse] Text being parsed (last 200 chars):', text.substring(Math.max(0, text.length - 200)));
-
-            // Additional targeted repairs for specific common errors
-            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
-                console.log('[NT-Parse] Attempting targeted repair for missing property names...');
-                
-                let targetedRepair = text;
-                
-                // Specific fix for pattern: "name": "value", "orphaned description", "nextProp":
-                // This is the exact pattern causing most failures
-                targetedRepair = targetedRepair.replace(
-                    /"name":\s*"([^"]*)",\s*"([^"]+)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":\s*/g,
-                    (match, name, orphanedText, nextProp) => {
-                        console.log(`[NT-Parse] 🎯 Targeted repair: assigning "${orphanedText.substring(0, 30)}..." to physical for ${name}`);
-                        return `"name": "${name}", "physical": "${orphanedText}", "${nextProp}": `;
-                    }
-                );
-                
-                // Try parsing again with targeted repair
-                try {
-                    const repairedParsed = JSON.parse(targetedRepair);
-                    console.log('[NT-Parse] ✅ Targeted repair successful!');
-                    console.log('[NT-Parse] ========== PARSE END (TARGETED REPAIR) ==========');
-                    return repairedParsed;
-                } catch (repairError) {
-                    console.error('[NT-Parse] ❌ Targeted repair also failed:', repairError.message);
-                }
-            }
-
-            // Check if response was truncated (common issue with long responses)
-            if (text.includes('"characters"') && !text.trim().endsWith('}')) {
-                console.log('[NT-Parse] Detected truncated response, attempting recovery...');
-
-                // Try to salvage partial data by attempting to close the JSON
-                let salvaged = text;
-
-                // Count open vs closed braces to determine how many we need
-                const openBraces = (text.match(/\{/g) || []).length;
-                const closeBraces = (text.match(/\}/g) || []).length;
-                const openBrackets = (text.match(/\[/g) || []).length;
-                const closeBrackets = (text.match(/\]/g) || []).length;
-
-                console.log('[NT-Parse] Recovery attempt - braces: open=' + openBraces + ' close=' + closeBraces + ', brackets: open=' + openBrackets + ' close=' + closeBrackets);
-
-                // Try to close incomplete strings and objects
-                if (salvaged.match(/"[^"]*$/)) {
-                    // Has unclosed quote
-                    console.log('[NT-Parse] Adding closing quote');
-                    salvaged += '"';
-                }
-
-                // Close missing brackets/braces
-                for (let i = 0; i < (openBrackets - closeBrackets); i++) {
-                    salvaged += ']';
-                }
-                for (let i = 0; i < (openBraces - closeBraces); i++) {
-                    salvaged += '}';
-                }
-
-                console.log('[NT-Parse] Salvaged text length:', salvaged.length);
-                console.log('[NT-Parse] Attempting to parse salvaged content...');
-
-                try {
-                    const recovered = JSON.parse(salvaged);
-                    console.log('[NT-Parse] ✅ Successfully recovered JSON with', recovered.characters?.length || 0, 'characters');
-                    console.log('[NT-Parse] ========== PARSE END (RECOVERED) ==========');
-                    return recovered;
-                } catch (e) {
-                    console.error('[NT-Parse] ❌ Recovery failed:', e.message);
-                    console.error('[NT-Parse] Salvaged text (first 500):', salvaged.substring(0, 500));
-                }
-            }
-
-            console.log('[NT-Parse] ========== PARSE END (FAILED) ==========');
-            
-            // Provide specific feedback about the JSON error
-            let errorHelp = 'Failed to parse LLM response as JSON.';
-            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
-                errorHelp = 'JSON parsing failed: Missing colon after property name or orphaned string without property. The LLM likely generated a description without specifying which field it belongs to.';
-            } else if (error.message.includes('Unexpected token')) {
-                errorHelp = 'JSON parsing failed: Unexpected character found. Check for missing quotes, commas, or control characters.';
-            } else if (error.message.includes('Unexpected end')) {
-                errorHelp = 'JSON parsing failed: Response appears truncated. Try analyzing fewer messages at once.';
-            }
-            
-            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_(errorHelp);
-        }
-    });
-}
-
-/**
- * Call LLM for character analysis with automatic batch splitting if prompt is too long
- * and adaptive splitting when parse/output failures occur.
- * @param {Array} messageObjs - Array of message objects (with .mes property) or strings
- * @param {string} knownCharacters - Roster of previously identified characters
- * @param {number} depth - Recursion depth (for logging)
- * @param {number} retryCount - Number of retries attempted (simple backoff)
- * @param {number} splitAttempts - Number of times this failing batch has been split
- * @returns {Promise<Object>} Analysis result with merged characters
- */
-async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, retryCount = 0, splitAttempts = 0) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callLLMAnalysis', async () => {
-        const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
-        const maxPromptResult = await getMaxPromptLength(); // Dynamic based on API context window
-        const maxPromptTokens = maxPromptResult.maxPrompt;
-        const MAX_SIMPLE_RETRIES = 1;   // retry count after first failure (total 2 attempts)
-        const MAX_SPLIT_ATTEMPTS = 2;   // how many times we can split on failure (up to 4 chunks)
-
-        debug.log();
-
-        // Extract message text
-        const messages = messageObjs.map(msg => {
-            if (typeof msg === 'string') return msg;
-            if (msg.mes) return msg.mes;
-            if (msg.message) return msg.message;
-            return JSON.stringify(msg);
-        });
-
-        // Create cache key
-        const cacheKey = (0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .simpleHash */ .tx)(messages.join('\\n') + llmConfig.source + llmConfig.ollamaModel);
-
-        // Check cache
-        if (analysisCache.has(cacheKey)) {
-            debug.log();
-            return analysisCache.get(cacheKey);
-        }
-
-        // Build the prompt
-        const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\\n${msg}`).join('\\n\\n');
-
-        // Get system prompt and ensure it's a string
-        let systemPrompt = getSystemPrompt();
-        console.log('[NT-Prompt] getSystemPrompt() returned type:', typeof systemPrompt);
-
-        // Handle if it's a Promise
-        if (systemPrompt && typeof systemPrompt === 'object' && typeof systemPrompt.then === 'function') {
-            console.warn('[NT-Prompt] getSystemPrompt returned Promise, awaiting...');
-            systemPrompt = await systemPrompt;
-            console.log('[NT-Prompt] After await, type:', typeof systemPrompt);
-        }
-
-        // Handle if it's still an object after await
-        if (typeof systemPrompt !== 'string') {
-            console.warn('[NT-Prompt] systemPrompt is not a string, using default. Type:', typeof systemPrompt, 'Value:', systemPrompt);
-            systemPrompt = DEFAULT_SYSTEM_PROMPT;
-        }
-
-        // Get character roster and ensure it's a string
-        let rosterStr = knownCharacters || '';
-        console.log('[NT-Prompt] knownCharacters type:', typeof rosterStr);
-
-        // Handle if it's a Promise
-        if (rosterStr && typeof rosterStr === 'object' && typeof rosterStr.then === 'function') {
-            console.warn('[NT-Prompt] knownCharacters is Promise, awaiting...');
-            rosterStr = await rosterStr;
-            console.log('[NT-Prompt] After await, type:', typeof rosterStr);
-        }
-
-        // Ensure it's a string
-        rosterStr = String(rosterStr || '');
-
-        console.log('[NT-Prompt] Final systemPrompt length:', systemPrompt.length);
-        console.log('[NT-Prompt] Final rosterStr length:', rosterStr.length);
-        console.log('[NT-Prompt] systemPrompt preview:', systemPrompt.substring(0, 100));
-
-        // Inject character roster into system prompt using template placeholder
-        const systemMessage = systemPrompt.replace('{{CHARACTER_ROSTER}}', rosterStr);
-
-        // Build user prompt with data
-        const userPrompt = '[DATA TO ANALYZE]\n' + messagesText;
-
-        // No prefill - let model generate complete JSON from system prompt guidance
-        const prefill = '';
-
-        // Calculate actual token count for the combined messages
-        let promptTokens;
-        const combinedText = systemMessage + '\n\n' + userPrompt;
-        try {
-            promptTokens = await calculateMessageTokens([{ mes: combinedText }]);
-            debug.log();
-        } catch {
-            debug.log();
-            // Fallback to character-based estimate
-            promptTokens = Math.ceil(combinedText.length / 4);
-        }
-
-        // If prompt is too long, split into sub-batches
-        if (promptTokens > maxPromptTokens && messageObjs.length > 1) {
-            debug.log();
-
-            // Split roughly in half
-            const midpoint = Math.floor(messageObjs.length / 2);
-            const firstHalf = messageObjs.slice(0, midpoint);
-            const secondHalf = messageObjs.slice(midpoint);
-
-            debug.log();
-
-            // Analyze both halves in parallel
-            const [result1, result2] = await Promise.all([
-                callLLMAnalysis(firstHalf, knownCharacters, depth + 1, 0, splitAttempts),
-                callLLMAnalysis(secondHalf, knownCharacters, depth + 1, 0, splitAttempts),
-            ]);
-
-            // Merge the results
-            const mergedResult = {
-                characters: [
-                    ...(result1.characters || []),
-                    ...(result2.characters || []),
-                ],
-            };
-
-            debug.log();
-            return mergedResult;
-        }
-
-        // Prompt is acceptable length, proceed with analysis
-        debug.log(`Calling LLM with prompt (${promptTokens} tokens)...`);
-        console.log(`[NT-Prompt] Composition: SYSTEM(${systemMessage.length} chars) + USER(${userPrompt.length} chars) + PREFILL`);
-
-        let result;
-
-        try {
-            if (llmConfig.source === 'ollama') {
-                // Ollama still uses flat prompt for now
-                const flatPrompt = systemMessage + '\n\n' + userPrompt + '\n' + prefill;
-                result = await callOllama(flatPrompt);
-            } else {
-                // Use non-interactive mode so outer logic can handle retries/splitting
-                result = await callSillyTavern(systemMessage, userPrompt, prefill, false);
-            }
-        } catch (error) {
-            const isRetryable = error.message.includes('JSON')
-                || error.message.includes('empty')
-                || error.message.includes('truncated');
-
-            // First retry: try the same batch once with backoff
-            if (isRetryable && retryCount < MAX_SIMPLE_RETRIES) {
-                debug.log();
-
-                const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
-                await new Promise(resolve => setTimeout(resolve, delay));
-
-                return await callLLMAnalysis(messageObjs, knownCharacters, depth, retryCount + 1, splitAttempts);
-            }
-
-            // Subsequent retries: split the current failing batch into halves (up to 4 chunks total)
-            if (isRetryable && messageObjs.length > 1 && splitAttempts < MAX_SPLIT_ATTEMPTS) {
-                const midpoint = Math.floor(messageObjs.length / 2);
-                const firstHalf = messageObjs.slice(0, midpoint);
-                const secondHalf = messageObjs.slice(midpoint);
-
-                const [result1, result2] = await Promise.all([
-                    callLLMAnalysis(firstHalf, knownCharacters, depth + 1, 0, splitAttempts + 1),
-                    callLLMAnalysis(secondHalf, knownCharacters, depth + 1, 0, splitAttempts + 1),
-                ]);
-
-                return {
-                    characters: [
-                        ...(result1.characters || []),
-                        ...(result2.characters || []),
-                    ],
-                };
-            }
-
-            // Max retries/splits exceeded or non-retryable error
-            throw error;
-        }
-
-        // Check for empty response and retry once with stronger emphasis
-        if (result && Array.isArray(result.characters) && result.characters.length === 0 && retryCount === 0) {
-            console.warn('[NT-LLM] Empty response detected, retrying with stronger user character emphasis...');
-            
-            // Add stronger user character requirement to the user prompt
-            const retryUserPrompt = userPrompt + '\n\nCRITICAL ERROR: Previous response was empty. You MUST return at minimum the user character ({{user}}) with any available details from these messages. An empty character list is INVALID.';
-            
-            try {
-                let retryResult;
-                if (llmConfig.source === 'ollama') {
-                    const retryFlatPrompt = systemMessage + '\n\n' + retryUserPrompt + '\n' + prefill;
-                    retryResult = await callOllama(retryFlatPrompt);
-                } else {
-                    retryResult = await callSillyTavern(systemMessage, retryUserPrompt, prefill, false);
-                }
-                
-                if (retryResult && Array.isArray(retryResult.characters) && retryResult.characters.length > 0) {
-                    console.log('[NT-LLM] Retry successful, got', retryResult.characters.length, 'characters');
-                    result = retryResult;
-                } else {
-                    console.error('[NT-LLM] Retry also returned empty, proceeding with empty result');
-                }
-            } catch (retryError) {
-                console.error('[NT-LLM] Retry failed:', retryError.message, 'proceeding with original empty result');
-            }
-        }
-
-        // Cache the result only if we have characters
-        if (result && Array.isArray(result.characters) && result.characters.length > 0) {
-            if (analysisCache.size > 50) {
-                // Clear oldest entries if cache is getting too large
-                const firstKey = analysisCache.keys().next().value;
-                analysisCache.delete(firstKey);
-            }
-            analysisCache.set(cacheKey, result);
-        } else {
-            console.warn('[NT-Cache] Skipping cache because result is empty or has no characters');
-        }
-
-        debug.log();
-        return result;
-    });
-}
-
-/**
- * Clear the analysis cache
- */
-function clearAnalysisCache() {
-    analysisCache.clear();
-    debug.log();
-}
-
-/**
- * Get analysis cache statistics
- * @returns {Object} Cache statistics
- */
-function getCacheStats() {
-    return {
-        size: analysisCache.size,
-        entries: [...analysisCache.keys()].map(key => ({
-            key: key.substring(0, 8) + '...',
-            timestamp: Date.now(),
-        })),
-    };
-}
-
-// End of module
-
-
-/***/ },
-
 /***/ 806
 (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
@@ -6459,8 +6824,8 @@ var notifications = __webpack_require__(695);
 var helpers = __webpack_require__(854);
 // EXTERNAL MODULE: ./src/modules/characters.js
 var modules_characters = __webpack_require__(551);
-// EXTERNAL MODULE: ./src/modules/llm.js
-var llm = __webpack_require__(744);
+// EXTERNAL MODULE: ./src/modules/llm.js + 1 modules
+var llm = __webpack_require__(248);
 // EXTERNAL MODULE: ./src/modules/lorebook.js + 1 modules
 var lorebook = __webpack_require__(158);
 ;// ./src/modules/ui.js
@@ -7148,7 +7513,7 @@ function initializeMenuButtons() {
         // Add toggle auto-harvest button with visual state
         const autoAnalyze = await (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
         const toggleIcon = autoAnalyze ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
-        addMenuButton(
+        await addMenuButton(
             'Toggle Auto-Harvest',
             toggleIcon,
             toggleAutoHarvest,
@@ -7157,7 +7522,7 @@ function initializeMenuButtons() {
         );
 
         // Add character list button
-        addMenuButton(
+        await addMenuButton(
             'View Characters',
             'fa-solid fa-users',
             showCharacterListModal,
@@ -7165,7 +7530,7 @@ function initializeMenuButtons() {
         );
 
         // Add open lorebook button
-        addMenuButton(
+        await addMenuButton(
             'Open Chat Lorebook',
             'fa-solid fa-book',
             openChatLorebook,
@@ -7319,7 +7684,7 @@ function showDebugStatus() {
             let detectionMethod = 'unknown';
 
             try {
-                const { getMaxPromptLength } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 744));
+                const { getMaxPromptLength } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 248));
                 const { stContext } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 102));
                 const maxPromptResultObj = await getMaxPromptLength();
                 maxPromptTokens = maxPromptResultObj.maxPrompt;
@@ -8278,17 +8643,30 @@ async function harvestMessages(messageCount, showProgress = true) {
                     console.log('[NT-Batch]    Characters is Array?:', Array.isArray(analysis?.characters));
                     console.log('[NT-Batch]    Characters length:', analysis?.characters?.length);
 
-                    // Process the analysis
-                    if (analysis.characters && Array.isArray(analysis.characters)) {
-                        console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
-                        await processAnalysisResults(analysis.characters);
-                        analysis.characters.forEach(char => uniqueCharacters.add(char.name));
-                        processedMessages += batch.length;
-                    } else {
-                        console.warn('[NT-Batch] ⚠️  Condition failed - not processing results');
-                        console.warn('[NT-Batch]    analysis:', analysis);
-                        console.warn('[NT-Batch]    analysis.characters:', analysis?.characters);
+                    // Process the analysis with enhanced null safety
+                    if (!analysis) {
+                        console.warn('[NT-Batch] ⚠️ Analysis returned null/undefined, skipping batch');
+                        failedBatches++;
+                        continue;
                     }
+                    
+                    if (!analysis.characters) {
+                        console.warn('[NT-Batch] ⚠️ Analysis missing characters property, skipping batch');
+                        failedBatches++;
+                        continue;
+                    }
+                    
+                    if (!Array.isArray(analysis.characters)) {
+                        console.warn('[NT-Batch] ⚠️ analysis.characters is not an array:', typeof analysis.characters);
+                        failedBatches++;
+                        continue;
+                    }
+                    
+                    // Valid analysis - process results
+                    console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
+                    await processAnalysisResults(analysis.characters);
+                    analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                    processedMessages += batch.length;
 
                     successfulBatches++;
 
@@ -8428,7 +8806,7 @@ async function onMessageReceived(messageId) {
                 await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', shouldRescan.fromMessage - 1);
 
                 // Queue a full scan from the specified message
-                addToQueue(async () => {
+                await addToQueue(async () => {
                     await harvestMessages(currentMessageIndex - shouldRescan.fromMessage + 1, true);
                 });
 
@@ -8448,7 +8826,7 @@ async function onMessageReceived(messageId) {
             processing_debug.log();
 
             // Queue harvest
-            addToQueue(async () => {
+            await addToQueue(async () => {
                 await harvestMessages(messageFreq, true);
                 // Update last scanned message ID after successful harvest
                 await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
@@ -8654,13 +9032,30 @@ async function scanEntireChat() {
                 // Call LLM for analysis with character context
                 const analysis = await (0,llm/* callLLMAnalysis */.Kr)(batchMessages, characterRoster);
 
-                // Process the analysis
-                if (analysis.characters && Array.isArray(analysis.characters)) {
-                    await processAnalysisResults(analysis.characters);
-                    // Track unique characters
-                    analysis.characters.forEach(char => uniqueCharacters.add(char.name));
-                    processedMessages += batchMessages.length;
+                // Process the analysis with null safety
+                if (!analysis) {
+                    console.warn(`[NT-Processing] Batch ${i + 1}: Analysis returned null/undefined, skipping`);
+                    failedBatches++;
+                    continue;
                 }
+                
+                if (!analysis.characters) {
+                    console.warn(`[NT-Processing] Batch ${i + 1}: Analysis missing characters property, skipping`);
+                    failedBatches++;
+                    continue;
+                }
+                
+                if (!Array.isArray(analysis.characters)) {
+                    console.warn(`[NT-Processing] Batch ${i + 1}: analysis.characters is not an array (${typeof analysis.characters}), skipping`);
+                    failedBatches++;
+                    continue;
+                }
+                
+                // Process valid analysis results
+                await processAnalysisResults(analysis.characters);
+                // Track unique characters
+                analysis.characters.forEach(char => uniqueCharacters.add(char.name));
+                processedMessages += batchMessages.length;
 
                 successfulBatches++;
 
