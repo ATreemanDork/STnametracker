@@ -86,6 +86,9 @@ Example: Alice from lorebook says 'Hi' in message 5 → No new info → Omit Ali
 Example: {{user}} always appears → Always include {{user}} with any available details
 
 CRITICAL JSON REQUIREMENTS:
+⚠️ STRICT JSON FORMATTING - PARSING WILL FAIL IF NOT FOLLOWED ⚠️
+
+MANDATORY SYNTAX RULES:
 - Your ENTIRE response must be valid JSON starting with { and ending with }
 - ALL property names MUST use double quotes: "name", "aliases", etc.
 - ALL string values MUST use double quotes and escape internal quotes: "He said \\"hello\\""
@@ -93,8 +96,39 @@ CRITICAL JSON REQUIREMENTS:
 - NO trailing commas before } or ]
 - EVERY property must have a colon: "name": "value" (not "name" "value")
 - NO markdown, NO explanations, NO text before or after the JSON
-- ONLY include characters mentioned in these specific messages or with new information
-- DO NOT repeat unchanged characters from the Current Lorebook Entries
+
+⛔ ABSOLUTELY FORBIDDEN PATTERNS THAT BREAK PARSING:
+❌ "name": "John", "He is tall and strong", "age": 25
+   (orphaned description without property name)
+❌ "physical" "brown hair and blue eyes"
+   (missing colon)
+❌ "aliases": ["John", "Scout",]
+   (trailing comma)
+❌ \`\`\`json { "characters": [...] } \`\`\`
+   (code block markers)
+❌ Here's the analysis: { "characters": [...] }
+   (text before JSON)
+
+✅ CORRECT FORMAT ONLY:
+{
+  "characters": [
+    {
+      "name": "Full Name",
+      "physical": "description here",
+      "aliases": ["nick1", "nick2"]
+    }
+  ]
+}
+
+⚠️ VALIDATION CHECK: Before responding, verify:
+1. Starts with { immediately (no text before)
+2. Every string has opening AND closing quotes
+3. Every property has a colon after the name
+4. No orphaned text without property names
+5. Ends with } immediately (no text after)
+
+ONLY include characters mentioned in these specific messages or with new information
+DO NOT repeat unchanged characters from the Current Lorebook Entries
 
 DO NOT include:
 - Any text before the JSON
@@ -178,6 +212,12 @@ ALIAS EXAMPLES:
 RELATIONSHIP TRIPLET EXAMPLES:
 ✅ ["John, Julia, son", "Sarah, John, rival", "Maria, Alex, sister"]
 ❌ ["Lives in penthouse", "Writing novels", "Leading group", "Met at bar"]
+
+🔥 FINAL REMINDER - CRITICAL FOR SUCCESS:
+Your response must start with { immediately and end with } immediately.
+NO text, explanations, or markers before or after the JSON.
+Every description must have a property name: "physical": "tall", not just "tall".
+Validate your JSON syntax before responding - missing colons or orphaned strings will cause parsing failure.
 
 Your response must start with { immediately.`;
 
@@ -750,6 +790,32 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                     throw new NameTrackerError('Empty or invalid response from SillyTavern LLM');
                 }
 
+                // Pre-validation: Check if response follows JSON format requirements
+                console.log('[NT-ST-Call] 🔍 Pre-validation checks...');
+                
+                const trimmedResult = resultText.trim();
+                
+                // Check for common format violations before parsing
+                if (!trimmedResult.startsWith('{')) {
+                    console.warn('[NT-ST-Call] ⚠️ Response does not start with { - attempting extraction');
+                    // Try to find JSON in the response
+                    const jsonMatch = trimmedResult.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        resultText = jsonMatch[0];
+                        console.log('[NT-ST-Call] ✅ Extracted JSON from response');
+                    } else {
+                        console.error('[NT-ST-Call] ❌ No valid JSON found in response');
+                        throw new NameTrackerError('LLM response does not contain valid JSON format');
+                    }
+                }
+                
+                // Check for orphaned strings (common parsing issue)
+                const orphanedStringPattern = /"[^"]+",\s*"[^"]*[a-zA-Z][^"]*",\s*"[a-zA-Z_]/;
+                if (orphanedStringPattern.test(resultText)) {
+                    console.warn('[NT-ST-Call] ⚠️ Detected potential orphaned strings in response');
+                    console.log('[NT-ST-Call] Response will need JSON repair during parsing');
+                }
+
                 // If we used a prefill, prepend it to complete the JSON
                 if (prefill) {
                     if (DEBUG_LOGGING) console.log('[NT-ST-Call] Prepending prefill to complete JSON:', prefill);
@@ -885,11 +951,38 @@ function repairJSON(text) {
     console.log('[NT-Repair] Starting JSON repair...');
     let repaired = text;
 
-    // 1. Fix missing commas between object properties (line breaks without commas)
-    // Match: }\n    "property" or ]\n    "property" without comma
+    // 1. Fix major structural issue: orphaned string values without property names
+    // This is the most common issue causing parse failures
+    // Pattern: "property": "value", "orphaned description text", "nextProperty":
+    // Step 1: Find and fix orphaned strings that should be in physical/personality fields
+    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]*(?:breast|body|hair|skin|face|eyes|tall|short|curvy|slim|muscular|describe|appear|look|physic)[^"]*)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/gi, (match, name, orphanedDesc, nextProp) => {
+        console.log(`[NT-Repair] 🔧 Fixing orphaned physical description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
+        return `"name": "${name}", "physical": "${orphanedDesc}", "${nextProp}":`;
+    });
+
+    // Step 2: Fix personality/mental descriptions
+    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]*(?:personality|character|behavior|emotion|feel|think|mental|psych|mood)[^"]*)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/gi, (match, name, orphanedDesc, nextProp) => {
+        console.log(`[NT-Repair] 🔧 Fixing orphaned personality description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
+        return `"name": "${name}", "personality": "${orphanedDesc}", "${nextProp}":`;
+    });
+
+    // Step 3: Generic fallback - assign any remaining orphaned strings to physical field
+    repaired = repaired.replace(/"name":\s*"([^"]*)",\s*"([^"]{20,})",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/g, (match, name, orphanedDesc, nextProp) => {
+        console.log(`[NT-Repair] 🔧 Fixing generic orphaned description for ${name}: ${orphanedDesc.substring(0, 50)}...`);
+        return `"name": "${name}", "physical": "${orphanedDesc}", "${nextProp}":`;
+    });
+
+    // 2. Fix orphaned strings anywhere in character objects (not just after name)
+    // Pattern: }: value, "nextProp": (missing property name before value)
+    repaired = repaired.replace(/},\s*"([^"]{15,})",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":/g, (match, orphanedDesc, nextProp) => {
+        console.log(`[NT-Repair] 🔧 Fixing orphaned string before ${nextProp}: ${orphanedDesc.substring(0, 50)}...`);
+        return `}, "physical": "${orphanedDesc}", "${nextProp}":`;
+    });
+
+    // 3. Fix missing commas between object properties (line breaks without commas)
     repaired = repaired.replace(/([}\]])\s*\n\s*(")/g, '$1,\n    $2');
     
-    // 2. Fix control characters (newlines, tabs in strings) by removing them
+    // 4. Fix control characters (newlines, tabs in strings) 
     repaired = repaired.replace(/"([^"]*[\n\r\t][^"]*)"/g, (match, content) => {
         const cleaned = content
             .replace(/\n/g, ' ')
@@ -898,12 +991,26 @@ function repairJSON(text) {
         return `"${cleaned}"`;
     });
 
-    // 3. Fix trailing commas before closing brackets/braces
+    // 5. Fix trailing commas before closing brackets/braces
     repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
 
-    // 4. Fix missing colons after property names  
-    // Pattern: "property"\n    value (missing colon) - be careful not to break valid JSON
+    // 6. Fix missing colons after property names  
     repaired = repaired.replace(/"([^"]+)"\s+(?=["{\[])/g, '"$1": ');
+
+    // 7. Fix double commas introduced by repairs
+    repaired = repaired.replace(/,,+/g, ',');
+
+    // 8. Fix property names with spaces
+    repaired = repaired.replace(/"([^"]*\s[^"]*)"\s*:/g, (match, propName) => {
+        const cleanProp = propName.replace(/\s+/g, '');
+        return `"${cleanProp}":`;
+    });
+
+    // 9. Final validation: ensure all character objects have required fields
+    repaired = repaired.replace(/"name":\s*"([^"]*)"(?!\s*,\s*"(?:aliases|physical|personality))/g, (match, name) => {
+        console.log(`[NT-Repair] 🔧 Adding missing fields for character: ${name}`);
+        return `"name": "${name}", "aliases": [], "physical": "", "personality": ""`;
+    });
 
     console.log('[NT-Repair] Applied repairs, length change:', repaired.length - text.length);
     
@@ -1025,6 +1132,33 @@ export function parseJSONResponse(text) {
             console.log('[NT-Parse] Text being parsed (first 500 chars):', text.substring(0, 500));
             console.log('[NT-Parse] Text being parsed (last 200 chars):', text.substring(Math.max(0, text.length - 200)));
 
+            // Additional targeted repairs for specific common errors
+            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
+                console.log('[NT-Parse] Attempting targeted repair for missing property names...');
+                
+                let targetedRepair = text;
+                
+                // Specific fix for pattern: "name": "value", "orphaned description", "nextProp":
+                // This is the exact pattern causing most failures
+                targetedRepair = targetedRepair.replace(
+                    /"name":\s*"([^"]*)",\s*"([^"]+)",\s*"([a-zA-Z_][a-zA-Z0-9_]*)":\s*/g,
+                    (match, name, orphanedText, nextProp) => {
+                        console.log(`[NT-Parse] 🎯 Targeted repair: assigning "${orphanedText.substring(0, 30)}..." to physical for ${name}`);
+                        return `"name": "${name}", "physical": "${orphanedText}", "${nextProp}": `;
+                    }
+                );
+                
+                // Try parsing again with targeted repair
+                try {
+                    const repairedParsed = JSON.parse(targetedRepair);
+                    console.log('[NT-Parse] ✅ Targeted repair successful!');
+                    console.log('[NT-Parse] ========== PARSE END (TARGETED REPAIR) ==========');
+                    return repairedParsed;
+                } catch (repairError) {
+                    console.error('[NT-Parse] ❌ Targeted repair also failed:', repairError.message);
+                }
+            }
+
             // Check if response was truncated (common issue with long responses)
             if (text.includes('"characters"') && !text.trim().endsWith('}')) {
                 console.log('[NT-Parse] Detected truncated response, attempting recovery...');
@@ -1070,7 +1204,18 @@ export function parseJSONResponse(text) {
             }
 
             console.log('[NT-Parse] ========== PARSE END (FAILED) ==========');
-            throw new NameTrackerError('Failed to parse LLM response as JSON. The response may be too long or truncated. Try analyzing fewer messages at once.');
+            
+            // Provide specific feedback about the JSON error
+            let errorHelp = 'Failed to parse LLM response as JSON.';
+            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
+                errorHelp = 'JSON parsing failed: Missing colon after property name or orphaned string without property. The LLM likely generated a description without specifying which field it belongs to.';
+            } else if (error.message.includes('Unexpected token')) {
+                errorHelp = 'JSON parsing failed: Unexpected character found. Check for missing quotes, commas, or control characters.';
+            } else if (error.message.includes('Unexpected end')) {
+                errorHelp = 'JSON parsing failed: Response appears truncated. Try analyzing fewer messages at once.';
+            }
+            
+            throw new NameTrackerError(errorHelp);
         }
     });
 }
