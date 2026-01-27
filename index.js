@@ -2615,40 +2615,60 @@ async function setCharacter(name, character) {
 }
 
 /**
- * Get LLM configuration
- * @returns {Object} LLM configuration object
+ * Get LLM configuration (Fixed: No Promise contamination)
+ * @returns {Object} LLM configuration object with resolved values
  */
 function getLLMConfig() {
-    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+    try {
         const llmSource = getSetting('llmSource');
+        const ollamaEndpoint = getSetting('ollamaEndpoint');
+        const ollamaModel = getSetting('ollamaModel');
+        const systemPrompt = getSetting('systemPrompt');
+        
         const { extSettings } = getContextSettings();
         const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
         debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
         debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
+        
+        // Ensure no Promise objects are returned
         return {
-            source: llmSource,
-            ollamaEndpoint: getSetting('ollamaEndpoint'),
-            ollamaModel: getSetting('ollamaModel'),
-            systemPrompt: getSetting('systemPrompt'),
+            source: (typeof llmSource === 'string') ? llmSource : 'sillytavern',
+            ollamaEndpoint: (typeof ollamaEndpoint === 'string') ? ollamaEndpoint : 'http://localhost:11434',
+            ollamaModel: (typeof ollamaModel === 'string') ? ollamaModel : '',
+            systemPrompt: (typeof systemPrompt === 'string') ? systemPrompt : null,
         };
-    }, { source: 'sillytavern', ollamaEndpoint: 'http://localhost:11434', ollamaModel: '', systemPrompt: null });
+    } catch (error) {
+        console.warn('[STnametracker] Error getting LLM config, using defaults:', error);
+        return { source: 'sillytavern', ollamaEndpoint: 'http://localhost:11434', ollamaModel: '', systemPrompt: null };
+    }
 }
 
 /**
- * Get lorebook configuration
- * @returns {Object} Lorebook configuration object
+ * Get lorebook configuration (Fixed: No Promise contamination)
+ * @returns {Object} Lorebook configuration object with resolved values
  */
 function getLorebookConfig() {
-    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+    try {
+        const position = getSetting('lorebookPosition');
+        const depth = getSetting('lorebookDepth');
+        const cooldown = getSetting('lorebookCooldown');
+        const scanDepth = getSetting('lorebookScanDepth');
+        const probability = getSetting('lorebookProbability');
+        const enabled = getSetting('lorebookEnabled');
+        
+        // Ensure no Promise objects are returned
         return {
-            position: getSetting('lorebookPosition'),
-            depth: getSetting('lorebookDepth'),
-            cooldown: getSetting('lorebookCooldown'),
-            scanDepth: getSetting('lorebookScanDepth'),
-            probability: getSetting('lorebookProbability'),
-            enabled: getSetting('lorebookEnabled'),
+            position: (typeof position === 'number') ? position : 0,
+            depth: (typeof depth === 'number') ? depth : 1,
+            cooldown: (typeof cooldown === 'number') ? cooldown : 5,
+            scanDepth: (typeof scanDepth === 'number') ? scanDepth : 1,
+            probability: (typeof probability === 'number') ? probability : 100,
+            enabled: (typeof enabled === 'boolean') ? enabled : true,
         };
-    }, { position: 0, depth: 1, cooldown: 5, scanDepth: 1, probability: 100, enabled: true });
+    } catch (error) {
+        console.warn('[STnametracker] Error getting lorebook config, using defaults:', error);
+        return { position: 0, depth: 1, cooldown: 5, scanDepth: 1, probability: 100, enabled: true };
+    }
 }
 
 /**
@@ -2770,6 +2790,75 @@ const MERGE_CONFIDENCE_HIGH = 0.9;      // 90%+ - Automatic merge (e.g., exact s
 const MERGE_CONFIDENCE_MEDIUM = 0.7;    // 70%+ - User prompt required (e.g., phonetic similarity)
 // eslint-disable-next-line no-unused-vars
 const MERGE_CONFIDENCE_LOW = 0.5;       // 50%+ - No automatic action (may indicate false positives)
+
+// ============================================================================
+// CHARACTER DATA VALIDATION AND CLEANUP
+// ============================================================================
+
+/**
+ * Validate and clean character data from LLM response
+ * Fixes name/alias separation and relationship format issues
+ * @param {Object} character - Raw character data from LLM
+ * @returns {Object} Cleaned character data
+ */
+function validateCharacterData(character) {
+    if (!character) return character;
+    
+    const cleaned = { ...character };
+    
+    // Fix name/alias separation - remove comma-separated names
+    if (cleaned.name && cleaned.name.includes(',')) {
+        const nameParts = cleaned.name.split(',').map(part => part.trim());
+        cleaned.name = nameParts[0]; // Use first part as main name
+        
+        // Add remaining parts to aliases if not already present
+        const additionalAliases = nameParts.slice(1);
+        cleaned.aliases = cleaned.aliases || [];
+        additionalAliases.forEach(alias => {
+            if (!cleaned.aliases.includes(alias) && alias !== cleaned.name && alias.length > 0) {
+                cleaned.aliases.push(alias);
+            }
+        });
+        
+        debugLog(`Fixed name/alias separation: "${character.name}" → name: "${cleaned.name}", aliases: ${JSON.stringify(cleaned.aliases)}`);
+    }
+    
+    // Deduplicate aliases and remove character's own name from aliases
+    if (cleaned.aliases && Array.isArray(cleaned.aliases)) {
+        const originalCount = cleaned.aliases.length;
+        cleaned.aliases = [...new Set(cleaned.aliases)] // Remove duplicates
+            .filter(alias => alias && alias.trim() !== cleaned.name) // Remove own name
+            .map(alias => alias.trim()) // Trim whitespace
+            .filter(alias => alias.length > 0); // Remove empty strings
+            
+        if (originalCount !== cleaned.aliases.length) {
+            debugLog(`Cleaned aliases: ${originalCount} → ${cleaned.aliases.length} aliases`);
+        }
+    }
+    
+    // Validate relationships format - only keep properly formatted triplets
+    if (cleaned.relationships && Array.isArray(cleaned.relationships)) {
+        const originalCount = cleaned.relationships.length;
+        cleaned.relationships = cleaned.relationships
+            .filter(rel => {
+                if (!rel || typeof rel !== 'string') return false;
+                
+                // Check for triplet format: "currentchar, otherchar, relationship"
+                const parts = rel.split(',');
+                if (parts.length !== 3) return false;
+                
+                // Ensure all parts have content
+                return parts.every(part => part.trim().length > 0);
+            })
+            .map(rel => rel.trim()); // Clean up whitespace
+            
+        if (originalCount !== cleaned.relationships.length) {
+            debugLog(`Filtered relationships: ${originalCount} → ${cleaned.relationships.length} valid triplets`);
+        }
+    }
+    
+    return cleaned;
+}
 
 // Substring Matching Thresholds
 const MIN_SUBSTRING_LENGTH = 3;         // Minimum length for substring detection
@@ -3130,22 +3219,26 @@ async function createCharacter(analyzedChar, isMainChar = false) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('createCharacter', async () => {
         debug.log();
         console.log('[NT-Characters] 🟦 createCharacter() called for:', analyzedChar.name);
+        
+        // Validate and clean character data from LLM
+        const cleanedChar = validateCharacterData(analyzedChar);
+        
         // Clean and filter aliases
-        const aliases = await cleanAliases(analyzedChar.aliases || [], analyzedChar.name);
+        const aliases = await cleanAliases(cleanedChar.aliases || [], cleanedChar.name);
 
         const character = {
-            preferredName: analyzedChar.name,
+            preferredName: cleanedChar.name,
             aliases: aliases,
-            physicalAge: analyzedChar.physicalAge || '',
-            mentalAge: analyzedChar.mentalAge || '',
-            physical: analyzedChar.physical || '',
-            personality: analyzedChar.personality || '',
-            sexuality: analyzedChar.sexuality || '',
-            raceEthnicity: analyzedChar.raceEthnicity || '',
-            roleSkills: analyzedChar.roleSkills || '',
-            relationships: analyzedChar.relationships || [],
+            physicalAge: cleanedChar.physicalAge || '',
+            mentalAge: cleanedChar.mentalAge || '',
+            physical: cleanedChar.physical || '',
+            personality: cleanedChar.personality || '',
+            sexuality: cleanedChar.sexuality || '',
+            raceEthnicity: cleanedChar.raceEthnicity || '',
+            roleSkills: cleanedChar.roleSkills || '',
+            relationships: cleanedChar.relationships || [],
             ignored: false,
-            confidence: analyzedChar.confidence || 50,
+            confidence: cleanedChar.confidence || 50,
             lorebookEntryId: null,
             lastUpdated: Date.now(),
             isMainChar: isMainChar || false,
@@ -3179,17 +3272,20 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('updateCharacter', async () => {
         debug.log();
 
+        // Validate and clean new character data from LLM
+        const cleanedChar = validateCharacterData(analyzedChar);
+
         // Mark as main character if detected
         if (isMainChar) {
             existingChar.isMainChar = true;
         }
 
         // If adding as alias, add the analyzed name to aliases if not already present
-        if (addAsAlias && analyzedChar.name !== existingChar.preferredName) {
+        if (addAsAlias && cleanedChar.name !== existingChar.preferredName) {
             if (!existingChar.aliases) existingChar.aliases = [];
-            if (!existingChar.aliases.includes(analyzedChar.name) &&
-                analyzedChar.name.toLowerCase() !== existingChar.preferredName.toLowerCase()) {
-                existingChar.aliases.push(analyzedChar.name);
+            if (!existingChar.aliases.includes(cleanedChar.name) &&
+                cleanedChar.name.toLowerCase() !== existingChar.preferredName.toLowerCase()) {
+                existingChar.aliases.push(cleanedChar.name);
             }
         }
 
@@ -3197,18 +3293,18 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
         existingChar.aliases = await cleanAliases(existingChar.aliases || [], existingChar.preferredName);
 
         // Update consolidated fields (new data takes precedence if not empty)
-        if (analyzedChar.physicalAge) existingChar.physicalAge = analyzedChar.physicalAge;
-        if (analyzedChar.mentalAge) existingChar.mentalAge = analyzedChar.mentalAge;
-        if (analyzedChar.physical) existingChar.physical = analyzedChar.physical;
-        if (analyzedChar.personality) existingChar.personality = analyzedChar.personality;
-        if (analyzedChar.sexuality) existingChar.sexuality = analyzedChar.sexuality;
-        if (analyzedChar.raceEthnicity) existingChar.raceEthnicity = analyzedChar.raceEthnicity;
-        if (analyzedChar.roleSkills) existingChar.roleSkills = analyzedChar.roleSkills;
+        if (cleanedChar.physicalAge) existingChar.physicalAge = cleanedChar.physicalAge;
+        if (cleanedChar.mentalAge) existingChar.mentalAge = cleanedChar.mentalAge;
+        if (cleanedChar.physical) existingChar.physical = cleanedChar.physical;
+        if (cleanedChar.personality) existingChar.personality = cleanedChar.personality;
+        if (cleanedChar.sexuality) existingChar.sexuality = cleanedChar.sexuality;
+        if (cleanedChar.raceEthnicity) existingChar.raceEthnicity = cleanedChar.raceEthnicity;
+        if (cleanedChar.roleSkills) existingChar.roleSkills = cleanedChar.roleSkills;
 
-        // Merge relationships array - deduplicate
-        if (analyzedChar.relationships && Array.isArray(analyzedChar.relationships)) {
+        // Merge relationships array - deduplicate and filter to valid triplets
+        if (cleanedChar.relationships && Array.isArray(cleanedChar.relationships)) {
             if (!existingChar.relationships) existingChar.relationships = [];
-            for (const rel of analyzedChar.relationships) {
+            for (const rel of cleanedChar.relationships) {
                 if (!existingChar.relationships.includes(rel)) {
                     existingChar.relationships.push(rel);
                 }
@@ -3216,8 +3312,8 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
         }
 
         // Update confidence (average of old and new)
-        if (analyzedChar.confidence) {
-            existingChar.confidence = Math.round((existingChar.confidence + analyzedChar.confidence) / 2);
+        if (cleanedChar.confidence) {
+            existingChar.confidence = Math.round((existingChar.confidence + cleanedChar.confidence) / 2);
         }
 
         existingChar.lastUpdated = Date.now();

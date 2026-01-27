@@ -326,40 +326,60 @@ async function setCharacter(name, character) {
 }
 
 /**
- * Get LLM configuration
- * @returns {Object} LLM configuration object
+ * Get LLM configuration (Fixed: No Promise contamination)
+ * @returns {Object} LLM configuration object with resolved values
  */
 function getLLMConfig() {
-    return errorHandler.withErrorBoundary('Settings', () => {
+    try {
         const llmSource = getSetting('llmSource');
+        const ollamaEndpoint = getSetting('ollamaEndpoint');
+        const ollamaModel = getSetting('ollamaModel');
+        const systemPrompt = getSetting('systemPrompt');
+        
         const { extSettings } = getContextSettings();
         const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
         debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
         debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
+        
+        // Ensure no Promise objects are returned
         return {
-            source: llmSource,
-            ollamaEndpoint: getSetting('ollamaEndpoint'),
-            ollamaModel: getSetting('ollamaModel'),
-            systemPrompt: getSetting('systemPrompt'),
+            source: (typeof llmSource === 'string') ? llmSource : 'sillytavern',
+            ollamaEndpoint: (typeof ollamaEndpoint === 'string') ? ollamaEndpoint : 'http://localhost:11434',
+            ollamaModel: (typeof ollamaModel === 'string') ? ollamaModel : '',
+            systemPrompt: (typeof systemPrompt === 'string') ? systemPrompt : null,
         };
-    }, { source: 'sillytavern', ollamaEndpoint: 'http://localhost:11434', ollamaModel: '', systemPrompt: null });
+    } catch (error) {
+        console.warn('[STnametracker] Error getting LLM config, using defaults:', error);
+        return { source: 'sillytavern', ollamaEndpoint: 'http://localhost:11434', ollamaModel: '', systemPrompt: null };
+    }
 }
 
 /**
- * Get lorebook configuration
- * @returns {Object} Lorebook configuration object
+ * Get lorebook configuration (Fixed: No Promise contamination)
+ * @returns {Object} Lorebook configuration object with resolved values
  */
 function getLorebookConfig() {
-    return errorHandler.withErrorBoundary('Settings', () => {
+    try {
+        const position = getSetting('lorebookPosition');
+        const depth = getSetting('lorebookDepth');
+        const cooldown = getSetting('lorebookCooldown');
+        const scanDepth = getSetting('lorebookScanDepth');
+        const probability = getSetting('lorebookProbability');
+        const enabled = getSetting('lorebookEnabled');
+        
+        // Ensure no Promise objects are returned
         return {
-            position: getSetting('lorebookPosition'),
-            depth: getSetting('lorebookDepth'),
-            cooldown: getSetting('lorebookCooldown'),
-            scanDepth: getSetting('lorebookScanDepth'),
-            probability: getSetting('lorebookProbability'),
-            enabled: getSetting('lorebookEnabled'),
+            position: (typeof position === 'number') ? position : 0,
+            depth: (typeof depth === 'number') ? depth : 1,
+            cooldown: (typeof cooldown === 'number') ? cooldown : 5,
+            scanDepth: (typeof scanDepth === 'number') ? scanDepth : 1,
+            probability: (typeof probability === 'number') ? probability : 100,
+            enabled: (typeof enabled === 'boolean') ? enabled : true,
         };
-    }, { position: 0, depth: 1, cooldown: 5, scanDepth: 1, probability: 100, enabled: true });
+    } catch (error) {
+        console.warn('[STnametracker] Error getting lorebook config, using defaults:', error);
+        return { position: 0, depth: 1, cooldown: 5, scanDepth: 1, probability: 100, enabled: true };
+    }
 }
 
 /**
