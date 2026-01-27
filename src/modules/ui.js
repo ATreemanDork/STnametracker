@@ -913,7 +913,8 @@ function showDebugStatus() {
             };
 
             const systemPromptTokens = 500;
-            const maxGenTokens = typeof contextDetails.maxGeneration === 'number' ? contextDetails.maxGeneration : 2048;
+            // Use generous response allocation instead of hardcoded 2048 limit
+            const maxGenTokens = typeof contextDetails.maxGeneration === 'number' ? contextDetails.maxGeneration : Math.max(8192, maxPromptTokens - 2000);
             const safetyMargin = 500;
             const reservedTokens = systemPromptTokens + maxGenTokens + safetyMargin;
             const availableTokens = maxPromptTokens;

@@ -2771,6 +2771,51 @@ function set_chat_metadata(key, value) {
 const debug = (0,_core_debug_js__WEBPACK_IMPORTED_MODULE_1__/* .createModuleLogger */ .Xv)('characters');
 const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_4__/* .NotificationManager */ .h('Character Management');
 
+/**
+ * Validate and clean character data from LLM analysis
+ * @param {Object} analyzedChar - Raw character data from LLM
+ * @param {Array} allCharacters - Existing characters for validation
+ * @returns {Object} Cleaned and validated character data
+ */
+function validateCharacterData(analyzedChar, allCharacters = []) {
+    // Ensure required fields exist
+    const name = (analyzedChar.name || '').trim();
+    if (!name) {
+        throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .NameTrackerError */ .S_('Character name is required');
+    }
+    
+    // Validate confidence score
+    const confidence = typeof analyzedChar.confidence === 'number' && analyzedChar.confidence >= 0 && analyzedChar.confidence <= 100 
+        ? analyzedChar.confidence 
+        : 75;
+    
+    // Clean and validate arrays
+    const aliases = Array.isArray(analyzedChar.aliases) ? analyzedChar.aliases.filter(a => typeof a === 'string' && a.trim()) : [];
+    const relationships = Array.isArray(analyzedChar.relationships) ? analyzedChar.relationships.filter(r => typeof r === 'string' && r.trim()) : [];
+    
+    // Clean text fields
+    const cleanTextField = (field) => {
+        return typeof field === 'string' ? field.trim() : '';
+    };
+    
+    // Clean name using helper if available (fallback to basic sanitization)
+    const sanitizedName = name.replace(/[<>&"']/g, '').trim();
+    
+    return {
+        name: sanitizedName,
+        aliases,
+        physicalAge: cleanTextField(analyzedChar.physicalAge),
+        mentalAge: cleanTextField(analyzedChar.mentalAge),
+        physical: cleanTextField(analyzedChar.physical),
+        personality: cleanTextField(analyzedChar.personality),
+        sexuality: cleanTextField(analyzedChar.sexuality),
+        raceEthnicity: cleanTextField(analyzedChar.raceEthnicity),
+        roleSkills: cleanTextField(analyzedChar.roleSkills),
+        relationships,
+        confidence
+    };
+}
+
 // ============================================================================
 // DEBUG CONFIGURATION
 // ============================================================================
@@ -4666,8 +4711,7 @@ async function getMaxPromptLength() {
 
         try {
             const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
-            let maxContext = 4096; // Default
-            let maxGenTokens = 2048; // Default generation limit
+            let maxContext = 8192; // Default minimum context
             let detectionMethod = 'fallback';
 
             logEntry(`Starting context detection for LLM source: ${llmConfig.source}`);
@@ -4950,11 +4994,12 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
             debug.log();
         }
 
-        // Calculate response tokens: use generous allocation within available context
+        // Calculate response tokens: use all available context space
         const maxContext = context.maxContext || 8192;
         // promptTokens is already calculated above via getTokenCountAsync or estimation
-        const maxTokens = Math.max(8192, maxContext - promptTokens - 1000); // Generous response allocation with safety buffer
-        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Prompt tokens:', promptTokens, 'Response tokens:', maxTokens);
+        // Use all remaining context space for response (no artificial limits)
+        const maxTokens = Math.max(8192, maxContext - promptTokens - 500); // Use all available space with minimal safety buffer
+        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Prompt tokens:', promptTokens, 'Response tokens (unlimited):', maxTokens);
         debug.log();
 
         // Retry logic: attempt up to 2 times with a short delay
@@ -4983,7 +5028,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                     top_p: GENERATION_TOP_P,
                     top_k: GENERATION_TOP_K,
                     rep_pen: GENERATION_REP_PEN,
-                    responseLength: maxTokens, // SillyTavern uses responseLength for text completion length
+                    responseLength: maxTokens // Use all available tokens for response (no 2048 limit)
                 });
 
                 if (DEBUG_LOGGING) {
@@ -7330,7 +7375,8 @@ function showDebugStatus() {
             };
 
             const systemPromptTokens = 500;
-            const maxGenTokens = typeof contextDetails.maxGeneration === 'number' ? contextDetails.maxGeneration : 2048;
+            // Use generous response allocation instead of hardcoded 2048 limit
+            const maxGenTokens = typeof contextDetails.maxGeneration === 'number' ? contextDetails.maxGeneration : Math.max(8192, maxPromptTokens - 2000);
             const safetyMargin = 500;
             const reservedTokens = systemPromptTokens + maxGenTokens + safetyMargin;
             const availableTokens = maxPromptTokens;

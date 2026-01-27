@@ -17,6 +17,51 @@ import { NotificationManager } from '../utils/notifications.js';
 const debug = createModuleLogger('characters');
 const notifications = new NotificationManager('Character Management');
 
+/**
+ * Validate and clean character data from LLM analysis
+ * @param {Object} analyzedChar - Raw character data from LLM
+ * @param {Array} allCharacters - Existing characters for validation
+ * @returns {Object} Cleaned and validated character data
+ */
+function validateCharacterData(analyzedChar, allCharacters = []) {
+    // Ensure required fields exist
+    const name = (analyzedChar.name || '').trim();
+    if (!name) {
+        throw new NameTrackerError('Character name is required');
+    }
+    
+    // Validate confidence score
+    const confidence = typeof analyzedChar.confidence === 'number' && analyzedChar.confidence >= 0 && analyzedChar.confidence <= 100 
+        ? analyzedChar.confidence 
+        : 75;
+    
+    // Clean and validate arrays
+    const aliases = Array.isArray(analyzedChar.aliases) ? analyzedChar.aliases.filter(a => typeof a === 'string' && a.trim()) : [];
+    const relationships = Array.isArray(analyzedChar.relationships) ? analyzedChar.relationships.filter(r => typeof r === 'string' && r.trim()) : [];
+    
+    // Clean text fields
+    const cleanTextField = (field) => {
+        return typeof field === 'string' ? field.trim() : '';
+    };
+    
+    // Clean name using helper if available (fallback to basic sanitization)
+    const sanitizedName = name.replace(/[<>&"']/g, '').trim();
+    
+    return {
+        name: sanitizedName,
+        aliases,
+        physicalAge: cleanTextField(analyzedChar.physicalAge),
+        mentalAge: cleanTextField(analyzedChar.mentalAge),
+        physical: cleanTextField(analyzedChar.physical),
+        personality: cleanTextField(analyzedChar.personality),
+        sexuality: cleanTextField(analyzedChar.sexuality),
+        raceEthnicity: cleanTextField(analyzedChar.raceEthnicity),
+        roleSkills: cleanTextField(analyzedChar.roleSkills),
+        relationships,
+        confidence
+    };
+}
+
 // ============================================================================
 // DEBUG CONFIGURATION
 // ============================================================================
