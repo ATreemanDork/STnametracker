@@ -10,7 +10,7 @@ import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
 import {
     getCharacters, getCharacter, setCharacter, removeCharacter,
-    get_settings, set_chat_metadata, getSetting,
+    set_chat_metadata, getSetting,
 } from '../core/settings.js';
 import { NotificationManager } from '../utils/notifications.js';
 

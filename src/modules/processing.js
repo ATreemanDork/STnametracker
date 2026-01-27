@@ -723,8 +723,11 @@ Failed batches: ${failedBatches}`;
                 const existingCount = get_settings('messageCounter', 0);
                 set_settings('messageCounter', existingCount + processedMessages);
                 set_settings('lastScannedMessageId', endIdx - 1);
-                updateStatusDisplay();
             }
+
+            // Always update UI after batch processing (success or partial failure)
+            updateCharacterList();
+            updateStatusDisplay();
 
             return;
         }
@@ -757,14 +760,17 @@ Failed batches: ${failedBatches}`;
 
         } catch (error) {
             console.error('Error during harvest:', error);
-            notifications.error(`Analysis failed: ${error.message}`);
-        }
+            notifications.error(`Analysis failed: ${error.message}`, 'Name Tracker');
+        } finally {
+            // Always update UI after LLM processing (success or failure)
+            // Persist scan progress
+            if (processedMessages > 0) {
+                const existingCount = get_settings('messageCounter', 0);
+                set_settings('messageCounter', existingCount + processedMessages);
+                set_settings('lastScannedMessageId', endIdx - 1);
+            }
 
-        // Persist scan progress and update UI
-        if (processedMessages > 0) {
-            const existingCount = get_settings('messageCounter', 0);
-            set_settings('messageCounter', existingCount + processedMessages);
-            set_settings('lastScannedMessageId', endIdx - 1);
+            updateCharacterList();
             updateStatusDisplay();
         }
     });
@@ -1048,8 +1054,11 @@ export async function scanEntireChat() {
         if (processedMessages > 0) {
             const existingCount = get_settings('messageCounter', 0);
             set_settings('messageCounter', existingCount + processedMessages);
-            updateStatusDisplay();
         }
+
+        // Always update UI after scan (success, partial failure, or abort)
+        updateCharacterList();
+        updateStatusDisplay();
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
@@ -1122,6 +1131,8 @@ export async function onChatChanged() {
         set_settings('lastScannedMessageId', -1);
         set_settings('messageCounter', 0);
 
+        // Always update UI when chat changes
+        updateCharacterList();
         updateStatusDisplay();
 
         debug.log();

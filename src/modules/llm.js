@@ -96,6 +96,8 @@ REQUIRED JSON structure (copy this exact format):
   ]
 }
 
+All property names and string values must use JSON-valid double quotes. Never use single quotes or unquoted keys.
+
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.
 - If the same person is referred by variants ("John", "John Blackwell", "Scout"), make ONE entry with name = best full name ("John Blackwell") and put other names in aliases.
@@ -554,8 +556,8 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
         if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
         debug.log();
 
-        // Retry logic: attempt up to 3 times with 2s delay
-        const MAX_RETRIES = 3;
+        // Retry logic: attempt up to 2 times with a short delay
+        const MAX_RETRIES = 2;
         const RETRY_DELAY_MS = 2000;
         let lastError = null;
 
@@ -664,8 +666,12 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                 console.error('[NT-ST-Call] Error details:', error);
 
                 if (attempt < MAX_RETRIES) {
-                    console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms before retry...`);
+                    const waitStart = Date.now();
+                    const waitSeconds = Math.round(RETRY_DELAY_MS / 100) / 10; // one decimal place
+                    console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms (~${waitSeconds}s) before retry...`);
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                    const waited = Date.now() - waitStart;
+                    console.log(`[NT-ST-Call] Waited ${waited}ms before next attempt`);
                 }
             }
         }
@@ -686,7 +692,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
         }
 
         // Non-interactive mode: throw to allow outer logic to retry/split
-        const err = new NameTrackerError('Failed to parse LLM response as JSON (non-interactive mode)');
+        const err = new NameTrackerError(`Failed to parse LLM response as JSON after ${MAX_RETRIES} attempts (non-interactive mode)`);
         err.code = 'JSON_PARSE_FAILED';
         err.lastError = lastError;
         throw err;

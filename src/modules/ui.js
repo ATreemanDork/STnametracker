@@ -48,7 +48,7 @@ export function updateCharacterList() {
         const characters = getCharacters();
         console.log('[NT-UI] 🟡 getCharacters() returned:', Object.keys(characters || {}));
         const characterNames = Object.keys(characters);
-    console.log('[NT-UI] 🟡 Character count:', characterNames.length);
+        console.log('[NT-UI] 🟡 Character count:', characterNames.length);
 
         if (characterNames.length === 0) {
             $container.html(`
@@ -193,12 +193,23 @@ export async function showMergeDialog(sourceName) {
 
         // Simple prompt for target character
         const targetName = prompt(`Merge "${sourceName}" into which character? Available: ${otherChars.join(', ')}`);
-        if (targetName && characters[targetName]) {
-            await mergeCharacters(sourceName, targetName);
+        if (!targetName) {
+            return; // User cancelled
+        }
+
+        try {
+            if (characters[targetName]) {
+                await mergeCharacters(sourceName, targetName);
+                notifications.success(`Merged ${sourceName} into ${targetName}`);
+            } else {
+                notifications.error('Invalid target character name');
+            }
+        } catch (error) {
+            notifications.error(`Merge failed: ${error.message}`, 'Merge Error');
+        } finally {
+            // Always update UI after merge attempt
             updateCharacterList();
             updateStatusDisplay();
-        } else if (targetName) {
-            notifications.error('Invalid target character name');
         }
     });
 }
@@ -217,10 +228,13 @@ export async function showCreateCharacterModal() {
 
         try {
             await createNewCharacter(characterName.trim());
+            notifications.success(`Created character: ${characterName.trim()}`);
+        } catch (error) {
+            notifications.error(`Failed to create character: ${error.message}`, 'Creation Error');
+        } finally {
+            // Always update UI after character creation attempt
             updateCharacterList();
             updateStatusDisplay();
-        } catch (error) {
-            notifications.error(error.message);
         }
     });
 }
@@ -241,15 +255,19 @@ export async function showPurgeConfirmation() {
 
         const confirmed = confirm(`This will delete all ${characterCount} tracked characters and their lorebook entries.\\n\\nThis action cannot be undone!\\n\\nContinue?`);
 
-        if (confirmed) {
-            try {
-                const deletedCount = await purgeAllCharacters();
-                updateCharacterList();
-                updateStatusDisplay();
-                notifications.success(`Purged ${deletedCount} characters`);
-            } catch (error) {
-                notifications.error(`Failed to purge characters: ${error.message}`);
-            }
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const deletedCount = await purgeAllCharacters();
+            notifications.success(`Purged ${deletedCount} characters`, 'Purge Complete');
+        } catch (error) {
+            notifications.error(`Failed to purge characters: ${error.message}`, 'Purge Error');
+        } finally {
+            // Always update UI after purge attempt
+            updateCharacterList();
+            updateStatusDisplay();
         }
     });
 }
@@ -408,9 +426,15 @@ export function initializeUIHandlers() {
 
         $(document).on('click', '.char-action-ignore', async function() {
             const name = $(this).data('name');
-            await toggleIgnoreCharacter(name);
-            updateCharacterList();
-            updateStatusDisplay();
+            try {
+                await toggleIgnoreCharacter(name);
+            } catch (error) {
+                notifications.error(`Failed to toggle ignore: ${error.message}`, 'Toggle Error');
+            } finally {
+                // Always update UI after ignore toggle attempt
+                updateCharacterList();
+                updateStatusDisplay();
+            }
         });
 
         $(document).on('click', '.char-action-view', async function() {

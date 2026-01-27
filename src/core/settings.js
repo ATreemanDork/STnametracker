@@ -294,8 +294,8 @@ function getLLMConfig() {
         const llmSource = getSetting('llmSource');
         const { extSettings } = getContextSettings();
         const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
-            debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
-            debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
+        debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
+        debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
         return {
             source: llmSource,
             ollamaEndpoint: getSetting('ollamaEndpoint'),

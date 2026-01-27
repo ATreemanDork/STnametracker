@@ -893,10 +893,10 @@ var core_context = __webpack_require__(102);
 ;// ./src/core/world-info.js
 /**
  * SillyTavern World Info (Lorebook) Integration Layer
- * 
+ *
  * Provides access to the world-info module functions for managing
  * the editor state and lorebook selection in the UI.
- * 
+ *
  * References the official SillyTavern world-info.js module:
  * https://github.com/SillyTavern/SillyTavern/blob/staging/public/scripts/world-info.js
  */
@@ -910,13 +910,13 @@ const logger = (0,debug/* createModuleLogger */.Xv)('WorldInfo');
 /**
  * Reload the world info editor with the specified file
  * Makes the specified world info (lorebook) active in the editor
- * 
+ *
  * Calls the SillyTavern world-info.js reloadEditor() function:
  * - Updates the #world_editor_select dropdown value
  * - Triggers 'change' event to load the lorebook in the editor
  * - Only reloads if the file exists and either loadIfNotSelected is true
  *   or the file is already currently selected
- * 
+ *
  * @param {string} file - The world info file name to load
  * @param {boolean} [loadIfNotSelected=false] - Load even if not currently selected
  * @returns {boolean} True if successful, false otherwise
@@ -925,7 +925,7 @@ function reloadEditor(file, loadIfNotSelected = false) {
     return errors/* errorHandler */.r_.withErrorBoundary('WorldInfo', () => {
         try {
             const context = core_context.stContext.getContext();
-            
+
             // Use the official SillyTavern reloadWorldInfoEditor if available
             if (typeof context.reloadWorldInfoEditor === 'function') {
                 context.reloadWorldInfoEditor(file, loadIfNotSelected);
@@ -938,7 +938,7 @@ function reloadEditor(file, loadIfNotSelected = false) {
             const currentIndex = Number($('#world_editor_select').val());
             const world_names = context.currentWorldNames || window.world_names || [];
             const selectedIndex = world_names.indexOf(file);
-            
+
             if (selectedIndex !== -1 && (loadIfNotSelected || currentIndex === selectedIndex)) {
                 $('#world_editor_select').val(selectedIndex).trigger('change');
                 logger.log(`Editor reloaded with lorebook: ${file}`);
@@ -963,7 +963,7 @@ function getCurrentWorldInfo() {
         try {
             const currentIndex = Number($('#world_editor_select').val());
             const world_names = window.world_names || [];
-            
+
             if (world_names[currentIndex]) {
                 return world_names[currentIndex];
             }
@@ -2525,8 +2525,8 @@ function getLLMConfig() {
         const llmSource = getSetting('llmSource');
         const { extSettings } = getContextSettings();
         const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
-            debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
-            debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
+        debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
+        debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
         return {
             source: llmSource,
             ollamaEndpoint: getSetting('ollamaEndpoint'),
@@ -3818,6 +3818,8 @@ REQUIRED JSON structure (copy this exact format):
   ]
 }
 
+All property names and string values must use JSON-valid double quotes. Never use single quotes or unquoted keys.
+
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.
 - If the same person is referred by variants ("John", "John Blackwell", "Scout"), make ONE entry with name = best full name ("John Blackwell") and put other names in aliases.
@@ -4276,8 +4278,8 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
         if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
         debug.log();
 
-        // Retry logic: attempt up to 3 times with 2s delay
-        const MAX_RETRIES = 3;
+        // Retry logic: attempt up to 2 times with a short delay
+        const MAX_RETRIES = 2;
         const RETRY_DELAY_MS = 2000;
         let lastError = null;
 
@@ -4386,8 +4388,12 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                 console.error('[NT-ST-Call] Error details:', error);
 
                 if (attempt < MAX_RETRIES) {
-                    console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms before retry...`);
+                    const waitStart = Date.now();
+                    const waitSeconds = Math.round(RETRY_DELAY_MS / 100) / 10; // one decimal place
+                    console.log(`[NT-ST-Call] Waiting ${RETRY_DELAY_MS}ms (~${waitSeconds}s) before retry...`);
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                    const waited = Date.now() - waitStart;
+                    console.log(`[NT-ST-Call] Waited ${waited}ms before next attempt`);
                 }
             }
         }
@@ -4408,7 +4414,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
         }
 
         // Non-interactive mode: throw to allow outer logic to retry/split
-        const err = new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('Failed to parse LLM response as JSON (non-interactive mode)');
+        const err = new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_(`Failed to parse LLM response as JSON after ${MAX_RETRIES} attempts (non-interactive mode)`);
         err.code = 'JSON_PARSE_FAILED';
         err.lastError = lastError;
         throw err;
@@ -5532,7 +5538,7 @@ const ui_notifications = new notifications/* NotificationManager */.h('UI Manage
  * Update character list display in settings
  * @returns {void}
  */
-function updateCharacterList() {
+function ui_updateCharacterList() {
     return (0,errors/* withErrorBoundary */.Xc)('updateCharacterList', () => {
         let $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
@@ -5553,7 +5559,7 @@ function updateCharacterList() {
         const characters = (0,core_settings/* getCharacters */.bg)();
         console.log('[NT-UI] 🟡 getCharacters() returned:', Object.keys(characters || {}));
         const characterNames = Object.keys(characters);
-    console.log('[NT-UI] 🟡 Character count:', characterNames.length);
+        console.log('[NT-UI] 🟡 Character count:', characterNames.length);
 
         if (characterNames.length === 0) {
             $container.html(`
@@ -5698,12 +5704,23 @@ async function showMergeDialog(sourceName) {
 
         // Simple prompt for target character
         const targetName = prompt(`Merge "${sourceName}" into which character? Available: ${otherChars.join(', ')}`);
-        if (targetName && characters[targetName]) {
-            await (0,modules_characters/* mergeCharacters */.lF)(sourceName, targetName);
-            updateCharacterList();
+        if (!targetName) {
+            return; // User cancelled
+        }
+
+        try {
+            if (characters[targetName]) {
+                await (0,modules_characters/* mergeCharacters */.lF)(sourceName, targetName);
+                ui_notifications.success(`Merged ${sourceName} into ${targetName}`);
+            } else {
+                ui_notifications.error('Invalid target character name');
+            }
+        } catch (error) {
+            ui_notifications.error(`Merge failed: ${error.message}`, 'Merge Error');
+        } finally {
+            // Always update UI after merge attempt
+            ui_updateCharacterList();
             ui_updateStatusDisplay();
-        } else if (targetName) {
-            ui_notifications.error('Invalid target character name');
         }
     });
 }
@@ -5722,10 +5739,13 @@ async function showCreateCharacterModal() {
 
         try {
             await (0,modules_characters/* createNewCharacter */.g9)(characterName.trim());
-            updateCharacterList();
-            ui_updateStatusDisplay();
+            ui_notifications.success(`Created character: ${characterName.trim()}`);
         } catch (error) {
-            ui_notifications.error(error.message);
+            ui_notifications.error(`Failed to create character: ${error.message}`, 'Creation Error');
+        } finally {
+            // Always update UI after character creation attempt
+            ui_updateCharacterList();
+            ui_updateStatusDisplay();
         }
     });
 }
@@ -5746,15 +5766,19 @@ async function showPurgeConfirmation() {
 
         const confirmed = confirm(`This will delete all ${characterCount} tracked characters and their lorebook entries.\\n\\nThis action cannot be undone!\\n\\nContinue?`);
 
-        if (confirmed) {
-            try {
-                const deletedCount = await (0,modules_characters/* purgeAllCharacters */.vu)();
-                updateCharacterList();
-                ui_updateStatusDisplay();
-                ui_notifications.success(`Purged ${deletedCount} characters`);
-            } catch (error) {
-                ui_notifications.error(`Failed to purge characters: ${error.message}`);
-            }
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const deletedCount = await (0,modules_characters/* purgeAllCharacters */.vu)();
+            ui_notifications.success(`Purged ${deletedCount} characters`, 'Purge Complete');
+        } catch (error) {
+            ui_notifications.error(`Failed to purge characters: ${error.message}`, 'Purge Error');
+        } finally {
+            // Always update UI after purge attempt
+            ui_updateCharacterList();
+            ui_updateStatusDisplay();
         }
     });
 }
@@ -5913,9 +5937,15 @@ function initializeUIHandlers() {
 
         $(document).on('click', '.char-action-ignore', async function() {
             const name = $(this).data('name');
-            await (0,modules_characters/* toggleIgnoreCharacter */.el)(name);
-            updateCharacterList();
-            ui_updateStatusDisplay();
+            try {
+                await (0,modules_characters/* toggleIgnoreCharacter */.el)(name);
+            } catch (error) {
+                ui_notifications.error(`Failed to toggle ignore: ${error.message}`, 'Toggle Error');
+            } finally {
+                // Always update UI after ignore toggle attempt
+                ui_updateCharacterList();
+                ui_updateStatusDisplay();
+            }
         });
 
         $(document).on('click', '.char-action-view', async function() {
@@ -6044,7 +6074,7 @@ async function showEditLorebookModal(characterName) {
             }
             (0,core_settings/* setCharacter */.e7)(preferredName, character);
 
-            updateCharacterList();
+            ui_updateCharacterList();
             ui_updateStatusDisplay();
 
             ui_notifications.success(`Updated lorebook entry for ${preferredName}`);
@@ -6252,13 +6282,13 @@ function bindSettingsHandlers() {
         $('#name_tracker_manual_analyze').on('click', async () => {
             const messageFreq = (0,core_settings/* getSetting */.PL)('messageFrequency', 10);
             await harvestMessages(messageFreq, true);
-            updateCharacterList();
+            ui_updateCharacterList();
             ui_updateStatusDisplay();
         });
 
         $('#name_tracker_scan_all').on('click', async () => {
             await scanEntireChat();
-            updateCharacterList();
+            ui_updateCharacterList();
             ui_updateStatusDisplay();
         });
 
@@ -6275,7 +6305,7 @@ function bindSettingsHandlers() {
             const { undoLastMerge } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 551));
             const success = await undoLastMerge();
             if (success) {
-                updateCharacterList();
+                ui_updateCharacterList();
                 ui_updateStatusDisplay();
             }
         });
@@ -6585,7 +6615,7 @@ function updateUI() {
         $('#name_tracker_debug_mode').prop('checked', (0,core_settings/* getSetting */.PL)('debugMode', false));
 
         // Update character list and status
-        updateCharacterList();
+        ui_updateCharacterList();
         ui_updateStatusDisplay();
 
         ui_debug.log();
@@ -6754,7 +6784,7 @@ async function processAnalysisResults(analyzedCharacters) {
 
         debugLog('All characters processed');
         console.log('[NT-Processing] 🟢 About to call updateCharacterList()');
-        const listResult = updateCharacterList();
+        const listResult = ui_updateCharacterList();
         console.log('[NT-Processing] 🟢 updateCharacterList() returned:', listResult);
         const statusResult = ui_updateStatusDisplay();
         console.log('[NT-Processing] 🟢 updateStatusDisplay() returned:', statusResult);
@@ -7318,8 +7348,11 @@ Failed batches: ${failedBatches}`;
                 const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
                 (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
                 (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
-                ui_updateStatusDisplay();
             }
+
+            // Always update UI after batch processing (success or partial failure)
+            ui_updateCharacterList();
+            ui_updateStatusDisplay();
 
             return;
         }
@@ -7352,14 +7385,17 @@ Failed batches: ${failedBatches}`;
 
         } catch (error) {
             console.error('Error during harvest:', error);
-            processing_notifications.error(`Analysis failed: ${error.message}`);
-        }
+            processing_notifications.error(`Analysis failed: ${error.message}`, 'Name Tracker');
+        } finally {
+            // Always update UI after LLM processing (success or failure)
+            // Persist scan progress
+            if (processedMessages > 0) {
+                const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
+                (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
+                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
+            }
 
-        // Persist scan progress and update UI
-        if (processedMessages > 0) {
-            const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
-            (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
-            (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
+            ui_updateCharacterList();
             ui_updateStatusDisplay();
         }
     });
@@ -7643,8 +7679,11 @@ async function scanEntireChat() {
         if (processedMessages > 0) {
             const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
             (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
-            ui_updateStatusDisplay();
         }
+
+        // Always update UI after scan (success, partial failure, or abort)
+        ui_updateCharacterList();
+        ui_updateStatusDisplay();
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
@@ -7717,6 +7756,8 @@ async function onChatChanged() {
         set_settings('lastScannedMessageId', -1);
         set_settings('messageCounter', 0);
 
+        // Always update UI when chat changes
+        updateCharacterList();
         updateStatusDisplay();
 
         processing_debug.log();
