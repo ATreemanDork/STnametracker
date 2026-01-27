@@ -163,37 +163,37 @@ export async function initializeLorebook() {
  */
 export async function updateLorebookEntry(character, characterName) {
     return withErrorBoundary('updateLorebookEntry', async () => {
-        console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-        console.log('[NT-Lorebook] ║ updateLorebookEntry CALLED');
-        console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-        console.log('[NT-Lorebook] ║ CRITICAL: Checking lorebookName variable');
-        console.log('[NT-Lorebook] ║ lorebookName value:', lorebookName);
-        console.log('[NT-Lorebook] ║ lorebookName type:', typeof lorebookName);
-        console.log('[NT-Lorebook] ║ lorebookName is null?:', lorebookName === null);
-        console.log('[NT-Lorebook] ║ lorebookName is undefined?:', lorebookName === undefined);
-        console.log('[NT-Lorebook] ║ lorebookName is falsy?:', !lorebookName);
-        console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+        console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ updateLorebookEntry CALLED
+╠════════════════════════════════════════════════════════════════
+║ CRITICAL: Checking lorebookName variable
+║ lorebookName value: ${lorebookName}
+║ lorebookName type: ${typeof lorebookName}
+║ lorebookName is null?: ${lorebookName === null}
+║ lorebookName is undefined?: ${lorebookName === undefined}
+║ lorebookName is falsy?: ${!lorebookName}
+╚════════════════════════════════════════════════════════════════`);
 
         if (!lorebookName) {
-            console.error('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-            console.error('[NT-Lorebook] ║ ❌ CRITICAL ERROR: NO LOREBOOK INITIALIZED!');
-            console.error('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-            console.error('[NT-Lorebook] ║ lorebookName is:', lorebookName);
-            console.error('[NT-Lorebook] ║ Character:', characterName);
-            console.error('[NT-Lorebook] ║ SKIPPING LOREBOOK ENTRY UPDATE');
-            console.error('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+            console.error(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ ❌ CRITICAL ERROR: NO LOREBOOK INITIALIZED!
+╠════════════════════════════════════════════════════════════════
+║ lorebookName is: ${lorebookName}
+║ Character: ${characterName}
+║ SKIPPING LOREBOOK ENTRY UPDATE
+╚════════════════════════════════════════════════════════════════`);
             debug.log('No lorebook initialized, skipping entry update');
             return;
         }
 
-        console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-        console.log('[NT-Lorebook] ║ ✅ Lorebook IS initialized');
-        console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-        console.log('[NT-Lorebook] ║ Character Name:', characterName);
-        console.log('[NT-Lorebook] ║ Character Object:', JSON.stringify(character, null, 2));
-        console.log('[NT-Lorebook] ║ Has lorebookEntryId?:', !!character.lorebookEntryId);
-        console.log('[NT-Lorebook] ║ Existing Entry ID:', character.lorebookEntryId || 'NONE');
-        console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+        console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ ✅ Lorebook IS initialized
+╠════════════════════════════════════════════════════════════════
+║ Character Name: ${characterName}
+║ Character Object: ${JSON.stringify(character, null, 2)}
+║ Has lorebookEntryId?: ${!!character.lorebookEntryId}
+║ Existing Entry ID: ${character.lorebookEntryId || 'NONE'}
+╚════════════════════════════════════════════════════════════════`);
 
         debug.log(`updateLorebookEntry called for: ${characterName}`);
         debug.log('  Character data:', character);
@@ -327,15 +327,15 @@ export async function updateLorebookEntry(character, characterName) {
             // Create new entry
             const newUid = generateUID();
 
-            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ CREATING NEW ENTRY');
-            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ Character Name:', characterName);
-            console.log('[NT-Lorebook] ║ Generated UID:', newUid);
-            console.log('[NT-Lorebook] ║ Keys Array:', JSON.stringify(keys));
-            console.log('[NT-Lorebook] ║ Content Preview:', content.substring(0, 200) + '...');
-            console.log('[NT-Lorebook] ║ Content Length:', content.length, 'characters');
-            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+            console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ CREATING NEW ENTRY
+╠════════════════════════════════════════════════════════════════
+║ Character Name: ${characterName}
+║ Generated UID: ${newUid}
+║ Keys Array: ${JSON.stringify(keys)}
+║ Content Preview: ${content.substring(0, 200)}...
+║ Content Length: ${content.length} characters
+╚════════════════════════════════════════════════════════════════`);
 
             const newEntry = {
                 uid: newUid,
@@ -390,35 +390,29 @@ export async function updateLorebookEntry(character, characterName) {
             console.log(`[NT-Lorebook]    Position: ${lorebookConfig.position}`);
 
             // Save the character with the new lorebook entry ID
-            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ SAVING CHARACTER WITH ENTRY ID');
-            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ Character Name:', characterName);
-            console.log('[NT-Lorebook] ║ Character Object BEFORE save:', JSON.stringify(character, null, 2));
-            console.log('[NT-Lorebook] ║ Lorebook Entry ID:', newUid);
-            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+            console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ SAVING CHARACTER WITH ENTRY ID
+╠════════════════════════════════════════════════════════════════
+║ Character Name: ${characterName}
+║ Character Object BEFORE save: ${JSON.stringify(character, null, 2)}
+║ Lorebook Entry ID: ${newUid}
+╚════════════════════════════════════════════════════════════════`);
 
             await setCharacter(characterName, character);
 
-            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ CHARACTER SAVE COMPLETE');
-            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ Character Name:', characterName);
-            console.log('[NT-Lorebook] ║ Entry ID Saved:', character.lorebookEntryId);
-            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+            console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ CHARACTER SAVE COMPLETE
+╠════════════════════════════════════════════════════════════════
+║ Character Name: ${characterName}
+║ Entry ID Saved: ${character.lorebookEntryId}
+╚════════════════════════════════════════════════════════════════`);
 
             debug.log();
         }
 
         // Save the lorebook
         try {
-            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ SAVING LOREBOOK TO DISK');
-            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ Lorebook Name:', lorebookName);
-            console.log('[NT-Lorebook] ║ Total Entries:', Object.keys(worldInfo.entries).length);
-            console.log('[NT-Lorebook] ║ Entry UIDs:', Object.keys(worldInfo.entries));
-            console.log('[NT-Lorebook] ║ WorldInfo Structure:', JSON.stringify({
+            const worldInfoStructure = {
                 entryCount: Object.keys(worldInfo.entries).length,
                 entryKeys: Object.keys(worldInfo.entries),
                 sampleEntry: Object.values(worldInfo.entries)[0] ? {
@@ -426,54 +420,62 @@ export async function updateLorebookEntry(character, characterName) {
                     key: Object.values(worldInfo.entries)[0].key,
                     contentLength: Object.values(worldInfo.entries)[0].content.length,
                 } : 'NONE',
-            }, null, 2));
-            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+            };
+            console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ SAVING LOREBOOK TO DISK
+╠════════════════════════════════════════════════════════════════
+║ Lorebook Name: ${lorebookName}
+║ Total Entries: ${Object.keys(worldInfo.entries).length}
+║ Entry UIDs: ${Object.keys(worldInfo.entries).join(', ')}
+║ WorldInfo Structure: ${JSON.stringify(worldInfoStructure, null, 2)}
+╚════════════════════════════════════════════════════════════════`);
 
             await context.saveWorldInfo(lorebookName, worldInfo, true);
 
-            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ LOREBOOK SAVE COMPLETE');
-            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ Lorebook Name:', lorebookName);
-            console.log('[NT-Lorebook] ║ Save Successful: YES');
-            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+            console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ LOREBOOK SAVE COMPLETE
+╠════════════════════════════════════════════════════════════════
+║ Lorebook Name: ${lorebookName}
+║ Save Successful: YES
+╚════════════════════════════════════════════════════════════════`);
 
             // Verify the save worked by reloading
-            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ VERIFYING LOREBOOK SAVE');
-            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ Reloading:', lorebookName);
-            console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+            console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ VERIFYING LOREBOOK SAVE
+╠════════════════════════════════════════════════════════════════
+║ Reloading: ${lorebookName}
+╚════════════════════════════════════════════════════════════════`);
 
             const verifyWorldInfo = await context.loadWorldInfo(lorebookName);
             const targetUid = existingUid || character.lorebookEntryId;
 
-            console.log('[NT-Lorebook] ╔════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ VERIFICATION RESULTS');
-            console.log('[NT-Lorebook] ╠════════════════════════════════════════════════════════════════');
-            console.log('[NT-Lorebook] ║ Target UID:', targetUid);
-            console.log('[NT-Lorebook] ║ Verification Data Loaded?:', !!verifyWorldInfo);
-            console.log('[NT-Lorebook] ║ Has Entries Object?:', !!verifyWorldInfo?.entries);
-            console.log('[NT-Lorebook] ║ Available Entry UIDs:', Object.keys(verifyWorldInfo?.entries || {}));
-            console.log('[NT-Lorebook] ║ Target Entry Found?:', !!(verifyWorldInfo?.entries?.[targetUid]));
+            console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
+║ VERIFICATION RESULTS
+╠════════════════════════════════════════════════════════════════
+║ Target UID: ${targetUid}
+║ Verification Data Loaded?: ${!!verifyWorldInfo}
+║ Has Entries Object?: ${!!verifyWorldInfo?.entries}
+║ Available Entry UIDs: ${Object.keys(verifyWorldInfo?.entries || {}).join(', ')}
+║ Target Entry Found?: ${!!(verifyWorldInfo?.entries?.[targetUid])}`);
 
             if (verifyWorldInfo && verifyWorldInfo.entries && verifyWorldInfo.entries[targetUid]) {
-                console.log('[NT-Lorebook] ║ ✅ VERIFICATION: SUCCESS');
-                console.log('[NT-Lorebook] ║ Entry Data:', JSON.stringify({
+                const entryData = {
                     uid: verifyWorldInfo.entries[targetUid].uid,
                     key: verifyWorldInfo.entries[targetUid].key,
                     enabled: verifyWorldInfo.entries[targetUid].enabled,
                     contentLength: verifyWorldInfo.entries[targetUid].content.length,
-                }, null, 2));
-                console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
+                };
+                console.log(`[NT-Lorebook] ║ ✅ VERIFICATION: SUCCESS
+║ Entry Data: ${JSON.stringify(entryData, null, 2)}
+╚════════════════════════════════════════════════════════════════`);
                 debug.log();
             } else {
-                console.log('[NT-Lorebook] ║ ❌ VERIFICATION: FAILED');
-                console.log('[NT-Lorebook] ║ Entry NOT found in reloaded lorebook!');
-                console.log('[NT-Lorebook] ╚════════════════════════════════════════════════════════════════');
-                console.error('[NT-Lorebook] ❌ WARNING: Lorebook verification failed - entries may not have been saved!');
-                console.error('[NT-Lorebook]    Target UID:', targetUid);
-                console.error('[NT-Lorebook]    Available entries:', Object.keys(verifyWorldInfo?.entries || {}));
+                console.log(`[NT-Lorebook] ║ ❌ VERIFICATION: FAILED
+║ Entry NOT found in reloaded lorebook!
+╚════════════════════════════════════════════════════════════════`);
+                console.error(`[NT-Lorebook] ❌ WARNING: Lorebook verification failed - entries may not have been saved!
+   Target UID: ${targetUid}
+   Available entries: ${Object.keys(verifyWorldInfo?.entries || {}).join(', ')}`);
                 console.error('[Name Tracker] WARNING: Lorebook verification failed - entries may not have been saved!');
             }
 

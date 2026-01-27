@@ -1089,17 +1089,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
 
         // Prompt is acceptable length, proceed with analysis
         debug.log(`Calling LLM with prompt (${promptTokens} tokens)...`);
-        console.log('[NT-Prompt] Prompt composition:');
-        console.log('SYSTEM (' + systemMessage.length + ' chars):');
-        console.log('='.repeat(80));
-        console.log(systemMessage);
-        console.log('='.repeat(80));
-        console.log('USER (' + userPrompt.length + ' chars):');
-        console.log('='.repeat(80));
-        console.log(userPrompt);
-        console.log('='.repeat(80));
-        console.log('PREFILL:', prefill);
-        console.log('='.repeat(80));
+        console.log(`[NT-Prompt] Composition: SYSTEM(${systemMessage.length} chars) + USER(${userPrompt.length} chars) + PREFILL`);
 
         let result;
 
