@@ -29,8 +29,90 @@ function debugLog(message, data = null) {
 }
 
 // ============================================================================
-// CONFIGURATION CONSTANTS - Merge confidence thresholds and detection parameters
+// CHARACTER-LOREBOOK SYNCHRONIZATION
 // ============================================================================
+
+/**
+ * Validate character-lorebook synchronization
+ * Ensures 1:1 relationship between characters and lorebook entries
+ * @returns {Promise<{valid: boolean, issues: string[]}>} Validation results
+ */
+export async function validateCharacterLorebookSync() {
+    return withErrorBoundary('validateCharacterLorebookSync', async () => {
+        const characters = await getCharacters();
+        const issues = [];
+        let orphanedCharacters = 0;
+        let orphanedEntries = 0;
+
+        debugLog('🔍 Validating character-lorebook synchronization...');
+
+        // Check each character has a valid lorebook entry ID
+        for (const [name, character] of Object.entries(characters)) {
+            if (!character.lorebookEntryId) {
+                issues.push(`Character '${name}' missing lorebookEntryId`);
+                orphanedCharacters++;
+            }
+        }
+
+        // Get lorebook stats to compare counts
+        try {
+            const { getLorebookStats } = await import('./lorebook.js');
+            const stats = await getLorebookStats();
+            const characterCount = Object.keys(characters).length;
+            
+            if (stats.totalEntries !== characterCount) {
+                issues.push(`Count mismatch: ${characterCount} characters vs ${stats.totalEntries} lorebook entries`);
+            }
+            
+            debugLog(`📊 Sync validation: ${characterCount} characters, ${stats.totalEntries} entries`);
+            
+        } catch (error) {
+            issues.push(`Could not validate lorebook entries: ${error.message}`);
+        }
+
+        const valid = issues.length === 0;
+        
+        if (!valid) {
+            console.warn('[NT-Characters] ⚠️ Character-Lorebook sync issues:', issues);
+        } else {
+            debugLog('✅ Character-lorebook synchronization validated');
+        }
+
+        return { valid, issues };
+    });
+}
+
+/**
+ * Repair character-lorebook synchronization issues
+ * @returns {Promise<{repaired: number, errors: string[]}>} Repair results
+ */
+export async function repairCharacterLorebookSync() {
+    return withErrorBoundary('repairCharacterLorebookSync', async () => {
+        const characters = await getCharacters();
+        const { updateLorebookEntry } = await import('./lorebook.js');
+        let repaired = 0;
+        const errors = [];
+
+        debugLog('🔧 Repairing character-lorebook synchronization...');
+
+        for (const [name, character] of Object.entries(characters)) {
+            try {
+                if (!character.lorebookEntryId) {
+                    debugLog(`🔧 Creating missing lorebook entry for: ${name}`);
+                    await updateLorebookEntry(character, name);
+                    repaired++;
+                }
+            } catch (error) {
+                const errorMsg = `Failed to repair ${name}: ${error.message}`;
+                errors.push(errorMsg);
+                console.error(`[NT-Characters] ${errorMsg}`);
+            }
+        }
+
+        debugLog(`🔧 Repair complete: ${repaired} entries repaired, ${errors.length} errors`);
+        return { repaired, errors };
+    });
+}
 
 // Merge Confidence Tiers (as percentages: 0-100)
 const MERGE_CONFIDENCE_HIGH = 0.9;      // 90%+ - Automatic merge (e.g., exact substring: "Jazz"/"Jasmine")
@@ -43,68 +125,263 @@ const MERGE_CONFIDENCE_LOW = 0.5;       // 50%+ - No automatic action (may indic
 // ============================================================================
 
 /**
- * Validate and clean character data from LLM response
- * Fixes name/alias separation and relationship format issues
- * @param {Object} character - Raw character data from LLM
- * @returns {Object} Cleaned character data
+ * Parse and normalize relationship strings from the new natural language format
+ * Handles: "Character A is to Character B: relationship1, relationship2"
+ * @param {Array<string>} relationships - Raw relationship strings from LLM
+ * @param {string} currentCharName - Name of the current character
+ * @param {Object} allCharacters - All known characters for name resolution
+ * @returns {Array<string>} Normalized relationship triplets
  */
-function validateCharacterData(character) {
-    if (!character) return character;
-    
-    const cleaned = { ...character };
-    
-    // Fix name/alias separation - remove comma-separated names
-    if (cleaned.name && cleaned.name.includes(',')) {
-        const nameParts = cleaned.name.split(',').map(part => part.trim());
-        cleaned.name = nameParts[0]; // Use first part as main name
+function parseNewRelationshipFormat(relationships, currentCharName, allCharacters) {
+    if (!relationships || !Array.isArray(relationships)) {
+        return [];
+    }
+
+    debugLog(`🔄 Parsing ${relationships.length} new-format relationships for ${currentCharName}`);
+    const parsedTriplets = [];
+
+    for (const rel of relationships) {
+        if (!rel || typeof rel !== 'string') continue;
+
+        // Parse format: "Character A is to Character B: relationship1, relationship2"
+        const match = rel.match(/^(.+?)\s+is\s+to\s+(.+?):\s*(.+)$/i);
+        if (!match) {
+            debugLog(`❌ Failed to parse relationship format: "${rel}"`);
+            continue;
+        }
+
+        const [, char1, char2, relationshipsPart] = match;
+        const char1Trimmed = char1.trim();
+        const char2Trimmed = char2.trim();
         
-        // Add remaining parts to aliases if not already present
-        const additionalAliases = nameParts.slice(1);
-        cleaned.aliases = cleaned.aliases || [];
-        additionalAliases.forEach(alias => {
-            if (!cleaned.aliases.includes(alias) && alias !== cleaned.name && alias.length > 0) {
-                cleaned.aliases.push(alias);
+        // Normalize character names to preferred names
+        const normalizedChar1 = findPreferredName(char1Trimmed, allCharacters);
+        const normalizedChar2 = findPreferredName(char2Trimmed, allCharacters);
+        
+        if (!normalizedChar1 || !normalizedChar2) {
+            debugLog(`❌ Could not normalize names: "${char1Trimmed}" -> "${normalizedChar1}", "${char2Trimmed}" -> "${normalizedChar2}"`);
+            continue;
+        }
+
+        // Split multiple relationships and create individual triplets
+        const relationshipTypes = relationshipsPart.split(',').map(r => r.trim());
+        
+        for (const relType of relationshipTypes) {
+            if (relType) {
+                const triplet = `${normalizedChar1}, ${normalizedChar2}, ${relType.toLowerCase()}`;
+                parsedTriplets.push(triplet);
+                debugLog(`✅ Parsed: "${rel}" -> "${triplet}"`);
             }
+        }
+    }
+
+    debugLog(`📝 Converted ${relationships.length} relationships to ${parsedTriplets.length} triplets`);
+    return parsedTriplets;
+}
+/**
+ * Normalize and rationalize character relationships with new natural language format
+ * @param {Array<string>} relationships - Raw relationship strings from LLM
+ * @param {string} currentCharName - Name of the current character
+ * @param {Object} allCharacters - All known characters for name resolution
+ * @returns {Array<string>} Cleaned relationship triplets
+ */
+function rationalizeRelationships(relationships, currentCharName, allCharacters) {
+    if (!relationships || !Array.isArray(relationships)) {
+        return [];
+    }
+
+    debugLog(`🔧 Rationalizing ${relationships.length} relationships for ${currentCharName}`);
+
+    // First, check for legacy triplet format and warn
+    const hasLegacyTriplets = relationships.some(rel => {
+        if (typeof rel === 'string') {
+            const parts = rel.split(',');
+            return parts.length === 3 && !rel.includes(' is to ');
+        }
+        return false;
+    });
+    
+    if (hasLegacyTriplets) {
+        debugLog(`⚠️ WARNING: Detected legacy triplet format in relationships. LLM should use new format.`);
+    }
+
+    // Determine if we're dealing with new format or legacy triplets
+    const hasNewFormat = relationships.some(rel => typeof rel === 'string' && /\s+is\s+to\s+.+:/.test(rel));
+    
+    let parsedTriplets;
+    if (hasNewFormat) {
+        // Parse new natural language format
+        parsedTriplets = parseNewRelationshipFormat(relationships, currentCharName, allCharacters);
+    } else {
+        // Handle legacy triplet format
+        parsedTriplets = relationships.filter(rel => {
+            if (!rel || typeof rel !== 'string') return false;
+            const parts = rel.split(',');
+            return parts.length === 3 && parts.every(part => part.trim().length > 0);
         });
+    }
+
+    if (parsedTriplets.length === 0) {
+        debugLog(`❌ No valid relationships found after parsing`);
+        return [];
+    }
+
+    // Continue with existing rationalization logic for the triplets
+    const relationshipObjects = [];
+    
+    for (const triplet of parsedTriplets) {
+        const parts = triplet.split(',').map(part => part.trim());
+        if (parts.length !== 3) continue;
         
-        debugLog(`Fixed name/alias separation: "${character.name}" → name: "${cleaned.name}", aliases: ${JSON.stringify(cleaned.aliases)}`);
+        const [char1, char2, relationship] = parts;
+        
+        // Normalize character names again (in case of legacy format)
+        const normalizedChar1 = findPreferredName(char1, allCharacters);
+        const normalizedChar2 = findPreferredName(char2, allCharacters);
+        
+        if (normalizedChar1 && normalizedChar2 && relationship) {
+            relationshipObjects.push({
+                char1: normalizedChar1,
+                char2: normalizedChar2,
+                relationship: relationship.toLowerCase().trim(),
+                original: triplet
+            });
+        }
     }
+
+    debugLog(`📋 Processed ${relationshipObjects.length} relationship objects`);
+
+    // Group relationships by character pair for deduplication
+    const relationshipsByPair = new Map();
     
-    // Deduplicate aliases and remove character's own name from aliases
-    if (cleaned.aliases && Array.isArray(cleaned.aliases)) {
-        const originalCount = cleaned.aliases.length;
-        cleaned.aliases = [...new Set(cleaned.aliases)] // Remove duplicates
-            .filter(alias => alias && alias.trim() !== cleaned.name) // Remove own name
-            .map(alias => alias.trim()) // Trim whitespace
-            .filter(alias => alias.length > 0); // Remove empty strings
-            
-        if (originalCount !== cleaned.aliases.length) {
-            debugLog(`Cleaned aliases: ${originalCount} → ${cleaned.aliases.length} aliases`);
+    for (const rel of relationshipObjects) {
+        const pairKey = `${rel.char1}|${rel.char2}`;
+        
+        if (!relationshipsByPair.has(pairKey)) {
+            relationshipsByPair.set(pairKey, []);
+        }
+        relationshipsByPair.get(pairKey).push(rel);
+    }
+
+    // Rationalize each character pair
+    const finalizedRelationships = [];
+    
+    for (const [pairKey, rels] of relationshipsByPair.entries()) {
+        const rationalized = rationalizeRelationshipGroup(rels);
+        if (rationalized) {
+            finalizedRelationships.push(`${rationalized.char1}, ${rationalized.char2}, ${rationalized.relationship}`);
+        }
+    }
+
+    debugLog(`✅ Finalized ${finalizedRelationships.length} relationships (reduced from ${relationships.length})`);
+    
+    return finalizedRelationships;
+}
+
+/**
+ * Find the preferred canonical name for a character
+ * @param {string} name - Name variant to resolve
+ * @param {Object} allCharacters - All known characters
+ * @returns {string|null} Preferred name or null if not found
+ */
+function findPreferredName(name, allCharacters) {
+    if (!name || !allCharacters) return name;
+    
+    // First, try exact match on preferred names
+    for (const [preferredName, character] of Object.entries(allCharacters)) {
+        if (preferredName === name) {
+            return preferredName;
         }
     }
     
-    // Validate relationships format - only keep properly formatted triplets
-    if (cleaned.relationships && Array.isArray(cleaned.relationships)) {
-        const originalCount = cleaned.relationships.length;
-        cleaned.relationships = cleaned.relationships
-            .filter(rel => {
-                if (!rel || typeof rel !== 'string') return false;
-                
-                // Check for triplet format: "currentchar, otherchar, relationship"
-                const parts = rel.split(',');
-                if (parts.length !== 3) return false;
-                
-                // Ensure all parts have content
-                return parts.every(part => part.trim().length > 0);
-            })
-            .map(rel => rel.trim()); // Clean up whitespace
-            
-        if (originalCount !== cleaned.relationships.length) {
-            debugLog(`Filtered relationships: ${originalCount} → ${cleaned.relationships.length} valid triplets`);
+    // Then try aliases
+    for (const [preferredName, character] of Object.entries(allCharacters)) {
+        if (character.aliases && character.aliases.includes(name)) {
+            return preferredName;
         }
     }
     
-    return cleaned;
+    // Return original if no match found
+    return name;
+}
+
+/**
+ * Rationalize a group of relationships for the same character pair
+ * Now maintains multiple compatible relationships instead of choosing just one
+ * @param {Array} relationships - Array of relationship objects for same pair
+ * @returns {Object|null} Single rationalized relationship or null
+ */
+function rationalizeRelationshipGroup(relationships) {
+    if (!relationships || relationships.length === 0) return null;
+    
+    const relTypes = relationships.map(r => r.relationship);
+    debugLog(`🎯 Rationalizing group: [${relTypes.join(', ')}]`);
+    
+    // Deduplication mapping - convert synonyms to canonical forms
+    const equivalents = {
+        'sexual partner': 'lover',
+        'romantic partner': 'lover',
+        'boyfriend': 'lover',
+        'girlfriend': 'lover',
+        'husband': 'spouse',
+        'wife': 'spouse',
+        'father': 'parent',
+        'mother': 'parent',
+        'son': 'child',
+        'daughter': 'child',
+        'brother': 'sibling',
+        'sister': 'sibling',
+        'manager': 'boss',
+        'supervisor': 'boss'
+    };
+    
+    // Normalize to canonical forms and remove duplicates
+    const normalizedRels = [...new Set(relTypes.map(rel => equivalents[rel] || rel))];
+    
+    // Remove contradictory relationships (keep the first one found)
+    const contradictions = [
+        ['dominant', 'submissive'],
+        ['leader', 'follower'],
+        ['boss', 'employee'],
+        ['parent', 'child']
+    ];
+    
+    let filteredRels = [...normalizedRels];
+    for (const [rel1, rel2] of contradictions) {
+        const hasRel1 = filteredRels.includes(rel1);
+        const hasRel2 = filteredRels.includes(rel2);
+        
+        if (hasRel1 && hasRel2) {
+            // Keep the first one, remove the second
+            const index1 = filteredRels.indexOf(rel1);
+            const index2 = filteredRels.indexOf(rel2);
+            
+            if (index1 < index2) {
+                filteredRels = filteredRels.filter(r => r !== rel2);
+                debugLog(`🚫 Removed contradictory '${rel2}', kept '${rel1}'`);
+            } else {
+                filteredRels = filteredRels.filter(r => r !== rel1);
+                debugLog(`🚫 Removed contradictory '${rel1}', kept '${rel2}'`);
+            }
+        }
+    }
+    
+    if (filteredRels.length === 0) {
+        debugLog(`❌ No relationships left after filtering contradictions`);
+        return null;
+    }
+    
+    // Combine multiple relationships with commas (new approach)
+    const combinedRelationship = filteredRels.join(', ');
+    
+    debugLog(`🎯 Combined relationships: "${combinedRelationship}" from [${relTypes.join(', ')}]`);
+    
+    const baseRel = relationships[0];
+    return {
+        char1: baseRel.char1,
+        char2: baseRel.char2,
+        relationship: combinedRelationship
+    };
 }
 
 // Substring Matching Thresholds
@@ -467,8 +744,11 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
         debug.log();
         console.log('[NT-Characters] 🟦 createCharacter() called for:', analyzedChar.name);
         
+        // Get all characters for relationship normalization
+        const allCharacters = await getCharacters();
+        
         // Validate and clean character data from LLM
-        const cleanedChar = validateCharacterData(analyzedChar);
+        const cleanedChar = validateCharacterData(analyzedChar, allCharacters);
         
         // Clean and filter aliases
         const aliases = await cleanAliases(cleanedChar.aliases || [], cleanedChar.name);
@@ -498,8 +778,15 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
         await setCharacter(character.preferredName, character);
         console.log('[NT-Characters] 🟦 Created and saved character:', character.preferredName);
 
-        // Create lorebook entry
+        // Create lorebook entry and ensure ID is saved
         await updateLorebookEntry(character, character.preferredName);
+        
+        // Verify lorebook entry was created successfully
+        if (!character.lorebookEntryId) {
+            console.warn(`[NT-Characters] ⚠️ Lorebook entry creation may have failed for: ${character.preferredName}`);
+        } else {
+            debugLog(`✅ Lorebook entry created with ID: ${character.lorebookEntryId}`);
+        }
 
         debug.log();
 
@@ -519,8 +806,11 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
     return withErrorBoundary('updateCharacter', async () => {
         debug.log();
 
+        // Get all characters for relationship normalization
+        const allCharacters = await getCharacters();
+
         // Validate and clean new character data from LLM
-        const cleanedChar = validateCharacterData(analyzedChar);
+        const cleanedChar = validateCharacterData(analyzedChar, allCharacters);
 
         // Mark as main character if detected
         if (isMainChar) {

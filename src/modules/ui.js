@@ -8,7 +8,7 @@
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
 import {
-    get_settings,
+    get_settings, set_settings,
     getCharacters, getCharacter, setCharacter, removeCharacter,
     getSetting, setSetting,
 } from '../core/settings.js';
@@ -139,16 +139,27 @@ export function updateStatusDisplay() {
 
         const characters = await getCharacters();
         const characterCount = Object.keys(characters).length;
-        const messageCounter = getSetting('messageCounter', 0);
-        const lastScannedId = getSetting('lastScannedMessageId', -1);
-        const messageFreq = getSetting('messageFrequency', 10);
+        
+        // Await settings to avoid Promise objects and ensure proper types
+        const messageCounter = await getSetting('messageCounter') || 0;
+        const lastScannedId = await getSetting('lastScannedMessageId') || -1;
+        const messageFreq = await getSetting('messageFrequency') || 10;
 
         const context = stContext.getContext();
         const currentMessageId = context?.chat?.length || 0;
-        const pendingMessages = Math.max(0, currentMessageId - lastScannedId);
-        const progressText = messageCounter > 0 ? ` (${messageCounter} analyzed)` : '';
-        const currentChatLength = context.chat ? context.chat.length : 0;
-        const messagesToNextScan = Math.max(0, messageFreq - (currentChatLength - lastScannedId));
+        
+        // Ensure numeric values to prevent NaN
+        const safeLastScanned = typeof lastScannedId === 'number' ? lastScannedId : -1;
+        const safeMessageCounter = typeof messageCounter === 'number' ? messageCounter : 0;
+        const safeMessageFreq = typeof messageFreq === 'number' ? messageFreq : 10;
+        const safeChatLength = typeof currentMessageId === 'number' ? currentMessageId : 0;
+        
+        const pendingMessages = Math.max(0, safeChatLength - safeLastScanned);
+        const progressText = safeMessageCounter > 0 ? ` (${safeMessageCounter} analyzed)` : '';
+        const messagesToNextScan = Math.max(0, safeMessageFreq - (safeChatLength - safeLastScanned));
+
+        // Debug logging
+        console.log(`[NT-Status] Characters: ${characterCount}, Messages: ${safeChatLength}, LastScanned: ${safeLastScanned}, Pending: ${pendingMessages}`);
 
         const statusHtml = `
             <div class="name_tracker_status">
@@ -156,10 +167,10 @@ export function updateStatusDisplay() {
                     <strong>Characters tracked:</strong> ${characterCount}${progressText}
                 </div>
                 <div class="status-item">
-                    <strong>Messages in chat:</strong> ${currentChatLength}
+                    <strong>Messages in chat:</strong> ${safeChatLength}
                 </div>
                 <div class="status-item">
-                    <strong>Last scanned message:</strong> ${lastScannedId >= 0 ? lastScannedId + 1 : 'None'}
+                    <strong>Last scanned message:</strong> ${safeLastScanned >= 0 ? safeLastScanned + 1 : 'None'}
                 </div>
                 <div class="status-item">
                     <strong>Pending messages:</strong> ${pendingMessages}

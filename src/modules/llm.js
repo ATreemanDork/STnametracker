@@ -168,24 +168,50 @@ ALIASES FIELD RULES:
 - Nicknames, shortened names, titles, alternative spellings
 - Examples: ["John", "Scout", "JB", "Mr. Blackwood"]
 
-RELATIONSHIPS FIELD - STRICT TRIPLET FORMAT ONLY:
-MANDATORY FORMAT: "currentchar, otherchar, relationship"
+RELATIONSHIPS FIELD - NATURAL LANGUAGE FORMAT:
+🚨 CRITICAL: ONLY use this format: "Character A is to Character B: relationship1, relationship2"
+
+⛔ FORBIDDEN FORMATS:
+- "Character, Other, relationship" (OLD TRIPLET FORMAT - DO NOT USE)
+- "Character A, Character B, relationship" (OLD TRIPLET FORMAT - DO NOT USE)
+
+✅ MANDATORY FORMAT: "Character A is to Character B: relationship1, relationship2"
+
+⚠️ CRITICAL NAMING REQUIREMENTS:
+- ALWAYS use the character's CANONICAL/PREFERRED name in relationships
+- If "John Blackwood" is the main name, use "John Blackwood" NOT "John" 
+- Maintain name consistency across ALL relationship entries
+- Multiple relationships for same pair: separate with commas
 
 ✅ CORRECT examples:
-- "John, Julia, son" (John is Julia's son)
-- "Sarah, John, rival" (Sarah is John's rival)  
-- "Maria, Alex, sister" (Maria is Alex's sister)
-- "John, Bill, friend" (John is Bill's friend)
+- "Dora is to John Blackwood: lover, submissive"
+- "Maya is to Sarah Chen: sister, gymnastics partner"
+- "John Blackwood is to Julia Martinez: son"
+- "Sarah Chen is to John Blackwood: rival, former colleague"
 
-❌ FORBIDDEN - NO narrative text:
-- "Living in luxury penthouse since age 17"
-- "Writing under 6 different pen names"
-- "Leader of the current group seeking safety"
-- "Takes charge of organizing rescue mission"
-- "Offering shelter and guidance to others"
+❌ FORBIDDEN patterns:
+- "Dora, John, lover" (OLD FORMAT - NEVER USE)
+- "Dora, John Blackwood, lover" (OLD FORMAT - NEVER USE)
+- "John, Jasmine, friend" (OLD FORMAT - NEVER USE)
+- "Dora is to John: lover" + "Dora is to John Blackwood: lover" (inconsistent naming)
+- Narrative text: "Living in luxury penthouse since age 17"
+- Actions/events: "Takes charge of organizing rescue mission"
 
-CRITICAL: Relationships describe WHO this character is TO other characters, not actions, events, background, or history.
-Only include direct interpersonal connections: family, romantic, friendship, professional, rivalry relationships.
+🔄 RELATIONSHIP GUIDELINES:
+- List multiple relationship types for richer character connections
+- Use specific terms: "lover, dominant" instead of just "lover"
+- Family relationships can be combined: "sister, best friend"
+- Professional + personal: "boss, mentor" or "colleague, friend"
+- Avoid contradictions: don't use "dominant" and "submissive" together
+
+✅ RELATIONSHIP EXAMPLES:
+- "Emma is to David: wife, business partner"
+- "Marcus is to Elena: brother, protector"
+- "Jessica is to Robert: student, admirer"
+- "Alex is to Morgan: rival, former friend"
+
+CRITICAL: Relationships describe WHO this character is TO other characters.
+Focus on interpersonal connections: family, romantic, friendship, professional, rivalry relationships.
 
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.
@@ -209,9 +235,11 @@ ALIAS EXAMPLES:
 ✅ ["Marie", "Maria"]
 ✅ ["Mom", "Mother", "Sarah"]
 
-RELATIONSHIP TRIPLET EXAMPLES:
-✅ ["John, Julia, son", "Sarah, John, rival", "Maria, Alex, sister"]
+RELATIONSHIP EXAMPLES:
+✅ ["Dora is to John Blackwood: lover, submissive", "Maya is to Sarah Chen: sister, gymnastics partner"]
 ❌ ["Lives in penthouse", "Writing novels", "Leading group", "Met at bar"]
+❌ ["Dora, John, lover", "John, Jasmine, friend"] (OLD TRIPLET FORMAT - NEVER USE)
+❌ ["Dora is to John: lover", "Dora is to John Blackwood: submissive"] (split relationships)
 
 🔥 FINAL REMINDER - CRITICAL FOR SUCCESS:
 Your response must start with { immediately and end with } immediately.
