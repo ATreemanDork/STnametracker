@@ -595,7 +595,7 @@ export async function getMaxPromptLength() {
 
                 // Check if context is fully loaded
                 if (!context || !detectedMaxContext) {
-                    logEntry('WARNING: Could not detect maxContext from any path, using fallback (4096)');
+                    logEntry('WARNING: Could not detect maxContext from any path, using fallback (8192)');
                     logEntry(`Context exists: ${!!context}, detectedMaxContext: ${detectedMaxContext}`);
                     if (context) {
                         try {
@@ -605,31 +605,30 @@ export async function getMaxPromptLength() {
                             logEntry(`Could not enumerate context keys: ${e.message}`);
                         }
                     }
-                    maxContext = 4096;
-                    maxGenTokens = 1024;
+                    maxContext = 8192; // Use minimum required context as fallback
                     detectionMethod = 'fallback';
                 } else {
                     maxContext = Math.floor(detectedMaxContext);
                     logEntry(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
-
-                    // For our extension's background analysis, we set our own max_tokens in generateRaw()
-                    // We don't use amount_gen (that's for user chat messages)
-                    // Reserve a reasonable amount for our structured JSON responses
-                    // Reduced to 2048 to prevent truncation issues and malformed JSON
-                    maxGenTokens = Math.min(2048, Math.floor(maxContext * 0.15)); // 15% or 2048, whichever is lower
-
-                    logEntry(`Extension will request max ${maxGenTokens} tokens for analysis responses (15% of context, capped at 2048)`);
+                    detectionMethod = detectionMethod; // Keep the method that worked
                 }
             }
 
-            // Reserve space for: system prompt (500 tokens) + max generation (maxGenTokens) + safety margin (500)
-            const reservedTokens = 500 + maxGenTokens + 500;
-            const tokensForPrompt = Math.max(1000, maxContext - reservedTokens);
+            // Validate minimum context requirement (8K minimum)
+            if (maxContext < 8192) {
+                const errorMsg = `Model context too small: ${maxContext} tokens. Minimum required: 8192 tokens. Please use a model with larger context.`;
+                logEntry(errorMsg);
+                throw new NameTrackerError(errorMsg);
+            }
 
-            logEntry(`Token allocation: maxContext=${maxContext}, reserved=${reservedTokens}, available=${tokensForPrompt}`);
+            // Use generous context allocation for prompts (60% for prompt, 40% for response)
+            // Remove artificial 50K ceiling to use full available context
+            const tokensForPrompt = Math.floor(maxContext * 0.6);
+
+            logEntry(`Token allocation: maxContext=${maxContext}, promptAllocation=${tokensForPrompt}, responseAllocation=${maxContext - tokensForPrompt}`);
             logEntry(`Final detection method: ${detectionMethod}`);
 
-            const finalValue = Math.max(1000, Math.min(tokensForPrompt, 50000));
+            const finalValue = Math.max(1000, tokensForPrompt);
             logEntry(`Returning maxPromptLength: ${finalValue}`);
 
             // Return object with detection details
@@ -645,9 +644,9 @@ export async function getMaxPromptLength() {
             console.error('[NT-MaxContext] Stack:', error.stack);
             // Return conservative fallback on any error with details
             return {
-                maxPrompt: 3276, // Based on default 4096 context with reserves
+                maxPrompt: 4915, // Based on 8192 minimum context with 60% allocation
                 detectionMethod: 'error',
-                maxContext: 4096,
+                maxContext: 8192, // Minimum required context
                 debugLog: detectionLog.join('\n') + '\nFATAL ERROR: ' + error.message,
             };
         }
@@ -742,12 +741,11 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
             debug.log();
         }
 
-        // Calculate max_tokens: reduced to prevent truncation and malformed JSON
-        // Use 2048 tokens max to ensure responses complete without syntax errors
-        const maxContext = context.maxContext || 4096;
-        const calculatedMaxTokens = Math.min(2048, Math.floor(maxContext * 0.15));
-        const maxTokens = Math.max(1500, calculatedMaxTokens);
-        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Calculated maxTokens:', maxTokens);
+        // Calculate response tokens: use generous allocation within available context
+        const maxContext = context.maxContext || 8192;
+        // promptTokens is already calculated above via getTokenCountAsync or estimation
+        const maxTokens = Math.max(8192, maxContext - promptTokens - 1000); // Generous response allocation with safety buffer
+        if (DEBUG_LOGGING) console.log('[NT-ST-Call] Max context:', maxContext, 'Prompt tokens:', promptTokens, 'Response tokens:', maxTokens);
         debug.log();
 
         // Retry logic: attempt up to 2 times with a short delay
@@ -935,11 +933,10 @@ export async function callOllama(prompt) {
 
         debug.log();
 
-        // Calculate max_tokens: reduced to prevent truncation and malformed JSON
-        // Use 2048 tokens max to ensure responses complete without syntax errors
+        // Calculate response tokens: use generous allocation within available context  
         const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
-        const calculatedMaxTokens = Math.min(2048, Math.floor(maxContext * 0.15));
-        const maxTokens = Math.max(1500, calculatedMaxTokens);
+        const promptTokens = Math.ceil(prompt.length / 4); // Rough estimate
+        const maxTokens = Math.max(8192, maxContext - promptTokens - 1000); // Generous response allocation with safety buffer
         debug.log();
 
         const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
@@ -959,7 +956,7 @@ export async function callOllama(prompt) {
                     top_p: GENERATION_TOP_P,                  // Focused sampling
                     top_k: GENERATION_TOP_K,                  // Standard focused sampling
                     repeat_penalty: GENERATION_REP_PEN,       // Slight repetition penalty
-                    num_predict: maxTokens,  // Dynamic: 25% of context, min 4000 (prevents truncation)
+                    num_predict: maxTokens,  // Dynamic: generous allocation using remaining context after prompt
                 },
             }),
         });
