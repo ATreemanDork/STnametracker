@@ -70,9 +70,9 @@ let undoHistory = []; // Store last 3 merge operations
  * @param {string} name - Character name to check
  * @returns {boolean} True if character is ignored
  */
-export function isIgnoredCharacter(name) {
-    return withErrorBoundary('isIgnoredCharacter', () => {
-        const chars = getCharacters();
+export async function isIgnoredCharacter(name) {
+    return withErrorBoundary('isIgnoredCharacter', async () => {
+        const chars = await getCharacters();
         return Object.values(chars).some(
             char => char.ignored && (char.preferredName === name || char.aliases.includes(name)),
         );
@@ -84,9 +84,9 @@ export function isIgnoredCharacter(name) {
  * @param {string} name - Name to search for
  * @returns {CharacterData|null} Character data if found, null otherwise
  */
-export function findExistingCharacter(name) {
-    return withErrorBoundary('findExistingCharacter', () => {
-        const chars = getCharacters();
+export async function findExistingCharacter(name) {
+    return withErrorBoundary('findExistingCharacter', async () => {
+        const chars = await getCharacters();
         const found = Object.values(chars).find(
             char => char.preferredName === name || char.aliases.includes(name),
         ) || null;
@@ -102,9 +102,9 @@ export function findExistingCharacter(name) {
  */
 export async function findPotentialMatch(analyzedChar) {
     return withErrorBoundary('findPotentialMatch', async () => {
-        const chars = getCharacters();
+        const chars = await getCharacters();
         // Use the user-configured confidence threshold (0-100)
-        const threshold = getSetting('confidenceThreshold', 70);
+        const threshold = await getSetting('confidenceThreshold', 70);
 
         debug.log();
 
@@ -224,12 +224,12 @@ export function cleanAliases(aliases, characterName) {
  * @param {string} newCharacterName - Name of the newly discovered character
  * @returns {Array} Array of potential merge targets with confidence scores
  */
-export function detectMergeOpportunities(newCharacterName) {
-    return withErrorBoundary('detectMergeOpportunities', () => {
+export async function detectMergeOpportunities(newCharacterName) {
+    return withErrorBoundary('detectMergeOpportunities', async () => {
         debugLog(`[MergeDetect] Checking merge opportunities for: ${newCharacterName}`);
 
         const potentialMatches = [];
-        const existingCharacters = getCharacters();
+        const existingCharacters = await getCharacters();
 
         if (!newCharacterName || typeof newCharacterName !== 'string') {
             debugLog('[MergeDetect] Invalid name provided');
@@ -460,7 +460,7 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
         }
 
         // Clean up all aliases using the helper function
-        existingChar.aliases = cleanAliases(existingChar.aliases || [], existingChar.preferredName);
+        existingChar.aliases = await cleanAliases(existingChar.aliases || [], existingChar.preferredName);
 
         // Update consolidated fields (new data takes precedence if not empty)
         if (analyzedChar.physicalAge) existingChar.physicalAge = analyzedChar.physicalAge;
@@ -506,7 +506,7 @@ export async function updateCharacter(existingChar, analyzedChar, addAsAlias = f
  */
 export async function mergeCharacters(sourceName, targetName) {
     return withErrorBoundary('mergeCharacters', async () => {
-        const chars = getCharacters();
+        const chars = await getCharacters();
 
         const sourceChar = chars[sourceName];
         const targetChar = chars[targetName];
@@ -615,7 +615,7 @@ export async function undoLastMerge() {
  */
 export async function toggleIgnoreCharacter(characterName) {
     return withErrorBoundary('toggleIgnoreCharacter', async () => {
-        const character = getCharacter(characterName);
+        const character = await getCharacter(characterName);
 
         if (!character) {
             throw new NameTrackerError('Character not found');
@@ -650,7 +650,7 @@ export async function createNewCharacter(characterName) {
         const trimmedName = characterName.trim();
 
         // Check if character already exists
-        if (getCharacter(trimmedName)) {
+        if (await getCharacter(trimmedName)) {
             throw new NameTrackerError(`Character "${trimmedName}" already exists`);
         }
 
@@ -687,7 +687,7 @@ export async function createNewCharacter(characterName) {
  */
 export async function purgeAllCharacters() {
     return withErrorBoundary('purgeAllCharacters', async () => {
-        const chars = getCharacters();
+        const chars = await getCharacters();
         const characterCount = Object.keys(chars).length;
 
         if (characterCount === 0) {
@@ -696,7 +696,7 @@ export async function purgeAllCharacters() {
         }
 
         // Clear all character data
-        set_chat_metadata('characters', {});
+        await set_chat_metadata('characters', {});
 
         // Clear undo history
         undoHistory = [];
@@ -713,13 +713,13 @@ export async function purgeAllCharacters() {
  * @param {CharacterData} character - Character to check
  * @returns {boolean} True if character has relationships to unknown characters
  */
-export function hasUnresolvedRelationships(character) {
-    return withErrorBoundary('hasUnresolvedRelationships', () => {
+export async function hasUnresolvedRelationships(character) {
+    return withErrorBoundary('hasUnresolvedRelationships', async () => {
         if (!character.relationships || character.relationships.length === 0) {
             return false;
         }
 
-        const chars = getCharacters();
+        const chars = await getCharacters();
         const knownNames = Object.values(chars).reduce((names, char) => {
             names.add(char.preferredName.toLowerCase());
             char.aliases.forEach(alias => names.add(alias.toLowerCase()));
@@ -756,9 +756,9 @@ export function clearUndoHistory() {
  * Export all characters as JSON
  * @returns {Object} Character data
  */
-export function exportCharacters() {
-    return withErrorBoundary('exportCharacters', () => {
-        return getCharacters();
+export async function exportCharacters() {
+    return withErrorBoundary('exportCharacters', async () => {
+        return await getCharacters();
     });
 }
 
@@ -777,7 +777,7 @@ export async function importCharacters(characterData, merge = false) {
         let importCount = 0;
 
         for (const [name, character] of Object.entries(characterData)) {
-            if (merge || !getCharacter(name)) {
+            if (merge || !await getCharacter(name)) {
                 await setCharacter(name, character);
                 importCount++;
             }

@@ -171,16 +171,16 @@ class NameTrackerExtension {
 
             // Initialize UI handlers
             console.log('[STnametracker] initializeUI: Initializing UI handlers...');
-            initializeUIHandlers();
+            await initializeUIHandlers();
             console.log('[STnametracker] initializeUI: UI handlers initialized');
 
             console.log('[STnametracker] initializeUI: Initializing menu buttons...');
-            initializeMenuButtons();
+            await initializeMenuButtons();
             console.log('[STnametracker] initializeUI: Menu buttons initialized');
 
             // Bind settings form handlers
             console.log('[STnametracker] initializeUI: Binding settings handlers...');
-            bindSettingsHandlers();
+            await bindSettingsHandlers();
             console.log('[STnametracker] initializeUI: Settings handlers bound');
 
             // Update UI to reflect current settings
@@ -262,13 +262,13 @@ class NameTrackerExtension {
 
     /**
      * Get extension status for debugging
-     * @returns {Object} Status information
+     * @returns {Promise<Object>} Status information
      */
-    getStatus() {
+    async getStatus() {
         return {
             initialized: this.initialized,
             context: sillyTavernContext.getStatus(),
-            settings: { initialized: true, moduleCount: Object.keys(get_settings()).length },
+            settings: { initialized: true, moduleCount: Object.keys(await get_settings()).length },
             debug: debugLogger.getPerformanceSummary(),
             errors: errorHandler.getRecentErrors(5).length,
         };
@@ -315,7 +315,7 @@ jQuery(async () => {
 
         // Call get_settings() to trigger default merge
         console.log('[STnametracker] Initializing defaults...');
-        const initialSettings = get_settings();
+        const initialSettings = await get_settings();
         console.log('[STnametracker] Settings initialized with defaults. llmSource:', initialSettings.llmSource);
         console.log('[STnametracker] Extension settings keys after init:', Object.keys(window.extension_settings[extensionName]));
 
@@ -330,8 +330,8 @@ jQuery(async () => {
         window.ntDebug = {
             status: () => nameTrackerExtension.getStatus(),
             errors: () => errorHandler.getRecentErrors(),
-            settings: () => get_settings(),
-            chatData: () => getChatData(),
+            settings: async () => await get_settings(),
+            chatData: async () => await getChatData(),
             clear: () => debugLogger.clear(),
         };
 

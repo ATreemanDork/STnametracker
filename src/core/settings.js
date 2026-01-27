@@ -247,7 +247,7 @@ async function setChatData(data) {
  */
 async function addCharacter(name, characterData) {
     return errorHandler.withErrorBoundary('Settings', async () => {
-        const characters = getCharacters();
+        const characters = await getCharacters();
         characters[name] = characterData;
         await setCharacters(characters); // AWAIT the async save
     });
@@ -259,7 +259,7 @@ async function addCharacter(name, characterData) {
  */
 async function removeCharacter(name) {
     return errorHandler.withErrorBoundary('Settings', async () => {
-        const characters = getCharacters();
+        const characters = await getCharacters();
         delete characters[name];
         await setCharacters(characters); // AWAIT the async save
     });
@@ -271,8 +271,8 @@ async function removeCharacter(name) {
  * @param {*} defaultValue - Default value if not found
  * @returns {*} Setting value
  */
-function getSetting(key, defaultValue) {
-    const settings = get_settings();
+async function getSetting(key, defaultValue) {
+    const settings = await get_settings();
     return settings[key] !== undefined ? settings[key] : defaultValue;
 }
 
@@ -281,10 +281,10 @@ function getSetting(key, defaultValue) {
  * @param {string} key - Setting key
  * @param {*} value - Setting value
  */
-function setSetting(key, value) {
+async function setSetting(key, value) {
     const update = {};
     update[key] = value;
-    set_settings(update);
+    await set_settings(update);
 }
 
 /**
@@ -292,13 +292,13 @@ function setSetting(key, value) {
  * @param {string} name - Character name
  * @returns {Object|null} Character data or null if not found
  */
-function getCharacter(name) {
-    return errorHandler.withErrorBoundary('Settings', () => {
+async function getCharacter(name) {
+    return errorHandler.withErrorBoundary('Settings', async () => {
         if (!name || typeof name !== 'string') {
             console.warn('[STnametracker] Invalid character name:', name);
             return null;
         }
-        const chars = getCharacters();
+        const chars = await getCharacters();
         return chars[name] || null;
     }, null);
 }
@@ -317,7 +317,7 @@ async function setCharacter(name, character) {
             throw new Error('Character data must be an object');
         }
         console.log('[NT-Settings] 🟩 setCharacter() called for:', name);
-        const chars = { ...getCharacters() };
+        const chars = { ...await getCharacters() };
         chars[name] = character;
         await setCharacters(chars); // AWAIT the async setCharacters
         debug.log(`Set character: ${name}`);
@@ -366,8 +366,8 @@ function getLorebookConfig() {
  * Alias for get_settings for compatibility
  * @returns {Object} Current settings
  */
-function getSettings() {
-    return get_settings();
+async function getSettings() {
+    return await get_settings();
 }
 
 /**

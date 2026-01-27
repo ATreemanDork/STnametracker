@@ -28,7 +28,7 @@ const notifications = new NotificationManager('UI Management');
  * @returns {void}
  */
 export function updateCharacterList() {
-    return withErrorBoundary('updateCharacterList', () => {
+    return withErrorBoundary('updateCharacterList', async () => {
         let $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
             // Fallback: create a minimal container if settings HTML wasn't loaded
@@ -45,7 +45,7 @@ export function updateCharacterList() {
         }
 
         console.log('[NT-UI] 🟡 updateCharacterList() called');
-        const characters = getCharacters();
+        const characters = await getCharacters();
         console.log('[NT-UI] 🟡 getCharacters() returned:', Object.keys(characters || {}));
         const characterNames = Object.keys(characters);
         console.log('[NT-UI] 🟡 Character count:', characterNames.length);
@@ -73,7 +73,7 @@ export function updateCharacterList() {
         for (const character of sortedCharacters) {
             const charIcon = character.isMainChar ? '<i class="fa-solid fa-user"></i>' : '';
             const ignoreIcon = character.ignored ? '<span class="char-ignored-badge">IGNORED</span>' : '';
-            const reviewBadge = hasUnresolvedRelationships(character) ? '<span class="char-review-badge">NEEDS REVIEW</span>' : '';
+            const reviewBadge = await hasUnresolvedRelationships(character) ? '<span class="char-review-badge">NEEDS REVIEW</span>' : '';
 
             const aliasText = character.aliases && character.aliases.length > 0
                 ? `<div class="char-aliases">Aliases: ${escapeHtml(character.aliases.join(', '))}</div>`
@@ -131,13 +131,13 @@ export function updateCharacterList() {
  * @returns {void}
  */
 export function updateStatusDisplay() {
-    return withErrorBoundary('updateStatusDisplay', () => {
+    return withErrorBoundary('updateStatusDisplay', async () => {
         const $statusContainer = $('#name_tracker_status_display');
         if ($statusContainer.length === 0) {
             return;
         }
 
-        const characters = getCharacters();
+        const characters = await getCharacters();
         const characterCount = Object.keys(characters).length;
         const messageCounter = getSetting('messageCounter', 0);
         const lastScannedId = getSetting('lastScannedMessageId', -1);
@@ -181,7 +181,7 @@ export function updateStatusDisplay() {
  */
 export async function showMergeDialog(sourceName) {
     return withErrorBoundary('showMergeDialog', async () => {
-        const characters = getCharacters();
+        const characters = await getCharacters();
 
         // Create list of other characters
         const otherChars = Object.keys(characters).filter(name => name !== sourceName);
@@ -245,7 +245,7 @@ export async function showCreateCharacterModal() {
  */
 export async function showPurgeConfirmation() {
     return withErrorBoundary('showPurgeConfirmation', async () => {
-        const characters = getCharacters();
+        const characters = await getCharacters();
         const characterCount = Object.keys(characters).length;
 
         if (characterCount === 0) {
@@ -352,9 +352,9 @@ export async function showSystemPromptEditor() {
  * Show character list modal
  * @returns {void}
  */
-export function showCharacterListModal() {
-    return withErrorBoundary('showCharacterListModal', () => {
-        const characters = Object.values(getCharacters() || {});
+export async function showCharacterListModal() {
+    return withErrorBoundary('showCharacterListModal', async () => {
+        const characters = Object.values(await getCharacters() || {});
 
         // Build character list HTML
         let charactersHtml = '';
@@ -374,7 +374,7 @@ export function showCharacterListModal() {
                 const badges = [];
                 if (char.isMainChar) badges.push('<span style="background: var(--SmartThemeBodyColor); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">MAIN</span>');
                 if (char.ignored) badges.push('<span style="background: var(--black70a); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">IGNORED</span>');
-                if (hasUnresolvedRelationships(char)) badges.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');
+                if (await hasUnresolvedRelationships(char)) badges.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');
 
                 const aliasText = char.aliases && char.aliases.length > 0
                     ? `<div style="font-size: 0.9em; color: var(--SmartThemeQuoteColor); margin-top: 3px;">Aliases: ${escapeHtml(char.aliases.join(', '))}</div>`
@@ -458,7 +458,7 @@ export function initializeUIHandlers() {
  */
 async function showEditLorebookModal(characterName) {
     return withErrorBoundary('showEditLorebookModal', async () => {
-        const character = getCharacter(characterName);
+        const character = await getCharacter(characterName);
 
         if (!character) {
             notifications.error('Character not found');
@@ -559,9 +559,9 @@ async function showEditLorebookModal(characterName) {
 
             // If preferred name changed, need to update the key in settings
             if (preferredName !== characterName) {
-                removeCharacter(characterName);
+                await removeCharacter(characterName);
             }
-            setCharacter(preferredName, character);
+            await setCharacter(preferredName, character);
 
             await updateCharacterList();
             await updateStatusDisplay();
@@ -606,12 +606,12 @@ export function addMenuButton(text, faIcon, callback, hover = null, className = 
 
 /**
  * Toggle auto-harvest on/off
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function toggleAutoHarvest() {
-    return withErrorBoundary('toggleAutoHarvest', () => {
-        const currentValue = getSetting('autoAnalyze', true);
-        setSetting('autoAnalyze', !currentValue);
+export async function toggleAutoHarvest() {
+    return withErrorBoundary('toggleAutoHarvest', async () => {
+        const currentValue = await getSetting('autoAnalyze', true);
+        await setSetting('autoAnalyze', !currentValue);
 
         // Update the settings UI
         $('#name_tracker_auto_analyze').prop('checked', !currentValue);
@@ -624,7 +624,7 @@ export function toggleAutoHarvest() {
             $menuButton.find('i').removeClass('fa-toggle-on').addClass('fa-toggle-off');
         }
 
-        updateStatusDisplay();
+        await updateStatusDisplay();
 
         notifications.success(
             `Auto-harvest ${!currentValue ? 'enabled' : 'disabled'}`,
@@ -661,9 +661,9 @@ export async function openChatLorebook() {
  * @returns {void}
  */
 export function initializeMenuButtons() {
-    return withErrorBoundary('initializeMenuButtons', () => {
+    return withErrorBoundary('initializeMenuButtons', async () => {
         // Add toggle auto-harvest button with visual state
-        const autoAnalyze = getSetting('autoAnalyze', true);
+        const autoAnalyze = await getSetting('autoAnalyze', true);
         const toggleIcon = autoAnalyze ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
         addMenuButton(
             'Toggle Auto-Harvest',
@@ -700,19 +700,19 @@ export function initializeMenuButtons() {
 export function bindSettingsHandlers() {
     return withErrorBoundary('bindSettingsHandlers', () => {
         // Main settings handlers
-        $('#name_tracker_enabled').on('input', (event) => {
-            setSetting('enabled', event.target.checked);
-            updateStatusDisplay();
+        $('#name_tracker_enabled').on('input', async (event) => {
+            await setSetting('enabled', event.target.checked);
+            await updateStatusDisplay();
         });
 
-        $('#name_tracker_auto_analyze').on('input', (event) => {
-            setSetting('autoAnalyze', event.target.checked);
-            updateStatusDisplay();
+        $('#name_tracker_auto_analyze').on('input', async (event) => {
+            await setSetting('autoAnalyze', event.target.checked);
+            await updateStatusDisplay();
         });
 
-        $('#name_tracker_message_frequency').on('input', (event) => {
-            setSetting('messageFrequency', parseInt(event.target.value) || 10);
-            updateStatusDisplay();
+        $('#name_tracker_message_frequency').on('input', async (event) => {
+            await setSetting('messageFrequency', parseInt(event.target.value) || 10);
+            await updateStatusDisplay();
         });
 
         $('#name_tracker_llm_source').on('change', (event) => {
@@ -811,8 +811,8 @@ export function bindSettingsHandlers() {
             await showDebugStatus();
         });
 
-        $('#name_tracker_dump_context').on('click', () => {
-            dumpContextToConsole();
+        $('#name_tracker_dump_context').on('click', async () => {
+            await dumpContextToConsole();
         });
 
         debug.log();
@@ -825,8 +825,8 @@ export function bindSettingsHandlers() {
  */
 function showDebugStatus() {
     return withErrorBoundary('showDebugStatus', async () => {
-        const settings = get_settings();
-        const characters = getCharacters();
+        const settings = await get_settings();
+        const characters = await getCharacters();
 
         // Reusable builder: compute debug info + HTML
         const buildDebugContent = async () => {
@@ -1059,10 +1059,10 @@ export async function loadSettingsHTML(extensionFolderPath) {
  * Shows all properties, values, and structure in readable format
  * @returns {void}
  */
-function dumpContextToConsole() {
-    return withErrorBoundary('dumpContextToConsole', () => {
+async function dumpContextToConsole() {
+    return withErrorBoundary('dumpContextToConsole', async () => {
         try {
-            const dump = stContext.dumpContextToConsole();
+            const dump = await stContext.dumpContextToConsole();
             notifications.success('Context dumped to console - Press F12 to view', 'Context Dump');
 
             // Also show a brief summary in a dialog

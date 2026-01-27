@@ -3,8 +3,10 @@
 /**
  * Async/Await Violation Detector
  * 
- * Finds functions wrapped in withErrorBoundary and detects if they're called
- * without await in places where it matters
+ * Finds functions that return withErrorBoundary (which ALWAYS returns Promise)
+ * and detects if they're called without await
+ * 
+ * KEY INSIGHT: withErrorBoundary is async, so ANY function returning it returns a Promise!
  */
 
 import fs from 'fs';
@@ -15,10 +17,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SRC_DIR = path.join(__dirname, '..', 'src');
-const SKIP_PATTERNS = [
-    'updateCharacterList',  // UI-only, fire-and-forget is OK
-    'updateStatusDisplay',  // UI-only
-];
 
 class AsyncAuditValidator {
     constructor() {
@@ -28,10 +26,11 @@ class AsyncAuditValidator {
     }
 
     /**
-     * Scan all JS files and find functions wrapped in withErrorBoundary
+     * Scan all JS files and find functions that return withErrorBoundary
+     * These ALWAYS return Promises regardless of async keyword!
      */
     scanForAsyncFunctions() {
-        console.log('🔍 Scanning for withErrorBoundary wrapped functions...\n');
+        console.log('🔍 Scanning for functions returning withErrorBoundary...\n');
         
         const jsFiles = this.getAllJSFiles(SRC_DIR);
         
@@ -39,25 +38,28 @@ class AsyncAuditValidator {
             const content = fs.readFileSync(file, 'utf-8');
             const fileName = path.relative(__dirname, file);
             
-            // Find function signatures and their withErrorBoundary usage
-            const funcPattern = /export\s+(async\s+)?function\s+(\w+)\(([^)]*)\)\s*\{[^}]*?withErrorBoundary/gs;
+            // Find ANY function (export or not) that returns withErrorBoundary
+            // Pattern: function name() { return withErrorBoundary(...) }
+            const funcPattern = /(export\s+)?(async\s+)?function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*?return\s+\w*\.?withErrorBoundary/gs;
             const matches = [...content.matchAll(funcPattern)];
             
             for (const match of matches) {
-                const isAsync = !!match[1];
-                const funcName = match[2];
+                const funcName = match[3];
+                const lineNum = content.substring(0, match.index).split('\n').length;
+                
                 this.errorBoundaryFunctions.set(`${fileName}:${funcName}`, {
-                    isAsync,
                     file: fileName,
                     name: funcName,
-                    line: content.substring(0, match.index).split('\n').length,
+                    line: lineNum,
+                    isExported: !!match[1],
                 });
             }
         }
         
-        console.log(`✅ Found ${this.errorBoundaryFunctions.size} functions wrapped in withErrorBoundary\n`);
+        console.log(`✅ Found ${this.errorBoundaryFunctions.size} functions returning withErrorBoundary (all return Promises)\n`);
         this.errorBoundaryFunctions.forEach((info, key) => {
-            console.log(`  - ${key} (line ${info.line})`);
+            const exportStr = info.isExported ? '[exported]' : '[internal]';
+            console.log(`  - ${key} (line ${info.line}) ${exportStr}`);
         });
         console.log();
     }
@@ -66,7 +68,7 @@ class AsyncAuditValidator {
      * Scan for calls to these functions and check if they're awaited
      */
     detectUnawaited() {
-        console.log('🔎 Scanning for unawaited async function calls...\n');
+        console.log('🔎 Scanning for unawaited Promise-returning function calls...\n');
         
         const jsFiles = this.getAllJSFiles(SRC_DIR);
         let issueCount = 0;
@@ -78,53 +80,89 @@ class AsyncAuditValidator {
             
             // Look for function calls without await
             for (const [key, funcInfo] of this.errorBoundaryFunctions.entries()) {
-                if (!funcInfo.isAsync) {
-                    continue; // Only enforce await on async functions
-                }
                 const funcName = funcInfo.name;
                 
-                // Pattern: const/let/var = functionName( or simple functionName(
+                // Pattern: functionName( without await before it
                 const pattern = new RegExp(
-                    `(const|let|var)?\\s+(\\w+\\s*=\\s*)?(?<!await\\s)${funcName}\\(`,
+                    `(?<!await\\s)${funcName}\\(`,
                     'g'
                 );
                 
                 for (const match of content.matchAll(pattern)) {
-                    // Skip if this is the function definition itself
-                    if (match.index === 0 || content[match.index - 1] === '\n' || content[match.index - 8] === 'export') {
-                        continue;
-                    }
-                    
                     const lineNum = content.substring(0, match.index).split('\n').length;
-                    const lineContent = lines[lineNum - 1];
+                    const lineContent = lines[lineNum - 1].trim();
                     
-                    // Skip if it's being awaited or in a SKIP_PATTERNS list
-                    if (lineContent.includes(`await ${funcName}`) || SKIP_PATTERNS.some(p => funcName.includes(p))) {
+                    // Skip if this is the function definition itself
+                    if (lineContent.startsWith('function ' + funcName) || 
+                        lineContent.startsWith('export function ' + funcName) ||
+                        lineContent.startsWith('async function ' + funcName) ||
+                        lineContent.startsWith('export async function ' + funcName) ||
+                        lineContent.startsWith(funcName + '()') || // Class method definition
+                        lineContent.startsWith('async ' + funcName + '()')) { // Async class method
                         continue;
                     }
                     
-                    const isAssignment = match[2] && match[2].includes('=');
-                    
-                    if (isAssignment) {
-                        // Assignment without await is definitely a violation
-                        this.violations.push({
-                            file: fileName,
-                            line: lineNum,
-                            func: funcName,
-                            code: lineContent.trim(),
-                            severity: 'ERROR',
-                        });
-                        issueCount++;
-                    } else if (match[1]) {
-                        // Variable declaration without value assignment - might be OK
-                        this.warnings.push({
-                            file: fileName,
-                            line: lineNum,
-                            func: funcName,
-                            code: lineContent.trim(),
-                            severity: 'WARNING',
-                        });
+                    // Skip comments
+                    if (lineContent.startsWith('//') || 
+                        lineContent.startsWith('/*') || 
+                        lineContent.startsWith('*')) {
+                        continue;
                     }
+                    
+                    // Skip if it's inside a string (console.log, comments, etc.)
+                    // Check if the function call is within quotes
+                    const beforeMatch = content.substring(0, match.index);
+                    const lastLineStart = beforeMatch.lastIndexOf('\n');
+                    const currentLineStart = lastLineStart === -1 ? 0 : lastLineStart + 1;
+                    const posInLine = match.index - currentLineStart;
+                    
+                    // Count quotes before the match on this line
+                    const lineUpToMatch = content.substring(currentLineStart, match.index);
+                    const singleQuotes = (lineUpToMatch.match(/'/g) || []).length;
+                    const doubleQuotes = (lineUpToMatch.match(/"/g) || []).length;
+                    const backticks = (lineUpToMatch.match(/`/g) || []).length;
+                    
+                    // If odd number of quotes before match, it's inside a string
+                    if (singleQuotes % 2 === 1 || doubleQuotes % 2 === 1 || backticks % 2 === 1) {
+                        continue;
+                    }
+                    
+                    // Skip console.log, debug.log, debugLog statements
+                    if (lineContent.includes('console.log') || 
+                        lineContent.includes('debug.log') || 
+                        lineContent.includes('debugLog')) {
+                        continue;
+                    }
+                    
+                    // Skip if it's being awaited (check more broadly)
+                    const prevChars = content.substring(Math.max(0, match.index - 10), match.index);
+                    if (prevChars.includes('await')) {
+                        continue;
+                    }
+                    
+                    // Skip if inside Promise.all (the Promise.all itself is awaited)
+                    // Look backwards for Promise.all opening bracket
+                    const beforeContext = content.substring(Math.max(0, match.index - 200), match.index);
+                    if (beforeContext.includes('Promise.all([') && 
+                        !beforeContext.substring(beforeContext.lastIndexOf('Promise.all([')).includes('])')) {
+                        continue;
+                    }
+                    
+                    // Check if it's an assignment or direct call
+                    const isAssignment = lineContent.includes('=') && lineContent.indexOf('=') < lineContent.indexOf(funcName);
+                    const isDirectCall = !isAssignment && lineContent.includes(funcName + '(');
+                    
+                    // Only flag calls in async contexts (inside other withErrorBoundary functions or async functions)
+                    // For now, flag ALL unawaited calls as violations
+                    this.violations.push({
+                        file: fileName,
+                        line: lineNum,
+                        func: funcName,
+                        code: lineContent,
+                        severity: 'ERROR',
+                        type: isAssignment ? 'assignment' : 'call',
+                    });
+                    issueCount++;
                 }
             }
         }
@@ -134,7 +172,8 @@ class AsyncAuditValidator {
             
             this.violations.forEach(v => {
                 console.log(`❌ ERROR: ${v.file}:${v.line}`);
-                console.log(`   Function: ${v.func}()`);
+                console.log(`   Function: ${v.func}() [returns Promise via withErrorBoundary]`);
+                console.log(`   Type: ${v.type}`);
                 console.log(`   Code: ${v.code}`);
                 console.log();
             });
@@ -146,7 +185,7 @@ class AsyncAuditValidator {
                 console.log();
             });
         } else {
-            console.log('✅ No unawaited async function calls detected!\n');
+            console.log('✅ No unawaited Promise-returning function calls detected!\n');
         }
         
         return this.violations.length === 0;

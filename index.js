@@ -1080,7 +1080,7 @@ async function initializeLorebook() {
             lorebook_debug.log(`Using existing chat lorebook: ${lorebookName}`);
 
             // Load the lorebook in the editor and make it active
-            reloadEditor(lorebookName, true);
+            await reloadEditor(lorebookName, true);
             return lorebookName;
         }
 
@@ -1125,7 +1125,7 @@ async function initializeLorebook() {
             }
 
             // Load the new lorebook in the editor and make it active
-            reloadEditor(lorebookName, true);
+            await reloadEditor(lorebookName, true);
 
             // Notify user
             lorebook_notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
@@ -1184,7 +1184,7 @@ async function updateLorebookEntry(character, characterName) {
         lorebook_debug.log('  Character data:', character);
 
         const context = core_context.stContext.getContext();
-        const lorebookConfig = (0,settings/* getLorebookConfig */.gf)();
+        const lorebookConfig = await (0,settings/* getLorebookConfig */.gf)();
 
         // Build the entry content in a readable format
         const contentParts = [];
@@ -1281,7 +1281,7 @@ async function updateLorebookEntry(character, characterName) {
         }
 
         // Calculate dynamic cooldown
-        const messageFreq = (0,settings/* get_settings */.TJ)('messageFrequency', 10);
+        const messageFreq = await (0,settings/* get_settings */.TJ)('messageFrequency', 10);
         const calculatedCooldown = Math.max(1, Math.floor(messageFreq * 0.75));
 
 
@@ -1502,7 +1502,7 @@ function createLorebookContent(character) {
  */
 async function viewInLorebook(characterName) {
     return (0,errors/* withErrorBoundary */.Xc)('viewInLorebook', async () => {
-        const character = (0,settings/* getCharacter */.qN)(characterName);
+        const character = await (0,settings/* getCharacter */.qN)(characterName);
 
         if (!character) {
             throw new errors/* NameTrackerError */.S_('Character not found');
@@ -1628,7 +1628,7 @@ async function adoptExistingEntries() {
                 return 0;
             }
 
-            const characters = getCharacters();
+            const characters = await getCharacters();
 
             // Look for entries that might belong to our extension
             for (const [entryId, entry] of Object.entries(worldInfo.entries)) {
@@ -1662,7 +1662,7 @@ async function adoptExistingEntries() {
                     };
 
                     // Store the adopted character
-                    setCharacter(primaryName, character);
+                    await setCharacter(primaryName, character);
                     adoptedCount++;
 
                     lorebook_debug.log();
@@ -1717,7 +1717,7 @@ async function getLorebookStats() {
 
         try {
             const worldInfo = await context.loadWorldInfo(lorebookName);
-            const characters = getCharacters();
+            const characters = await getCharacters();
 
             if (!worldInfo || !worldInfo.entries) {
                 return {
@@ -2480,7 +2480,7 @@ async function setChatData(data) {
  */
 async function addCharacter(name, characterData) {
     return errorHandler.withErrorBoundary('Settings', async () => {
-        const characters = getCharacters();
+        const characters = await getCharacters();
         characters[name] = characterData;
         await setCharacters(characters); // AWAIT the async save
     });
@@ -2492,7 +2492,7 @@ async function addCharacter(name, characterData) {
  */
 async function removeCharacter(name) {
     return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', async () => {
-        const characters = getCharacters();
+        const characters = await getCharacters();
         delete characters[name];
         await setCharacters(characters); // AWAIT the async save
     });
@@ -2504,8 +2504,8 @@ async function removeCharacter(name) {
  * @param {*} defaultValue - Default value if not found
  * @returns {*} Setting value
  */
-function getSetting(key, defaultValue) {
-    const settings = get_settings();
+async function getSetting(key, defaultValue) {
+    const settings = await get_settings();
     return settings[key] !== undefined ? settings[key] : defaultValue;
 }
 
@@ -2514,10 +2514,10 @@ function getSetting(key, defaultValue) {
  * @param {string} key - Setting key
  * @param {*} value - Setting value
  */
-function setSetting(key, value) {
+async function setSetting(key, value) {
     const update = {};
     update[key] = value;
-    set_settings(update);
+    await set_settings(update);
 }
 
 /**
@@ -2525,13 +2525,13 @@ function setSetting(key, value) {
  * @param {string} name - Character name
  * @returns {Object|null} Character data or null if not found
  */
-function getCharacter(name) {
-    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', () => {
+async function getCharacter(name) {
+    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', async () => {
         if (!name || typeof name !== 'string') {
             console.warn('[STnametracker] Invalid character name:', name);
             return null;
         }
-        const chars = getCharacters();
+        const chars = await getCharacters();
         return chars[name] || null;
     }, null);
 }
@@ -2550,7 +2550,7 @@ async function setCharacter(name, character) {
             throw new Error('Character data must be an object');
         }
         console.log('[NT-Settings] 🟩 setCharacter() called for:', name);
-        const chars = { ...getCharacters() };
+        const chars = { ...await getCharacters() };
         chars[name] = character;
         await setCharacters(chars); // AWAIT the async setCharacters
         debug.log(`Set character: ${name}`);
@@ -2599,8 +2599,8 @@ function getLorebookConfig() {
  * Alias for get_settings for compatibility
  * @returns {Object} Current settings
  */
-function getSettings() {
-    return get_settings();
+async function getSettings() {
+    return await get_settings();
 }
 
 /**
@@ -2747,9 +2747,9 @@ let undoHistory = []; // Store last 3 merge operations
  * @param {string} name - Character name to check
  * @returns {boolean} True if character is ignored
  */
-function isIgnoredCharacter(name) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('isIgnoredCharacter', () => {
-        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+async function isIgnoredCharacter(name) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('isIgnoredCharacter', async () => {
+        const chars = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
         return Object.values(chars).some(
             char => char.ignored && (char.preferredName === name || char.aliases.includes(name)),
         );
@@ -2761,9 +2761,9 @@ function isIgnoredCharacter(name) {
  * @param {string} name - Name to search for
  * @returns {CharacterData|null} Character data if found, null otherwise
  */
-function findExistingCharacter(name) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('findExistingCharacter', () => {
-        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+async function findExistingCharacter(name) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('findExistingCharacter', async () => {
+        const chars = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
         const found = Object.values(chars).find(
             char => char.preferredName === name || char.aliases.includes(name),
         ) || null;
@@ -2779,9 +2779,9 @@ function findExistingCharacter(name) {
  */
 async function findPotentialMatch(analyzedChar) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('findPotentialMatch', async () => {
-        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        const chars = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
         // Use the user-configured confidence threshold (0-100)
-        const threshold = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getSetting */ .PL)('confidenceThreshold', 70);
+        const threshold = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getSetting */ .PL)('confidenceThreshold', 70);
 
         debug.log();
 
@@ -2901,12 +2901,12 @@ function cleanAliases(aliases, characterName) {
  * @param {string} newCharacterName - Name of the newly discovered character
  * @returns {Array} Array of potential merge targets with confidence scores
  */
-function detectMergeOpportunities(newCharacterName) {
-    return withErrorBoundary('detectMergeOpportunities', () => {
+async function detectMergeOpportunities(newCharacterName) {
+    return withErrorBoundary('detectMergeOpportunities', async () => {
         debugLog(`[MergeDetect] Checking merge opportunities for: ${newCharacterName}`);
 
         const potentialMatches = [];
-        const existingCharacters = getCharacters();
+        const existingCharacters = await getCharacters();
 
         if (!newCharacterName || typeof newCharacterName !== 'string') {
             debugLog('[MergeDetect] Invalid name provided');
@@ -3137,7 +3137,7 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
         }
 
         // Clean up all aliases using the helper function
-        existingChar.aliases = cleanAliases(existingChar.aliases || [], existingChar.preferredName);
+        existingChar.aliases = await cleanAliases(existingChar.aliases || [], existingChar.preferredName);
 
         // Update consolidated fields (new data takes precedence if not empty)
         if (analyzedChar.physicalAge) existingChar.physicalAge = analyzedChar.physicalAge;
@@ -3183,7 +3183,7 @@ async function updateCharacter(existingChar, analyzedChar, addAsAlias = false, i
  */
 async function mergeCharacters(sourceName, targetName) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('mergeCharacters', async () => {
-        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        const chars = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
 
         const sourceChar = chars[sourceName];
         const targetChar = chars[targetName];
@@ -3292,7 +3292,7 @@ async function undoLastMerge() {
  */
 async function toggleIgnoreCharacter(characterName) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('toggleIgnoreCharacter', async () => {
-        const character = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacter */ .qN)(characterName);
+        const character = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacter */ .qN)(characterName);
 
         if (!character) {
             throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .NameTrackerError */ .S_('Character not found');
@@ -3327,7 +3327,7 @@ async function createNewCharacter(characterName) {
         const trimmedName = characterName.trim();
 
         // Check if character already exists
-        if ((0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacter */ .qN)(trimmedName)) {
+        if (await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacter */ .qN)(trimmedName)) {
             throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .NameTrackerError */ .S_(`Character "${trimmedName}" already exists`);
         }
 
@@ -3364,7 +3364,7 @@ async function createNewCharacter(characterName) {
  */
 async function purgeAllCharacters() {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('purgeAllCharacters', async () => {
-        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        const chars = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
         const characterCount = Object.keys(chars).length;
 
         if (characterCount === 0) {
@@ -3373,7 +3373,7 @@ async function purgeAllCharacters() {
         }
 
         // Clear all character data
-        (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .set_chat_metadata */ .yb)('characters', {});
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .set_chat_metadata */ .yb)('characters', {});
 
         // Clear undo history
         undoHistory = [];
@@ -3390,13 +3390,13 @@ async function purgeAllCharacters() {
  * @param {CharacterData} character - Character to check
  * @returns {boolean} True if character has relationships to unknown characters
  */
-function hasUnresolvedRelationships(character) {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('hasUnresolvedRelationships', () => {
+async function hasUnresolvedRelationships(character) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('hasUnresolvedRelationships', async () => {
         if (!character.relationships || character.relationships.length === 0) {
             return false;
         }
 
-        const chars = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
+        const chars = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
         const knownNames = Object.values(chars).reduce((names, char) => {
             names.add(char.preferredName.toLowerCase());
             char.aliases.forEach(alias => names.add(alias.toLowerCase()));
@@ -3433,9 +3433,9 @@ function clearUndoHistory() {
  * Export all characters as JSON
  * @returns {Object} Character data
  */
-function exportCharacters() {
-    return withErrorBoundary('exportCharacters', () => {
-        return getCharacters();
+async function exportCharacters() {
+    return withErrorBoundary('exportCharacters', async () => {
+        return await getCharacters();
     });
 }
 
@@ -3454,7 +3454,7 @@ async function importCharacters(characterData, merge = false) {
         let importCount = 0;
 
         for (const [name, character] of Object.entries(characterData)) {
-            if (merge || !getCharacter(name)) {
+            if (merge || !await getCharacter(name)) {
                 await setCharacter(name, character);
                 importCount++;
             }
@@ -3889,8 +3889,8 @@ Your response must start with { immediately.`;
  * Get the system prompt for analysis
  * @returns {string} System prompt text
  */
-function getSystemPrompt() {
-    const settings = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)();
+async function getSystemPrompt() {
+    const settings = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)();
     const prompt = settings?.systemPrompt || DEFAULT_SYSTEM_PROMPT;
     // Ensure we return a string, not a Promise or object
     return typeof prompt === 'string' ? prompt : DEFAULT_SYSTEM_PROMPT;
@@ -3902,7 +3902,7 @@ function getSystemPrompt() {
  */
 async function loadOllamaModels() {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('loadOllamaModels', async () => {
-        const ollamaEndpoint = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('ollamaEndpoint', 'http://localhost:11434');
+        const ollamaEndpoint = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('ollamaEndpoint', 'http://localhost:11434');
 
         try {
             const response = await fetch(`${ollamaEndpoint}/api/tags`);
@@ -3938,7 +3938,7 @@ function getOllamaModels() {
  */
 async function getOllamaModelContext(modelName) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('getOllamaModelContext', async () => {
-        const ollamaEndpoint = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('ollamaEndpoint', 'http://localhost:11434');
+        const ollamaEndpoint = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('ollamaEndpoint', 'http://localhost:11434');
 
         if (!modelName) {
             debug.log();
@@ -3995,9 +3995,9 @@ async function getOllamaModelContext(modelName) {
  * Build a roster of known characters for context
  * @returns {string} Formatted roster text
  */
-function buildCharacterRoster() {
-    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('buildCharacterRoster', () => {
-        const characters = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
+async function buildCharacterRoster() {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('buildCharacterRoster', async () => {
+        const characters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
         const characterNames = Object.keys(characters);
 
         if (characterNames.length === 0) {
@@ -4033,7 +4033,7 @@ async function getMaxPromptLength() {
         };
 
         try {
-            const llmConfig = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
+            const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
             let maxContext = 4096; // Default
             let maxGenTokens = 2048; // Default generation limit
             let detectionMethod = 'fallback';
@@ -4478,7 +4478,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
  */
 async function callOllama(prompt) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callOllama', async () => {
-        const llmConfig = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
+        const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
 
         if (!llmConfig.ollamaModel) {
             throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('No Ollama model selected');
@@ -4523,7 +4523,7 @@ async function callOllama(prompt) {
         debug.log();
         debug.log();
 
-        return parseJSONResponse(data.response);
+        return await parseJSONResponse(data.response);
     });
 }
 
@@ -4738,7 +4738,7 @@ function parseJSONResponse(text) {
  */
 async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, retryCount = 0, splitAttempts = 0) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('callLLMAnalysis', async () => {
-        const llmConfig = (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
+        const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
         const maxPromptResult = await getMaxPromptLength(); // Dynamic based on API context window
         const maxPromptTokens = maxPromptResult.maxPrompt;
         const MAX_SIMPLE_RETRIES = 1;   // retry count after first failure (total 2 attempts)
@@ -5616,7 +5616,7 @@ const ui_notifications = new notifications/* NotificationManager */.h('UI Manage
  * @returns {void}
  */
 function ui_updateCharacterList() {
-    return (0,errors/* withErrorBoundary */.Xc)('updateCharacterList', () => {
+    return (0,errors/* withErrorBoundary */.Xc)('updateCharacterList', async () => {
         let $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
             // Fallback: create a minimal container if settings HTML wasn't loaded
@@ -5633,7 +5633,7 @@ function ui_updateCharacterList() {
         }
 
         console.log('[NT-UI] 🟡 updateCharacterList() called');
-        const characters = (0,core_settings/* getCharacters */.bg)();
+        const characters = await (0,core_settings/* getCharacters */.bg)();
         console.log('[NT-UI] 🟡 getCharacters() returned:', Object.keys(characters || {}));
         const characterNames = Object.keys(characters);
         console.log('[NT-UI] 🟡 Character count:', characterNames.length);
@@ -5661,7 +5661,7 @@ function ui_updateCharacterList() {
         for (const character of sortedCharacters) {
             const charIcon = character.isMainChar ? '<i class="fa-solid fa-user"></i>' : '';
             const ignoreIcon = character.ignored ? '<span class="char-ignored-badge">IGNORED</span>' : '';
-            const reviewBadge = (0,modules_characters/* hasUnresolvedRelationships */.pp)(character) ? '<span class="char-review-badge">NEEDS REVIEW</span>' : '';
+            const reviewBadge = await (0,modules_characters/* hasUnresolvedRelationships */.pp)(character) ? '<span class="char-review-badge">NEEDS REVIEW</span>' : '';
 
             const aliasText = character.aliases && character.aliases.length > 0
                 ? `<div class="char-aliases">Aliases: ${(0,helpers/* escapeHtml */.ZD)(character.aliases.join(', '))}</div>`
@@ -5719,13 +5719,13 @@ function ui_updateCharacterList() {
  * @returns {void}
  */
 function ui_updateStatusDisplay() {
-    return (0,errors/* withErrorBoundary */.Xc)('updateStatusDisplay', () => {
+    return (0,errors/* withErrorBoundary */.Xc)('updateStatusDisplay', async () => {
         const $statusContainer = $('#name_tracker_status_display');
         if ($statusContainer.length === 0) {
             return;
         }
 
-        const characters = (0,core_settings/* getCharacters */.bg)();
+        const characters = await (0,core_settings/* getCharacters */.bg)();
         const characterCount = Object.keys(characters).length;
         const messageCounter = (0,core_settings/* getSetting */.PL)('messageCounter', 0);
         const lastScannedId = (0,core_settings/* getSetting */.PL)('lastScannedMessageId', -1);
@@ -5769,7 +5769,7 @@ function ui_updateStatusDisplay() {
  */
 async function showMergeDialog(sourceName) {
     return (0,errors/* withErrorBoundary */.Xc)('showMergeDialog', async () => {
-        const characters = (0,core_settings/* getCharacters */.bg)();
+        const characters = await (0,core_settings/* getCharacters */.bg)();
 
         // Create list of other characters
         const otherChars = Object.keys(characters).filter(name => name !== sourceName);
@@ -5833,7 +5833,7 @@ async function showCreateCharacterModal() {
  */
 async function showPurgeConfirmation() {
     return (0,errors/* withErrorBoundary */.Xc)('showPurgeConfirmation', async () => {
-        const characters = (0,core_settings/* getCharacters */.bg)();
+        const characters = await (0,core_settings/* getCharacters */.bg)();
         const characterCount = Object.keys(characters).length;
 
         if (characterCount === 0) {
@@ -5940,9 +5940,9 @@ async function showSystemPromptEditor() {
  * Show character list modal
  * @returns {void}
  */
-function showCharacterListModal() {
-    return (0,errors/* withErrorBoundary */.Xc)('showCharacterListModal', () => {
-        const characters = Object.values((0,core_settings/* getCharacters */.bg)() || {});
+async function showCharacterListModal() {
+    return (0,errors/* withErrorBoundary */.Xc)('showCharacterListModal', async () => {
+        const characters = Object.values(await (0,core_settings/* getCharacters */.bg)() || {});
 
         // Build character list HTML
         let charactersHtml = '';
@@ -5962,7 +5962,7 @@ function showCharacterListModal() {
                 const badges = [];
                 if (char.isMainChar) badges.push('<span style="background: var(--SmartThemeBodyColor); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">MAIN</span>');
                 if (char.ignored) badges.push('<span style="background: var(--black70a); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">IGNORED</span>');
-                if ((0,modules_characters/* hasUnresolvedRelationships */.pp)(char)) badges.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');
+                if (await (0,modules_characters/* hasUnresolvedRelationships */.pp)(char)) badges.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');
 
                 const aliasText = char.aliases && char.aliases.length > 0
                     ? `<div style="font-size: 0.9em; color: var(--SmartThemeQuoteColor); margin-top: 3px;">Aliases: ${(0,helpers/* escapeHtml */.ZD)(char.aliases.join(', '))}</div>`
@@ -6046,7 +6046,7 @@ function initializeUIHandlers() {
  */
 async function showEditLorebookModal(characterName) {
     return (0,errors/* withErrorBoundary */.Xc)('showEditLorebookModal', async () => {
-        const character = (0,core_settings/* getCharacter */.qN)(characterName);
+        const character = await (0,core_settings/* getCharacter */.qN)(characterName);
 
         if (!character) {
             ui_notifications.error('Character not found');
@@ -6147,9 +6147,9 @@ async function showEditLorebookModal(characterName) {
 
             // If preferred name changed, need to update the key in settings
             if (preferredName !== characterName) {
-                (0,core_settings/* removeCharacter */.sr)(characterName);
+                await (0,core_settings/* removeCharacter */.sr)(characterName);
             }
-            (0,core_settings/* setCharacter */.e7)(preferredName, character);
+            await (0,core_settings/* setCharacter */.e7)(preferredName, character);
 
             await ui_updateCharacterList();
             await ui_updateStatusDisplay();
@@ -6194,12 +6194,12 @@ function addMenuButton(text, faIcon, callback, hover = null, className = '') {
 
 /**
  * Toggle auto-harvest on/off
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function toggleAutoHarvest() {
-    return (0,errors/* withErrorBoundary */.Xc)('toggleAutoHarvest', () => {
-        const currentValue = (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
-        (0,core_settings/* setSetting */.ZC)('autoAnalyze', !currentValue);
+async function toggleAutoHarvest() {
+    return (0,errors/* withErrorBoundary */.Xc)('toggleAutoHarvest', async () => {
+        const currentValue = await (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
+        await (0,core_settings/* setSetting */.ZC)('autoAnalyze', !currentValue);
 
         // Update the settings UI
         $('#name_tracker_auto_analyze').prop('checked', !currentValue);
@@ -6212,7 +6212,7 @@ function toggleAutoHarvest() {
             $menuButton.find('i').removeClass('fa-toggle-on').addClass('fa-toggle-off');
         }
 
-        ui_updateStatusDisplay();
+        await ui_updateStatusDisplay();
 
         ui_notifications.success(
             `Auto-harvest ${!currentValue ? 'enabled' : 'disabled'}`,
@@ -6249,9 +6249,9 @@ async function openChatLorebook() {
  * @returns {void}
  */
 function initializeMenuButtons() {
-    return (0,errors/* withErrorBoundary */.Xc)('initializeMenuButtons', () => {
+    return (0,errors/* withErrorBoundary */.Xc)('initializeMenuButtons', async () => {
         // Add toggle auto-harvest button with visual state
-        const autoAnalyze = (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
+        const autoAnalyze = await (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
         const toggleIcon = autoAnalyze ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
         addMenuButton(
             'Toggle Auto-Harvest',
@@ -6288,19 +6288,19 @@ function initializeMenuButtons() {
 function bindSettingsHandlers() {
     return (0,errors/* withErrorBoundary */.Xc)('bindSettingsHandlers', () => {
         // Main settings handlers
-        $('#name_tracker_enabled').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('enabled', event.target.checked);
-            ui_updateStatusDisplay();
+        $('#name_tracker_enabled').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('enabled', event.target.checked);
+            await ui_updateStatusDisplay();
         });
 
-        $('#name_tracker_auto_analyze').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('autoAnalyze', event.target.checked);
-            ui_updateStatusDisplay();
+        $('#name_tracker_auto_analyze').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('autoAnalyze', event.target.checked);
+            await ui_updateStatusDisplay();
         });
 
-        $('#name_tracker_message_frequency').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('messageFrequency', parseInt(event.target.value) || 10);
-            ui_updateStatusDisplay();
+        $('#name_tracker_message_frequency').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('messageFrequency', parseInt(event.target.value) || 10);
+            await ui_updateStatusDisplay();
         });
 
         $('#name_tracker_llm_source').on('change', (event) => {
@@ -6399,8 +6399,8 @@ function bindSettingsHandlers() {
             await showDebugStatus();
         });
 
-        $('#name_tracker_dump_context').on('click', () => {
-            dumpContextToConsole();
+        $('#name_tracker_dump_context').on('click', async () => {
+            await dumpContextToConsole();
         });
 
         ui_debug.log();
@@ -6413,8 +6413,8 @@ function bindSettingsHandlers() {
  */
 function showDebugStatus() {
     return (0,errors/* withErrorBoundary */.Xc)('showDebugStatus', async () => {
-        const settings = (0,core_settings/* get_settings */.TJ)();
-        const characters = (0,core_settings/* getCharacters */.bg)();
+        const settings = await (0,core_settings/* get_settings */.TJ)();
+        const characters = await (0,core_settings/* getCharacters */.bg)();
 
         // Reusable builder: compute debug info + HTML
         const buildDebugContent = async () => {
@@ -6647,10 +6647,10 @@ async function loadSettingsHTML(extensionFolderPath) {
  * Shows all properties, values, and structure in readable format
  * @returns {void}
  */
-function dumpContextToConsole() {
-    return (0,errors/* withErrorBoundary */.Xc)('dumpContextToConsole', () => {
+async function dumpContextToConsole() {
+    return (0,errors/* withErrorBoundary */.Xc)('dumpContextToConsole', async () => {
         try {
-            const dump = core_context.stContext.dumpContextToConsole();
+            const dump = await core_context.stContext.dumpContextToConsole();
             ui_notifications.success('Context dumped to console - Press F12 to view', 'Context Dump');
 
             // Also show a brief summary in a dialog
@@ -6865,7 +6865,8 @@ async function processAnalysisResults(analyzedCharacters) {
         console.log('[NT-Processing] 🟢 updateCharacterList() returned:', listResult);
         const statusResult = await ui_updateStatusDisplay();
         console.log('[NT-Processing] 🟢 updateStatusDisplay() returned:', statusResult);
-        console.log('[NT-Processing] 🟢 Current characters in storage:', (0,core_settings/* getCharacters */.bg)());
+        const currentChars = await (0,core_settings/* getCharacters */.bg)();
+        console.log('[NT-Processing] 🟢 Current characters in storage:', currentChars);
     });
 }
 
@@ -6942,8 +6943,8 @@ async function processCharacterData(analyzedChar) {
  * @param {Array} messages - Messages to scan for names
  * @returns {Array} Array of unique name candidates found
  */
-function scanForNewNames(messages) {
-    return withErrorBoundary('scanForNewNames', () => {
+async function scanForNewNames(messages) {
+    return withErrorBoundary('scanForNewNames', async () => {
         debugLog(`[PHASE 1] Starting name scan on ${messages.length} messages`);
 
         if (!Array.isArray(messages) || messages.length === 0) {
@@ -6952,7 +6953,7 @@ function scanForNewNames(messages) {
         }
 
         const foundNames = new Set();
-        const existingCharacters = getCharacters();
+        const existingCharacters = await getCharacters();
         const existingNames = new Set();
 
         debugLog(`[PHASE 1] Existing characters in memory: ${Object.keys(existingCharacters).length}`);
@@ -7250,13 +7251,13 @@ function buildCharacterContext(characterName, messages, overlapSize) {
  */
 async function harvestMessages(messageCount, showProgress = true) {
     return (0,errors/* withErrorBoundary */.Xc)('harvestMessages', async () => {
-        if (!(0,core_settings/* get_settings */.TJ)('enabled', true)) {
+        if (!await (0,core_settings/* get_settings */.TJ)('enabled', true)) {
             processing_debug.log();
             return;
         }
 
         // Check API connection for SillyTavern mode
-        const llmConfig = (0,core_settings/* getLLMConfig */.eU)();
+        const llmConfig = await (0,core_settings/* getLLMConfig */.eU)();
         if (llmConfig.source === 'sillytavern') {
             const context = core_context.stContext.getContext();
             if (!context.onlineStatus) {
@@ -7360,7 +7361,7 @@ async function harvestMessages(messageCount, showProgress = true) {
                     showProgressBar(i + 1, batches.length, `Analyzing messages ${batchStart + 1}-${batchEnd}...`);
 
                     // Build roster of characters found so far
-                    const characterRoster = (0,llm/* buildCharacterRoster */.fR)();
+                    const characterRoster = await (0,llm/* buildCharacterRoster */.fR)();
 
                     // Call LLM for analysis
                     const analysis = await (0,llm/* callLLMAnalysis */.Kr)(batch, characterRoster);
@@ -7422,9 +7423,9 @@ Failed batches: ${failedBatches}`;
 
             // Persist scan progress and update UI
             if (processedMessages > 0) {
-                const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
-                (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
-                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
+                const existingCount = await (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
+                await (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
+                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
             }
 
             // Always update UI after batch processing (success or partial failure)
@@ -7441,7 +7442,7 @@ Failed batches: ${failedBatches}`;
 
         try {
             // Build roster of characters found so far
-            const characterRoster = (0,llm/* buildCharacterRoster */.fR)();
+            const characterRoster = await (0,llm/* buildCharacterRoster */.fR)();
 
             // Call LLM for analysis with character context
             const analysis = await (0,llm/* callLLMAnalysis */.Kr)(messagesToAnalyze, characterRoster);
@@ -7467,9 +7468,9 @@ Failed batches: ${failedBatches}`;
             // Always update UI after LLM processing (success or failure)
             // Persist scan progress
             if (processedMessages > 0) {
-                const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
-                (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
-                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
+                const existingCount = await (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
+                await (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
+                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
             }
 
             await ui_updateCharacterList();
@@ -7485,7 +7486,7 @@ Failed batches: ${failedBatches}`;
  */
 async function onMessageReceived(messageId) {
     return (0,errors/* withErrorBoundary */.Xc)('onMessageReceived', async () => {
-        if (!(0,core_settings/* get_settings */.TJ)('enabled', true) || !(0,core_settings/* get_settings */.TJ)('autoAnalyze', true)) {
+        if (!await (0,core_settings/* get_settings */.TJ)('enabled', true) || !await (0,core_settings/* get_settings */.TJ)('autoAnalyze', true)) {
             return;
         }
 
@@ -7500,7 +7501,7 @@ async function onMessageReceived(messageId) {
         const currentMessageIndex = chat.length - 1;
 
         // Check if this message was already scanned
-        const lastScannedId = (0,core_settings/* get_settings */.TJ)('lastScannedMessageId', -1);
+        const lastScannedId = await (0,core_settings/* get_settings */.TJ)('lastScannedMessageId', -1);
         if (currentMessageIndex <= lastScannedId) {
             processing_debug.log();
             return;
@@ -7514,7 +7515,7 @@ async function onMessageReceived(messageId) {
             const shouldRescan = await showRescanModal(currentMessageIndex, lastScannedId);
 
             if (shouldRescan.rescan) {
-                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', shouldRescan.fromMessage - 1);
+                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', shouldRescan.fromMessage - 1);
 
                 // Queue a full scan from the specified message
                 addToQueue(async () => {
@@ -7524,13 +7525,13 @@ async function onMessageReceived(messageId) {
                 return;
             } else {
                 // Reset to current position without scanning
-                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
+                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
                 return;
             }
         }
 
         // Check if we've reached the next scan milestone
-        const messageFreq = (0,core_settings/* get_settings */.TJ)('messageFrequency', 10);
+        const messageFreq = await (0,core_settings/* get_settings */.TJ)('messageFrequency', 10);
         const messagesSinceLastScan = currentMessageIndex - lastScannedId;
 
         if (messagesSinceLastScan >= messageFreq) {
@@ -7540,7 +7541,7 @@ async function onMessageReceived(messageId) {
             addToQueue(async () => {
                 await harvestMessages(messageFreq, true);
                 // Update last scanned message ID after successful harvest
-                (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
+                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
             });
         }
     });
@@ -7664,7 +7665,7 @@ async function scanEntireChat() {
         }
 
         // Check API connection for SillyTavern mode
-        const llmConfig = (0,core_settings/* getLLMConfig */.eU)();
+        const llmConfig = await (0,core_settings/* getLLMConfig */.eU)();
         if (llmConfig.source === 'sillytavern') {
             if (!context.onlineStatus) {
                 processing_notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
@@ -7719,7 +7720,7 @@ async function scanEntireChat() {
                 showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + 1}-${endIdx}...`);
 
                 // Build roster of characters found so far
-                const characterRoster = (0,llm/* buildCharacterRoster */.fR)();
+                const characterRoster = await (0,llm/* buildCharacterRoster */.fR)();
 
                 // Call LLM for analysis with character context
                 const analysis = await (0,llm/* callLLMAnalysis */.Kr)(batchMessages, characterRoster);
@@ -7751,11 +7752,11 @@ async function scanEntireChat() {
         hideProgressBar();
 
         // Update scan completion status
-        (0,core_settings/* set_settings */.nT)('lastScannedMessageId', totalMessages - 1);
+        await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', totalMessages - 1);
 
         if (processedMessages > 0) {
-            const existingCount = (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
-            (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
+            const existingCount = await (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
+            await (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
         }
 
         // Always update UI after scan (success, partial failure, or abort)
@@ -7830,8 +7831,8 @@ async function onChatChanged() {
         abortScan = false;
 
         // Reset scan state
-        set_settings('lastScannedMessageId', -1);
-        set_settings('messageCounter', 0);
+        await set_settings('lastScannedMessageId', -1);
+        await set_settings('messageCounter', 0);
 
         // Always update UI when chat changes
         await updateCharacterList();
@@ -8045,16 +8046,16 @@ class NameTrackerExtension {
 
             // Initialize UI handlers
             console.log('[STnametracker] initializeUI: Initializing UI handlers...');
-            initializeUIHandlers();
+            await initializeUIHandlers();
             console.log('[STnametracker] initializeUI: UI handlers initialized');
 
             console.log('[STnametracker] initializeUI: Initializing menu buttons...');
-            initializeMenuButtons();
+            await initializeMenuButtons();
             console.log('[STnametracker] initializeUI: Menu buttons initialized');
 
             // Bind settings form handlers
             console.log('[STnametracker] initializeUI: Binding settings handlers...');
-            bindSettingsHandlers();
+            await bindSettingsHandlers();
             console.log('[STnametracker] initializeUI: Settings handlers bound');
 
             // Update UI to reflect current settings
@@ -8136,13 +8137,13 @@ class NameTrackerExtension {
 
     /**
      * Get extension status for debugging
-     * @returns {Object} Status information
+     * @returns {Promise<Object>} Status information
      */
-    getStatus() {
+    async getStatus() {
         return {
             initialized: this.initialized,
             context: core_context/* default */.A.getStatus(),
-            settings: { initialized: true, moduleCount: Object.keys((0,core_settings/* get_settings */.TJ)()).length },
+            settings: { initialized: true, moduleCount: Object.keys(await (0,core_settings/* get_settings */.TJ)()).length },
             debug: debug/* default */.Ay.getPerformanceSummary(),
             errors: errors/* errorHandler */.r_.getRecentErrors(5).length,
         };
@@ -8189,7 +8190,7 @@ jQuery(async () => {
 
         // Call get_settings() to trigger default merge
         console.log('[STnametracker] Initializing defaults...');
-        const initialSettings = (0,core_settings/* get_settings */.TJ)();
+        const initialSettings = await (0,core_settings/* get_settings */.TJ)();
         console.log('[STnametracker] Settings initialized with defaults. llmSource:', initialSettings.llmSource);
         console.log('[STnametracker] Extension settings keys after init:', Object.keys(window.extension_settings[extensionName]));
 
@@ -8204,8 +8205,8 @@ jQuery(async () => {
         window.ntDebug = {
             status: () => nameTrackerExtension.getStatus(),
             errors: () => errors/* errorHandler */.r_.getRecentErrors(),
-            settings: () => (0,core_settings/* get_settings */.TJ)(),
-            chatData: () => (0,core_settings/* getChatData */.zB)(),
+            settings: async () => await (0,core_settings/* get_settings */.TJ)(),
+            chatData: async () => await (0,core_settings/* getChatData */.zB)(),
             clear: () => debug/* default */.Ay.clear(),
         };
 

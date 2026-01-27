@@ -163,7 +163,8 @@ export async function processAnalysisResults(analyzedCharacters) {
         console.log('[NT-Processing] 🟢 updateCharacterList() returned:', listResult);
         const statusResult = await updateStatusDisplay();
         console.log('[NT-Processing] 🟢 updateStatusDisplay() returned:', statusResult);
-        console.log('[NT-Processing] 🟢 Current characters in storage:', getCharacters());
+        const currentChars = await getCharacters();
+        console.log('[NT-Processing] 🟢 Current characters in storage:', currentChars);
     });
 }
 
@@ -240,8 +241,8 @@ async function processCharacterData(analyzedChar) {
  * @param {Array} messages - Messages to scan for names
  * @returns {Array} Array of unique name candidates found
  */
-export function scanForNewNames(messages) {
-    return withErrorBoundary('scanForNewNames', () => {
+export async function scanForNewNames(messages) {
+    return withErrorBoundary('scanForNewNames', async () => {
         debugLog(`[PHASE 1] Starting name scan on ${messages.length} messages`);
 
         if (!Array.isArray(messages) || messages.length === 0) {
@@ -250,7 +251,7 @@ export function scanForNewNames(messages) {
         }
 
         const foundNames = new Set();
-        const existingCharacters = getCharacters();
+        const existingCharacters = await getCharacters();
         const existingNames = new Set();
 
         debugLog(`[PHASE 1] Existing characters in memory: ${Object.keys(existingCharacters).length}`);
@@ -548,13 +549,13 @@ function buildCharacterContext(characterName, messages, overlapSize) {
  */
 export async function harvestMessages(messageCount, showProgress = true) {
     return withErrorBoundary('harvestMessages', async () => {
-        if (!get_settings('enabled', true)) {
+        if (!await get_settings('enabled', true)) {
             debug.log();
             return;
         }
 
         // Check API connection for SillyTavern mode
-        const llmConfig = getLLMConfig();
+        const llmConfig = await getLLMConfig();
         if (llmConfig.source === 'sillytavern') {
             const context = stContext.getContext();
             if (!context.onlineStatus) {
@@ -658,7 +659,7 @@ export async function harvestMessages(messageCount, showProgress = true) {
                     showProgressBar(i + 1, batches.length, `Analyzing messages ${batchStart + 1}-${batchEnd}...`);
 
                     // Build roster of characters found so far
-                    const characterRoster = buildCharacterRoster();
+                    const characterRoster = await buildCharacterRoster();
 
                     // Call LLM for analysis
                     const analysis = await callLLMAnalysis(batch, characterRoster);
@@ -720,9 +721,9 @@ Failed batches: ${failedBatches}`;
 
             // Persist scan progress and update UI
             if (processedMessages > 0) {
-                const existingCount = get_settings('messageCounter', 0);
-                set_settings('messageCounter', existingCount + processedMessages);
-                set_settings('lastScannedMessageId', endIdx - 1);
+                const existingCount = await get_settings('messageCounter', 0);
+                await set_settings('messageCounter', existingCount + processedMessages);
+                await set_settings('lastScannedMessageId', endIdx - 1);
             }
 
             // Always update UI after batch processing (success or partial failure)
@@ -739,7 +740,7 @@ Failed batches: ${failedBatches}`;
 
         try {
             // Build roster of characters found so far
-            const characterRoster = buildCharacterRoster();
+            const characterRoster = await buildCharacterRoster();
 
             // Call LLM for analysis with character context
             const analysis = await callLLMAnalysis(messagesToAnalyze, characterRoster);
@@ -765,9 +766,9 @@ Failed batches: ${failedBatches}`;
             // Always update UI after LLM processing (success or failure)
             // Persist scan progress
             if (processedMessages > 0) {
-                const existingCount = get_settings('messageCounter', 0);
-                set_settings('messageCounter', existingCount + processedMessages);
-                set_settings('lastScannedMessageId', endIdx - 1);
+                const existingCount = await get_settings('messageCounter', 0);
+                await set_settings('messageCounter', existingCount + processedMessages);
+                await set_settings('lastScannedMessageId', endIdx - 1);
             }
 
             await updateCharacterList();
@@ -783,7 +784,7 @@ Failed batches: ${failedBatches}`;
  */
 export async function onMessageReceived(messageId) {
     return withErrorBoundary('onMessageReceived', async () => {
-        if (!get_settings('enabled', true) || !get_settings('autoAnalyze', true)) {
+        if (!await get_settings('enabled', true) || !await get_settings('autoAnalyze', true)) {
             return;
         }
 
@@ -798,7 +799,7 @@ export async function onMessageReceived(messageId) {
         const currentMessageIndex = chat.length - 1;
 
         // Check if this message was already scanned
-        const lastScannedId = get_settings('lastScannedMessageId', -1);
+        const lastScannedId = await get_settings('lastScannedMessageId', -1);
         if (currentMessageIndex <= lastScannedId) {
             debug.log();
             return;
@@ -812,7 +813,7 @@ export async function onMessageReceived(messageId) {
             const shouldRescan = await showRescanModal(currentMessageIndex, lastScannedId);
 
             if (shouldRescan.rescan) {
-                set_settings('lastScannedMessageId', shouldRescan.fromMessage - 1);
+                await set_settings('lastScannedMessageId', shouldRescan.fromMessage - 1);
 
                 // Queue a full scan from the specified message
                 addToQueue(async () => {
@@ -822,13 +823,13 @@ export async function onMessageReceived(messageId) {
                 return;
             } else {
                 // Reset to current position without scanning
-                set_settings('lastScannedMessageId', currentMessageIndex);
+                await set_settings('lastScannedMessageId', currentMessageIndex);
                 return;
             }
         }
 
         // Check if we've reached the next scan milestone
-        const messageFreq = get_settings('messageFrequency', 10);
+        const messageFreq = await get_settings('messageFrequency', 10);
         const messagesSinceLastScan = currentMessageIndex - lastScannedId;
 
         if (messagesSinceLastScan >= messageFreq) {
@@ -838,7 +839,7 @@ export async function onMessageReceived(messageId) {
             addToQueue(async () => {
                 await harvestMessages(messageFreq, true);
                 // Update last scanned message ID after successful harvest
-                set_settings('lastScannedMessageId', currentMessageIndex);
+                await set_settings('lastScannedMessageId', currentMessageIndex);
             });
         }
     });
@@ -962,7 +963,7 @@ export async function scanEntireChat() {
         }
 
         // Check API connection for SillyTavern mode
-        const llmConfig = getLLMConfig();
+        const llmConfig = await getLLMConfig();
         if (llmConfig.source === 'sillytavern') {
             if (!context.onlineStatus) {
                 notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
@@ -1017,7 +1018,7 @@ export async function scanEntireChat() {
                 showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + 1}-${endIdx}...`);
 
                 // Build roster of characters found so far
-                const characterRoster = buildCharacterRoster();
+                const characterRoster = await buildCharacterRoster();
 
                 // Call LLM for analysis with character context
                 const analysis = await callLLMAnalysis(batchMessages, characterRoster);
@@ -1049,11 +1050,11 @@ export async function scanEntireChat() {
         hideProgressBar();
 
         // Update scan completion status
-        set_settings('lastScannedMessageId', totalMessages - 1);
+        await set_settings('lastScannedMessageId', totalMessages - 1);
 
         if (processedMessages > 0) {
-            const existingCount = get_settings('messageCounter', 0);
-            set_settings('messageCounter', existingCount + processedMessages);
+            const existingCount = await get_settings('messageCounter', 0);
+            await set_settings('messageCounter', existingCount + processedMessages);
         }
 
         // Always update UI after scan (success, partial failure, or abort)
@@ -1128,8 +1129,8 @@ export async function onChatChanged() {
         abortScan = false;
 
         // Reset scan state
-        set_settings('lastScannedMessageId', -1);
-        set_settings('messageCounter', 0);
+        await set_settings('lastScannedMessageId', -1);
+        await set_settings('messageCounter', 0);
 
         // Always update UI when chat changes
         await updateCharacterList();

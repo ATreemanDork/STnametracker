@@ -95,7 +95,7 @@ export async function initializeLorebook() {
             debug.log(`Using existing chat lorebook: ${lorebookName}`);
 
             // Load the lorebook in the editor and make it active
-            reloadEditor(lorebookName, true);
+            await reloadEditor(lorebookName, true);
             return lorebookName;
         }
 
@@ -140,7 +140,7 @@ export async function initializeLorebook() {
             }
 
             // Load the new lorebook in the editor and make it active
-            reloadEditor(lorebookName, true);
+            await reloadEditor(lorebookName, true);
 
             // Notify user
             notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
@@ -199,7 +199,7 @@ export async function updateLorebookEntry(character, characterName) {
         debug.log('  Character data:', character);
 
         const context = stContext.getContext();
-        const lorebookConfig = getLorebookConfig();
+        const lorebookConfig = await getLorebookConfig();
 
         // Build the entry content in a readable format
         const contentParts = [];
@@ -296,7 +296,7 @@ export async function updateLorebookEntry(character, characterName) {
         }
 
         // Calculate dynamic cooldown
-        const messageFreq = get_settings('messageFrequency', 10);
+        const messageFreq = await get_settings('messageFrequency', 10);
         const calculatedCooldown = Math.max(1, Math.floor(messageFreq * 0.75));
 
 
@@ -517,7 +517,7 @@ export function createLorebookContent(character) {
  */
 export async function viewInLorebook(characterName) {
     return withErrorBoundary('viewInLorebook', async () => {
-        const character = getCharacter(characterName);
+        const character = await getCharacter(characterName);
 
         if (!character) {
             throw new NameTrackerError('Character not found');
@@ -643,7 +643,7 @@ export async function adoptExistingEntries() {
                 return 0;
             }
 
-            const characters = getCharacters();
+            const characters = await getCharacters();
 
             // Look for entries that might belong to our extension
             for (const [entryId, entry] of Object.entries(worldInfo.entries)) {
@@ -677,7 +677,7 @@ export async function adoptExistingEntries() {
                     };
 
                     // Store the adopted character
-                    setCharacter(primaryName, character);
+                    await setCharacter(primaryName, character);
                     adoptedCount++;
 
                     debug.log();
@@ -732,7 +732,7 @@ export async function getLorebookStats() {
 
         try {
             const worldInfo = await context.loadWorldInfo(lorebookName);
-            const characters = getCharacters();
+            const characters = await getCharacters();
 
             if (!worldInfo || !worldInfo.entries) {
                 return {
