@@ -4278,6 +4278,8 @@ let ollamaModels = []; // Available Ollama models
  */
 const DEFAULT_SYSTEM_PROMPT = `Extract character information from messages and return ONLY a JSON object.
 
+/nothink
+
 [CURRENT LOREBOOK ENTRIES]
 The following characters have already been identified. Their information is shown in lorebook format (keys + content).
 If a character appears in the new messages with additional/changed information, include them in your response.
@@ -4297,6 +4299,9 @@ Example: {{user}} always appears → Always include {{user}} with any available 
 CRITICAL JSON REQUIREMENTS:
 ⚠️ STRICT JSON FORMATTING - PARSING WILL FAIL IF NOT FOLLOWED ⚠️
 
+🚨 ABSOLUTELY NO XML TAGS: Do not use <think>, </think>, <thinking>, or any XML tags
+🚨 PURE JSON ONLY: Your response must be immediately parseable JSON with no wrappers
+
 MANDATORY SYNTAX RULES:
 - Your ENTIRE response must be valid JSON starting with { and ending with }
 - ALL property names MUST use double quotes: "name", "aliases", etc.
@@ -4307,14 +4312,14 @@ MANDATORY SYNTAX RULES:
 - NO markdown, NO explanations, NO text before or after the JSON
 
 ⛔ ABSOLUTELY FORBIDDEN PATTERNS THAT BREAK PARSING:
+❌ <think>reasoning</think> or </think> or any XML tags
+❌ Code blocks: \\\`\\\`\\\`json { "characters": [...] } \\\`\\\`\\\`
 ❌ "name": "John", "He is tall and strong", "age": 25
    (orphaned description without property name)
 ❌ "physical" "brown hair and blue eyes"
    (missing colon)
 ❌ "aliases": ["John", "Scout",]
    (trailing comma)
-❌ \`\`\`json { "characters": [...] } \`\`\`
-   (code block markers)
 ❌ Here's the analysis: { "characters": [...] }
    (text before JSON)
 
@@ -4342,8 +4347,9 @@ DO NOT repeat unchanged characters from the Current Lorebook Entries
 DO NOT include:
 - Any text before the JSON
 - Any text after the JSON  
-- Code block markers like \`\`\`json
-- Explanations, commentary, or <think> tags
+- Code block markers like \\\`\\\`\\\`json
+- Explanations, commentary, or thinking tags
+- XML tags like <think> or </think> (these break JSON parsing)
 
 REQUIRED JSON structure (copy this exact format):
 {
@@ -5188,6 +5194,15 @@ function repairJSON(text) {
     console.log('[NT-Repair] Starting JSON repair...');
     let repaired = text;
 
+    // 0. Remove XML thinking tags completely (critical fix for recent failures)
+    repaired = repaired.replace(/<\/think>/gi, '');
+    repaired = repaired.replace(/<think[^>]*>/gi, '');
+    repaired = repaired.replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
+    repaired = repaired.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    if (repaired !== text) {
+        console.log('[NT-Repair] 🧹 Removed XML thinking tags');
+    }
+
     // 1. Fix major structural issue: orphaned string values without property names
     // This is the most common issue causing parse failures
     // Pattern: "property": "value", "orphaned description text", "nextProperty":
@@ -5219,12 +5234,18 @@ function repairJSON(text) {
     // 3. Fix missing commas between object properties (line breaks without commas)
     repaired = repaired.replace(/([}\]])\s*\n\s*(")/g, '$1,\n    $2');
     
-    // 4. Fix control characters (newlines, tabs in strings) 
-    repaired = repaired.replace(/"([^"]*[\n\r\t][^"]*)"/g, (match, content) => {
+    // 4. Fix control characters (newlines, tabs, etc. in strings) - ENHANCED
+    repaired = repaired.replace(/"([^"]*[\n\r\t\f\b\v][^"]*)"/g, (match, content) => {
         const cleaned = content
-            .replace(/\n/g, ' ')
-            .replace(/\r/g, '')
-            .replace(/\t/g, ' ');
+            .replace(/\n/g, ' ')     // newlines -> space
+            .replace(/\r/g, '')      // carriage returns -> remove
+            .replace(/\t/g, ' ')     // tabs -> space  
+            .replace(/\f/g, ' ')     // form feeds -> space
+            .replace(/\b/g, '')      // backspace -> remove
+            .replace(/\v/g, ' ')     // vertical tabs -> space
+            .replace(/\s+/g, ' ')    // collapse multiple spaces
+            .trim();                 // remove leading/trailing space
+        console.log(`[NT-Repair] 🧹 Cleaned control characters: ${content.length} -> ${cleaned.length} chars`);
         return `"${cleaned}"`;
     });
 
@@ -5297,12 +5318,33 @@ function parseJSONResponse(text) {
             throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('LLM returned empty response');
         }
 
-        // Try to extract JSON from markdown code blocks (```json or ```)
-        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (jsonMatch) {
-            console.log('[NT-Parse] Found markdown code block, extracting JSON');
-            text = jsonMatch[1].trim();
-            console.log('[NT-Parse] After markdown extraction, length:', text.length);
+        // Extract JSON from markdown code blocks if present
+        if (text.includes('```')) {
+            console.log('[NT-Parse] 🔍 Found markdown code block, extracting JSON');
+            
+            // More flexible extraction - look for JSON content between code blocks
+            const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (codeBlockMatch && codeBlockMatch[1]) {
+                text = codeBlockMatch[1].trim();
+                console.log('[NT-Parse] 📄 After markdown extraction, length:', text.length);
+            } else {
+                // If no proper code block, remove the backticks
+                text = text.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, '');
+                console.log('[NT-Parse] 🧹 Removed loose markdown backticks, length:', text.length);
+            }
+        }
+        
+        // Remove any remaining XML/HTML tags that may interfere
+        if (text.includes('<') || text.includes('>')) {
+            const originalLength = text.length;
+            text = text.replace(/<[^>]*>/g, '');
+            console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
+        }
+        
+        // Check if response is completely non-JSON (like pure XML tags or text)
+        if (text.length < 20 || (!text.includes('{') && !text.includes('['))) {
+            console.error(`[NT-Parse] 🚨 Response appears to be non-JSON content: "${text}"`);
+            throw new Error('LLM generated non-JSON response. Response may be censored or malformed.');
         }
 
         // Try to find JSON object in the text (look for first { to last })
