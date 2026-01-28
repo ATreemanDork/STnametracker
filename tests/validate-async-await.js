@@ -135,9 +135,17 @@ class AsyncAuditValidator {
                     }
                     
                     // Skip if it's being awaited (check more broadly)
-                    const prevChars = content.substring(Math.max(0, match.index - 10), match.index);
-                    if (prevChars.includes('await')) {
-                        continue;
+                    // Look back up to 100 chars to catch: await obj.method() or await someFunction()
+                    const prevChars = content.substring(Math.max(0, match.index - 100), match.index);
+                    const lastAwaitPos = prevChars.lastIndexOf('await');
+                    
+                    // If await is found, check if there's only whitespace and valid identifiers/dots between await and function call
+                    if (lastAwaitPos !== -1) {
+                        const betweenAwaitAndFunc = prevChars.substring(lastAwaitPos + 5); // After "await"
+                        // Valid pattern: whitespace, identifiers, dots, but no semicolons or statement-ending chars
+                        if (!/[;\}\{]/.test(betweenAwaitAndFunc)) {
+                            continue; // This call is awaited
+                        }
                     }
                     
                     // Skip if inside Promise.all (the Promise.all itself is awaited)

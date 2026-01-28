@@ -354,21 +354,28 @@ RELATIONSHIPS FIELD - NATURAL LANGUAGE FORMAT:
 - Narrative text: "Living in luxury penthouse since age 17"
 - Actions/events: "Takes charge of organizing rescue mission"
 
-🔄 RELATIONSHIP GUIDELINES:
-- List multiple relationship types for richer character connections
-- Use specific terms: "lover, dominant" instead of just "lover"
-- Family relationships can be combined: "sister, best friend"
-- Professional + personal: "boss, mentor" or "colleague, friend"
-- Avoid contradictions: don't use "dominant" and "submissive" together
+🔄 RELATIONSHIP GUIDELINES - CORE TYPES ONLY:
+⚠️ CRITICAL: Use ONLY these core relationship types. NO situational descriptors.
 
-✅ RELATIONSHIP EXAMPLES:
+FAMILY: parent, child, son, daughter, sibling, brother, sister, spouse, husband, wife
+ROMANTIC: lover, partner, boyfriend, girlfriend, ex-lover
+SOCIAL: friend, best friend, rival, enemy, acquaintance
+PROFESSIONAL: colleague, boss, subordinate, mentor, student, coworker, teammate
+
+✅ ALLOWED combinations (core types only):
 - "Emma is to David: wife, business partner"
-- "Marcus is to Elena: brother, protector"
-- "Jessica is to Robert: student, admirer"
-- "Alex is to Morgan: rival, former friend"
+- "Marcus is to Elena: brother, protector, friend"
+- "Jessica is to Robert: student, friend"
+- "Alex is to Morgan: rival, former colleague"
 
-CRITICAL: Relationships describe WHO this character is TO other characters.
-Focus on interpersonal connections: family, romantic, friendship, professional, rivalry relationships.
+❌ FORBIDDEN situational/descriptive terms:
+- "sexual participant", "dominant", "submissive" (use "lover" or "partner" instead)
+- "observer", "witness", "bystander" (not relationships)
+- "debt collector", "rescuer", "helper" (actions, not relationships)
+- "challenge giver", "organizer" (roles, not relationships)
+
+CRITICAL: Relationships describe permanent social/familial standing ONLY.
+Use canonical character names from lorebook. NEVER use aliases in relationship strings.
 
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.
@@ -663,21 +670,9 @@ export async function getMaxPromptLength() {
                     logEntry(`✗ Method 1 FAILED: ${reason}`);
                 }
 
-                // Method 2: extensionSettings.common.maxContext path
-                if (!detectedMaxContext) {
-                    logEntry('Method 2: Checking context.extensionSettings.common.maxContext...');
-                    if (context?.extensionSettings?.common) {
-                        if (typeof context.extensionSettings.common.maxContext === 'number' && context.extensionSettings.common.maxContext > 0) {
-                            detectedMaxContext = context.extensionSettings.common.maxContext;
-                            logEntry(`✓ Method 2 SUCCESS: extensionSettings.common.maxContext = ${detectedMaxContext}`);
-                            detectionMethod = 'extensionSettings.common.maxContext';
-                        } else {
-                            logEntry('✗ Method 2 FAILED: extensionSettings.common exists but maxContext is invalid');
-                        }
-                    } else {
-                        logEntry('✗ Method 2 FAILED: extensionSettings.common path does not exist');
-                    }
-                }
+                // Method 2: extensionSettings.common.maxContext path (REMOVED - API doesn't exist)
+                // This property path was incorrect and has been removed.
+                // Use getMaxContextSize() instead.
 
                 // Method 3: chat.maxContextSize path
                 if (!detectedMaxContext) {

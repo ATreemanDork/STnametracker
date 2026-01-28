@@ -131,12 +131,18 @@ function scanForValidation(baseDir) {
     const exports = new Map();
     
     function resolveModulePathRelative(fromFilePath, modulePath) {
+        // Skip Node.js built-in modules
+        const builtinModules = ['url', 'path', 'fs', 'child_process', 'util', 'events', 'stream'];
+        if (builtinModules.includes(modulePath) || modulePath.startsWith('node:')) {
+            return null; // Signal to skip validation for built-ins
+        }
+        
         if (modulePath.startsWith('./') || modulePath.startsWith('../')) {
             const resolved = path.resolve(path.dirname(fromFilePath), modulePath);
             const withExt = resolved.endsWith('.js') ? resolved : resolved + '.js';
             return path.relative(baseDir, withExt).replace(/\\/g, '/');
         }
-        return modulePath; // External module
+        return null; // External npm modules also skipped
     }
     
     function scan(dir, relativePath = '') {
@@ -155,22 +161,37 @@ function scanForValidation(baseDir) {
             } else if (item.name.endsWith('.js')) {
                 const content = fs.readFileSync(fullPath, 'utf-8');
                 
-                // Extract imports
-                const importMatches = content.matchAll(/import\s*{\s*([^}]+)\s*}\s*from\s*['"`]([^'"`]+)['"`]/g);
+                // Extract imports - handle both single-line and multi-line
+                const importMatches = content.matchAll(/import\s*{\s*([^}]+)\s*}\s*from\s*['"`]([^'"`]+)['"`]/gs);
                 for (const match of importMatches) {
                     const lineStart = content.lastIndexOf('\n', match.index) + 1;
                     const lineContent = content.substring(lineStart, match.index);
                     if (lineContent.trim().startsWith('//')) continue;
                     
-                    const importedItems = match[1].split(',').map(s => s.trim().split(' as ')[0].trim());
+                    // Skip commented imports that contain /* or */
+                    const importedItemsRaw = match[1];
+                    if (importedItemsRaw.includes('/*') || importedItemsRaw.includes('*/')) continue;
+                    
+                    // Parse imported items, handling newlines and commas
+                    const importedItems = importedItemsRaw
+                        .split(',')
+                        .map(s => s.trim().split(' as ')[0].trim())
+                        .filter(s => s.length > 0); // Remove empty strings
+                    
+                    if (importedItems.length === 0) continue; // Skip if no actual imports
+                    
                     const fromModule = match[2];
                     const resolvedPath = resolveModulePathRelative(fullPath, fromModule);
+                    
+                    // Skip if it's a built-in or external module
+                    if (resolvedPath === null) continue;
                     
                     if (!imports.has(relPath)) imports.set(relPath, []);
                     imports.get(relPath).push({ items: importedItems, from: resolvedPath });
                 }
                 
-                // Extract exports
+                // Extract exports - handle both export { ... } and export const/function/class
+                // First: export { name1, name2 as alias2, ... }
                 const exportMatches = content.matchAll(/export\s*{\s*([^}]+)\s*}/g);
                 for (const match of exportMatches) {
                     const exportedItems = match[1].split(',').map(s => {
@@ -185,10 +206,17 @@ function scanForValidation(baseDir) {
                     exports.get(relPath).push(...exportedItems);
                 }
                 
+                // Second: export const/function/class name
                 const namedExports = content.matchAll(/export\s+(?:async\s+)?(?:const|function|class)\s+(\w+)/g);
                 for (const match of namedExports) {
                     if (!exports.has(relPath)) exports.set(relPath, []);
                     exports.get(relPath).push(match[1]);
+                }
+                
+                // Third: export default (doesn't affect named imports, but track it)
+                if (content.includes('export default')) {
+                    if (!exports.has(relPath)) exports.set(relPath, []);
+                    // Don't add 'default' to the list as it's not imported with { }
                 }
             }
         }
@@ -196,21 +224,50 @@ function scanForValidation(baseDir) {
     
     scan(baseDir);
     
+    // Debug: Show what exports were found
+    console.log('\n📦 Found exports:');
+    for (const [file, exportList] of exports) {
+        if (exportList.length > 0) {
+            console.log(`  ${file}: [${exportList.join(', ')}]`);
+        }
+    }
+    console.log('');
+    
     // Validate
     console.log('⚠️  Import/Export Mismatches:');
     let foundIssues = false;
     
     for (const [file, fileImports] of imports) {
         for (const importGroup of fileImports) {
-            const targetFile = importGroup.from;
-            const targetExports = exports.get(targetFile) || [];
+            let targetFile = importGroup.from;
+            
+            // Try to find the target file in exports with path normalization
+            let targetExports = exports.get(targetFile);
+            
+            // If not found, try without src/ prefix
+            if (!targetExports && targetFile.startsWith('src/')) {
+                const withoutSrc = targetFile.substring(4); // Remove 'src/'
+                targetExports = exports.get(withoutSrc);
+                if (targetExports) targetFile = withoutSrc;
+            }
+            
+            // If still not found, try adding src/ prefix
+            if (!targetExports && !targetFile.startsWith('src/')) {
+                const withSrc = 'src/' + targetFile;
+                targetExports = exports.get(withSrc);
+                if (targetExports) targetFile = withSrc;
+            }
+            
+            if (!targetExports) {
+                targetExports = [];
+            }
             
             for (const item of importGroup.items) {
                 if (!targetExports.includes(item)) {
                     foundIssues = true;
                     console.log(`❌ ${file}:`);
                     console.log(`   Imports '${item}' from ${importGroup.from}`);
-                    console.log(`   But ${importGroup.from} only exports: [${targetExports.join(', ')}]`);
+                    console.log(`   But ${targetFile} exports: [${targetExports.join(', ')}]`);
                     console.log('');
                 }
             }

@@ -108,7 +108,7 @@ class SillyTavernContext {
      * Save chat metadata
      * @returns {Promise<void>}
      */
-    async saveChatMetadata() {
+    async saveMetadata() {
         return errorHandler.withErrorBoundary('Context', async () => {
             const context = this.getContext();
             if (context.saveMetadata) {

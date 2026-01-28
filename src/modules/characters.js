@@ -227,7 +227,6 @@ function parseNewRelationshipFormat(relationships, currentCharName, allCharacter
  * @param {Object} allCharacters - All known characters for name resolution
  * @returns {Array<string>} Cleaned relationship triplets
  */
-// eslint-disable-next-line no-unused-vars
 function rationalizeRelationships(relationships, currentCharName, allCharacters) {
     if (!relationships || !Array.isArray(relationships)) {
         return [];
@@ -806,7 +805,7 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
             sexuality: cleanedChar.sexuality || '',
             raceEthnicity: cleanedChar.raceEthnicity || '',
             roleSkills: cleanedChar.roleSkills || '',
-            relationships: cleanedChar.relationships || [],
+            relationships: rationalizeRelationships(cleanedChar.relationships || [], cleanedChar.name, allCharacters),
             ignored: false,
             confidence: cleanedChar.confidence || 50,
             lorebookEntryId: null,

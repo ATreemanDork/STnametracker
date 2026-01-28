@@ -17,37 +17,24 @@ const CONTEXT_CHECK_INTERVAL = 100; // Check every 100ms max
 let hasLoggedUnavailable = false; // Only log warning once
 
 function getContextSettings() {
-    // Fast path: if we know context is available, just use it
-    if (contextAvailable) {
-        const context = stContext.getContext();
-        if (context?.extension_settings) {
-            return {
-                extSettings: context.extension_settings,
-                saveSettings: context.saveSettingsDebounced,
-            };
-        }
-        // Context became unavailable, reset flag
-        contextAvailable = false;
+    // CORRECTED: Use direct global access pattern (MessageSummarize/Codex/Nicknames pattern)
+    // All reference extensions use window.extension_settings[MODULE_NAME] directly,
+    // NOT through context.extension_settings (which doesn't exist)
+    
+    // Check if window.extension_settings is available
+    if (!window.extension_settings) {
+        return {
+            extSettings: null,
+            saveSettings: null,
+        };
     }
 
-    // Throttled availability check
-    const now = Date.now();
-    if (now - lastContextCheck > CONTEXT_CHECK_INTERVAL) {
-        lastContextCheck = now;
-        const context = stContext.getContext();
-        if (context?.extension_settings) {
-            contextAvailable = true;
-            return {
-                extSettings: context.extension_settings,
-                saveSettings: context.saveSettingsDebounced,
-            };
-        }
-    }
-
-    // Context not available yet
+    // Get context for saveSettingsDebounced
+    const context = stContext.getContext();
+    
     return {
-        extSettings: null,
-        saveSettings: null,
+        extSettings: window.extension_settings,  // Direct global access
+        saveSettings: context?.saveSettingsDebounced || null,
     };
 }
 
@@ -185,7 +172,7 @@ async function setCharacters(characters) {
             metadata[MODULE_NAME].characters = characters;
 
             // CRITICAL: AWAIT the save to complete before returning
-            await stContext.saveChatMetadata();
+            await stContext.saveMetadata();
         } catch (error) {
             debug.warn('Failed to set characters:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -233,7 +220,7 @@ async function setChatData(data) {
             Object.assign(metadata[MODULE_NAME], data);
 
             // CRITICAL: AWAIT the save to complete before returning
-            await stContext.saveChatMetadata();
+            await stContext.saveMetadata();
         } catch (error) {
             debug.warn('Failed to set chat data:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -430,7 +417,7 @@ function set_chat_metadata(key, value) {
             metadata[MODULE_NAME][key] = value;
             debug.log(`Updated chat data ${key}`);
 
-            stContext.saveChatMetadata().catch(err => {
+            stContext.saveMetadata().catch(err => {
                 debug.warn('Failed to save chat metadata:', err.message);
             });
         } catch (error) {
