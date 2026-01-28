@@ -26,11 +26,13 @@ class AsyncAuditValidator {
     }
 
     /**
-     * Scan all JS files and find functions that return withErrorBoundary
-     * These ALWAYS return Promises regardless of async keyword!
+     * Scan all JS files and find async functions
+     * This includes:
+     * 1. Functions that return withErrorBoundary (always return Promises)
+     * 2. Functions declared with async keyword
      */
     scanForAsyncFunctions() {
-        console.log('🔍 Scanning for functions returning withErrorBoundary...\n');
+        console.log('🔍 Scanning for async functions (withErrorBoundary + async keyword)...\n');
         
         const jsFiles = this.getAllJSFiles(SRC_DIR);
         
@@ -38,12 +40,12 @@ class AsyncAuditValidator {
             const content = fs.readFileSync(file, 'utf-8');
             const fileName = path.relative(__dirname, file);
             
-            // Find ANY function (export or not) that returns withErrorBoundary
+            // Pattern 1: Find functions that return withErrorBoundary
             // Pattern: function name() { return withErrorBoundary(...) }
-            const funcPattern = /(export\s+)?(async\s+)?function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*?return\s+\w*\.?withErrorBoundary/gs;
-            const matches = [...content.matchAll(funcPattern)];
+            const errorBoundaryPattern = /(export\s+)?(async\s+)?function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*?return\s+\w*\.?withErrorBoundary/gs;
+            const errorBoundaryMatches = [...content.matchAll(errorBoundaryPattern)];
             
-            for (const match of matches) {
+            for (const match of errorBoundaryMatches) {
                 const funcName = match[3];
                 const lineNum = content.substring(0, match.index).split('\n').length;
                 
@@ -52,14 +54,49 @@ class AsyncAuditValidator {
                     name: funcName,
                     line: lineNum,
                     isExported: !!match[1],
+                    type: 'withErrorBoundary',
                 });
+            }
+            
+            // Pattern 2: Find functions declared with async keyword
+            // Pattern: async function name() { ... }
+            const asyncPattern = /(export\s+)?async\s+function\s+(\w+)\s*\([^)]*\)/g;
+            const asyncMatches = [...content.matchAll(asyncPattern)];
+            
+            for (const match of asyncMatches) {
+                const funcName = match[2];
+                const lineNum = content.substring(0, match.index).split('\n').length;
+                const key = `${fileName}:${funcName}`;
+                
+                // Don't duplicate if already found as withErrorBoundary function
+                if (!this.errorBoundaryFunctions.has(key)) {
+                    this.errorBoundaryFunctions.set(key, {
+                        file: fileName,
+                        name: funcName,
+                        line: lineNum,
+                        isExported: !!match[1],
+                        type: 'async',
+                    });
+                }
             }
         }
         
-        console.log(`✅ Found ${this.errorBoundaryFunctions.size} functions returning withErrorBoundary (all return Promises)\n`);
+        console.log(`✅ Found ${this.errorBoundaryFunctions.size} async functions (all return Promises)\n`);
+        
+        // Group by type for clearer reporting
+        const byType = { withErrorBoundary: 0, async: 0 };
+        this.errorBoundaryFunctions.forEach((info) => {
+            byType[info.type]++;
+        });
+        
+        console.log(`  - ${byType.withErrorBoundary} functions returning withErrorBoundary`);
+        console.log(`  - ${byType.async} functions declared with async keyword`);
+        console.log();
+        
         this.errorBoundaryFunctions.forEach((info, key) => {
             const exportStr = info.isExported ? '[exported]' : '[internal]';
-            console.log(`  - ${key} (line ${info.line}) ${exportStr}`);
+            const typeStr = `[${info.type}]`;
+            console.log(`  - ${key} (line ${info.line}) ${exportStr} ${typeStr}`);
         });
         console.log();
     }
@@ -169,6 +206,7 @@ class AsyncAuditValidator {
                         code: lineContent,
                         severity: 'ERROR',
                         type: isAssignment ? 'assignment' : 'call',
+                        funcType: funcInfo.type, // Add type for better error messages
                     });
                     issueCount++;
                 }
@@ -180,7 +218,7 @@ class AsyncAuditValidator {
             
             this.violations.forEach(v => {
                 console.log(`❌ ERROR: ${v.file}:${v.line}`);
-                console.log(`   Function: ${v.func}() [returns Promise via withErrorBoundary]`);
+                console.log(`   Function: ${v.func}() [${v.funcType} - returns Promise]`);
                 console.log(`   Type: ${v.type}`);
                 console.log(`   Code: ${v.code}`);
                 console.log();

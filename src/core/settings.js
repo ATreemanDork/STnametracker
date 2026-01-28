@@ -182,7 +182,7 @@ async function setCharacters(characters) {
             metadata[MODULE_NAME].characters = characters;
 
             // CRITICAL: AWAIT the save to complete before returning
-            await stContext.saveMetadata();
+            await stContext.saveChatMetadata();
         } catch (error) {
             debug.warn('Failed to set characters:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -230,7 +230,7 @@ async function setChatData(data) {
             Object.assign(metadata[MODULE_NAME], data);
 
             // CRITICAL: AWAIT the save to complete before returning
-            await stContext.saveMetadata();
+            await stContext.saveChatMetadata();
         } catch (error) {
             debug.warn('Failed to set chat data:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -327,12 +327,12 @@ async function setCharacter(name, character) {
  * Get LLM configuration (Fixed: No Promise contamination)
  * @returns {Object} LLM configuration object with resolved values
  */
-function getLLMConfig() {
+async function getLLMConfig() {
     try {
-        const llmSource = getSetting('llmSource');
-        const ollamaEndpoint = getSetting('ollamaEndpoint');
-        const ollamaModel = getSetting('ollamaModel');
-        const systemPrompt = getSetting('systemPrompt');
+        const llmSource = await getSetting('llmSource');
+        const ollamaEndpoint = await getSetting('ollamaEndpoint');
+        const ollamaModel = await getSetting('ollamaModel');
+        const systemPrompt = await getSetting('systemPrompt');
 
         const { extSettings } = getContextSettings();
         const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
@@ -356,14 +356,14 @@ function getLLMConfig() {
  * Get lorebook configuration (Fixed: No Promise contamination)
  * @returns {Object} Lorebook configuration object with resolved values
  */
-function getLorebookConfig() {
+async function getLorebookConfig() {
     try {
-        const position = getSetting('lorebookPosition');
-        const depth = getSetting('lorebookDepth');
-        const cooldown = getSetting('lorebookCooldown');
-        const scanDepth = getSetting('lorebookScanDepth');
-        const probability = getSetting('lorebookProbability');
-        const enabled = getSetting('lorebookEnabled');
+        const position = await getSetting('lorebookPosition');
+        const depth = await getSetting('lorebookDepth');
+        const cooldown = await getSetting('lorebookCooldown');
+        const scanDepth = await getSetting('lorebookScanDepth');
+        const probability = await getSetting('lorebookProbability');
+        const enabled = await getSetting('lorebookEnabled');
 
         // Ensure no Promise objects are returned
         return {
@@ -427,7 +427,7 @@ function set_chat_metadata(key, value) {
             metadata[MODULE_NAME][key] = value;
             debug.log(`Updated chat data ${key}`);
 
-            stContext.saveMetadata().catch(err => {
+            stContext.saveChatMetadata().catch(err => {
                 debug.warn('Failed to save chat metadata:', err.message);
             });
         } catch (error) {

@@ -289,11 +289,8 @@ export async function showPurgeConfirmation() {
  */
 export async function showSystemPromptEditor() {
     return withErrorBoundary('showSystemPromptEditor', async () => {
-        // Get current system prompt (await if it returns a Promise)
-        let currentPrompt = getSetting('systemPrompt');
-        if (currentPrompt && typeof currentPrompt.then === 'function') {
-            currentPrompt = await currentPrompt;
-        }
+        // Get current system prompt
+        let currentPrompt = await getSetting('systemPrompt');
         currentPrompt = currentPrompt || '';
 
         // Create modal dialog
@@ -345,16 +342,16 @@ export async function showSystemPromptEditor() {
             overlay.remove();
         };
 
-        modal.find('#system_prompt_save').on('click', () => {
+        modal.find('#system_prompt_save').on('click', async () => {
             const newPrompt = modal.find('#system_prompt_editor').val().trim();
-            setSetting('systemPrompt', newPrompt || null);
+            await setSetting('systemPrompt', newPrompt || null);
             notifications.success('System prompt updated');
             removeModal();
         });
 
-        modal.find('#system_prompt_reset').on('click', () => {
+        modal.find('#system_prompt_reset').on('click', async () => {
             modal.find('#system_prompt_editor').val('');
-            setSetting('systemPrompt', null);
+            await setSetting('systemPrompt', null);
             notifications.success('Reset to default system prompt');
             removeModal();
         });
@@ -742,16 +739,16 @@ export function bindSettingsHandlers() {
             await updateStatusDisplay();
         });
 
-        $('#name_tracker_llm_source').on('change', (event) => {
-            setSetting('llmSource', event.target.value);
+        $('#name_tracker_llm_source').on('change', async (event) => {
+            await setSetting('llmSource', event.target.value);
         });
 
-        $('#name_tracker_ollama_endpoint').on('input', (event) => {
-            setSetting('ollamaEndpoint', event.target.value);
+        $('#name_tracker_ollama_endpoint').on('input', async (event) => {
+            await setSetting('ollamaEndpoint', event.target.value);
         });
 
-        $('#name_tracker_ollama_model').on('change', (event) => {
-            setSetting('ollamaModel', event.target.value);
+        $('#name_tracker_ollama_model').on('change', async (event) => {
+            await setSetting('ollamaModel', event.target.value);
         });
 
         $('#name_tracker_load_models').on('click', async () => {
@@ -765,38 +762,38 @@ export function bindSettingsHandlers() {
             }
         });
 
-        $('#name_tracker_confidence_threshold').on('input', (event) => {
-            setSetting('confidenceThreshold', parseInt(event.target.value) || 70);
+        $('#name_tracker_confidence_threshold').on('input', async (event) => {
+            await setSetting('confidenceThreshold', parseInt(event.target.value) || 70);
         });
 
         // Lorebook settings handlers
-        $('#name_tracker_lorebook_position').on('change', (event) => {
-            setSetting('lorebookPosition', parseInt(event.target.value) || 0);
+        $('#name_tracker_lorebook_position').on('change', async (event) => {
+            await setSetting('lorebookPosition', parseInt(event.target.value) || 0);
         });
 
-        $('#name_tracker_lorebook_depth').on('input', (event) => {
-            setSetting('lorebookDepth', parseInt(event.target.value) || 1);
+        $('#name_tracker_lorebook_depth').on('input', async (event) => {
+            await setSetting('lorebookDepth', parseInt(event.target.value) || 1);
         });
 
-        $('#name_tracker_lorebook_cooldown').on('input', (event) => {
-            setSetting('lorebookCooldown', parseInt(event.target.value) || 5);
+        $('#name_tracker_lorebook_cooldown').on('input', async (event) => {
+            await setSetting('lorebookCooldown', parseInt(event.target.value) || 5);
         });
 
-        $('#name_tracker_lorebook_probability').on('input', (event) => {
-            setSetting('lorebookProbability', parseInt(event.target.value) || 100);
+        $('#name_tracker_lorebook_probability').on('input', async (event) => {
+            await setSetting('lorebookProbability', parseInt(event.target.value) || 100);
         });
 
-        $('#name_tracker_lorebook_enabled').on('input', (event) => {
-            setSetting('lorebookEnabled', event.target.checked);
+        $('#name_tracker_lorebook_enabled').on('input', async (event) => {
+            await setSetting('lorebookEnabled', event.target.checked);
         });
 
-        $('#name_tracker_debug_mode').on('input', (event) => {
-            setSetting('debugMode', event.target.checked);
+        $('#name_tracker_debug_mode').on('input', async (event) => {
+            await setSetting('debugMode', event.target.checked);
         });
 
         // Action button handlers
         $('#name_tracker_manual_analyze').on('click', async () => {
-            const messageFreq = getSetting('messageFrequency', 10);
+            const messageFreq = await getSetting('messageFrequency', 10);
             await harvestMessages(messageFreq, true);
             await updateCharacterList();
             await updateStatusDisplay();
@@ -1117,19 +1114,19 @@ async function dumpContextToConsole() {
 export async function updateUI() {
     return withErrorBoundary('updateUI', async () => {
         // Update all form elements with current settings
-        $('#name_tracker_enabled').prop('checked', getSetting('enabled', true));
-        $('#name_tracker_auto_analyze').prop('checked', getSetting('autoAnalyze', true));
-        $('#name_tracker_message_frequency').val(getSetting('messageFrequency', 10));
-        $('#name_tracker_llm_source').val(getSetting('llmSource', 'sillytavern'));
-        $('#name_tracker_ollama_endpoint').val(getSetting('ollamaEndpoint', 'http://localhost:11434'));
-        $('#name_tracker_ollama_model').val(getSetting('ollamaModel', ''));
-        $('#name_tracker_confidence_threshold').val(getSetting('confidenceThreshold', 70));
-        $('#name_tracker_lorebook_position').val(getSetting('lorebookPosition', 0));
-        $('#name_tracker_lorebook_depth').val(getSetting('lorebookDepth', 1));
-        $('#name_tracker_lorebook_cooldown').val(getSetting('lorebookCooldown', 5));
-        $('#name_tracker_lorebook_probability').val(getSetting('lorebookProbability', 100));
-        $('#name_tracker_lorebook_enabled').prop('checked', getSetting('lorebookEnabled', true));
-        $('#name_tracker_debug_mode').prop('checked', getSetting('debugMode', false));
+        $('#name_tracker_enabled').prop('checked', await getSetting('enabled', true));
+        $('#name_tracker_auto_analyze').prop('checked', await getSetting('autoAnalyze', true));
+        $('#name_tracker_message_frequency').val(await getSetting('messageFrequency', 10));
+        $('#name_tracker_llm_source').val(await getSetting('llmSource', 'sillytavern'));
+        $('#name_tracker_ollama_endpoint').val(await getSetting('ollamaEndpoint', 'http://localhost:11434'));
+        $('#name_tracker_ollama_model').val(await getSetting('ollamaModel', ''));
+        $('#name_tracker_confidence_threshold').val(await getSetting('confidenceThreshold', 70));
+        $('#name_tracker_lorebook_position').val(await getSetting('lorebookPosition', 0));
+        $('#name_tracker_lorebook_depth').val(await getSetting('lorebookDepth', 1));
+        $('#name_tracker_lorebook_cooldown').val(await getSetting('lorebookCooldown', 5));
+        $('#name_tracker_lorebook_probability').val(await getSetting('lorebookProbability', 100));
+        $('#name_tracker_lorebook_enabled').prop('checked', await getSetting('lorebookEnabled', true));
+        $('#name_tracker_debug_mode').prop('checked', await getSetting('debugMode', false));
 
         // Update character list and status
         await updateCharacterList();

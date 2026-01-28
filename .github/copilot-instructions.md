@@ -192,12 +192,84 @@ Before making ANY code edits to modular files, run the validation scripts:
 # Validate interface consistency
 node validate-interfaces.js
 
-# Check async/await patterns
+# Check async/await patterns (CRITICAL - catches missing await keywords)
 node tests/validate-async-await.js
 
 # Verify method signatures
 node tests/validate-method-calls.js
 ```
+
+All three must pass before starting development work.
+
+## MANDATORY CODING STANDARDS
+
+### Async/Await Requirements
+
+**CRITICAL RULE:** ALL functions declared with `async` keyword OR returning `withErrorBoundary()` MUST be called with `await`.
+
+**Why this matters:**
+- `async` functions return Promises
+- `withErrorBoundary()` wrapper returns Promises
+- Calling without `await` passes Promise object instead of resolved value
+- Results in blank UI fields, incorrect data, and silent failures
+
+**Examples:**
+
+❌ **WRONG:**
+```javascript
+const value = getSetting('key');  // Returns Promise<string>, not string!
+$('#input').val(getSetting('key'));  // Sets input to "[object Promise]"
+```
+
+✅ **CORRECT:**
+```javascript
+const value = await getSetting('key');  // Returns actual string value
+$('#input').val(await getSetting('key'));  // Sets input to actual value
+```
+
+**Validation:**
+- `tests/validate-async-await.js` detects ALL unawaited async calls
+- Pre-commit hook BLOCKS commits with async/await violations
+- ESLint warns about async functions that don't use await
+
+**Automated fixing:**
+```bash
+# Automatically add missing await keywords
+node scripts/fix-missing-awaits.js
+
+# Restore backups if fixes cause issues
+node scripts/fix-missing-awaits.js --restore
+```
+
+### Todo Management Requirements
+
+**CRITICAL RULE:** Agent MUST actively manage todo list throughout development sessions.
+
+**Required workflow:**
+1. **Session start:** Review existing todos, mark stale items, plan work sequence
+2. **Before starting work:** Create todos for multi-step tasks, mark current item as in-progress
+3. **After completing work:** Mark item as completed IMMEDIATELY, update status/description if blocked
+4. **Session end:** Update remaining todos with current status, document blockers/next steps
+
+**Anti-patterns to avoid:**
+- ❌ Creating todos and never updating them
+- ❌ Marking multiple items complete in one batch at end
+- ❌ Leaving todos in "in-progress" state when work is done
+- ❌ Creating todos for trivial single-step tasks
+
+**When to use todos:**
+- Complex multi-step implementations requiring 3+ steps
+- Work interrupted by testing/validation cycles
+- Tasks spanning multiple files or modules
+- User requests with multiple distinct requirements
+
+**When NOT to use todos:**
+- Single file edits with clear scope
+- Simple bug fixes or one-line changes
+- Pure research/investigation tasks
+- Responding to user questions
+
+All three must pass before starting development work.
 
 All three must pass before starting development work.
 

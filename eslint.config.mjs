@@ -39,6 +39,9 @@ export default [
             'no-unused-expressions': ['error', { allowShortCircuit: true }],
             'object-curly-spacing': ['error', 'always'],
             'space-infix-ops': 'error',
+            // Async/await validation - catch unawaited Promises
+            'require-await': 'warn', // Functions declared async should use await
+            'no-return-await': 'off', // Allow explicit return await for clarity
         }
     },
     {

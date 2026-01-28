@@ -1725,18 +1725,11 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         // Build the prompt
         const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\\n${msg}`).join('\\n\\n');
 
-        // Get system prompt and ensure it's a string
-        let systemPrompt = getSystemPrompt();
+        // Get system prompt
+        let systemPrompt = await getSystemPrompt();
         console.log('[NT-Prompt] getSystemPrompt() returned type:', typeof systemPrompt);
 
-        // Handle if it's a Promise
-        if (systemPrompt && typeof systemPrompt === 'object' && typeof systemPrompt.then === 'function') {
-            console.warn('[NT-Prompt] getSystemPrompt returned Promise, awaiting...');
-            systemPrompt = await systemPrompt;
-            console.log('[NT-Prompt] After await, type:', typeof systemPrompt);
-        }
-
-        // Handle if it's still an object after await
+        // Handle if it's still not a string
         if (typeof systemPrompt !== 'string') {
             console.warn('[NT-Prompt] systemPrompt is not a string, using default. Type:', typeof systemPrompt, 'Value:', systemPrompt);
             systemPrompt = DEFAULT_SYSTEM_PROMPT;

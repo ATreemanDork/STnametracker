@@ -3826,18 +3826,11 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
         // Build the prompt
         const messagesText = messages.map((msg, idx) => `Message ${idx + 1}:\\n${msg}`).join('\\n\\n');
 
-        // Get system prompt and ensure it's a string
-        let systemPrompt = getSystemPrompt();
+        // Get system prompt
+        let systemPrompt = await getSystemPrompt();
         console.log('[NT-Prompt] getSystemPrompt() returned type:', typeof systemPrompt);
 
-        // Handle if it's a Promise
-        if (systemPrompt && typeof systemPrompt === 'object' && typeof systemPrompt.then === 'function') {
-            console.warn('[NT-Prompt] getSystemPrompt returned Promise, awaiting...');
-            systemPrompt = await systemPrompt;
-            console.log('[NT-Prompt] After await, type:', typeof systemPrompt);
-        }
-
-        // Handle if it's still an object after await
+        // Handle if it's still not a string
         if (typeof systemPrompt !== 'string') {
             console.warn('[NT-Prompt] systemPrompt is not a string, using default. Type:', typeof systemPrompt, 'Value:', systemPrompt);
             systemPrompt = DEFAULT_SYSTEM_PROMPT;
@@ -4693,7 +4686,7 @@ async function setCharacters(characters) {
             metadata[MODULE_NAME].characters = characters;
 
             // CRITICAL: AWAIT the save to complete before returning
-            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveMetadata();
+            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata();
         } catch (error) {
             debug.warn('Failed to set characters:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -4741,7 +4734,7 @@ async function setChatData(data) {
             Object.assign(metadata[MODULE_NAME], data);
 
             // CRITICAL: AWAIT the save to complete before returning
-            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveMetadata();
+            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata();
         } catch (error) {
             debug.warn('Failed to set chat data:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -4838,12 +4831,12 @@ async function setCharacter(name, character) {
  * Get LLM configuration (Fixed: No Promise contamination)
  * @returns {Object} LLM configuration object with resolved values
  */
-function getLLMConfig() {
+async function getLLMConfig() {
     try {
-        const llmSource = getSetting('llmSource');
-        const ollamaEndpoint = getSetting('ollamaEndpoint');
-        const ollamaModel = getSetting('ollamaModel');
-        const systemPrompt = getSetting('systemPrompt');
+        const llmSource = await getSetting('llmSource');
+        const ollamaEndpoint = await getSetting('ollamaEndpoint');
+        const ollamaModel = await getSetting('ollamaModel');
+        const systemPrompt = await getSetting('systemPrompt');
 
         const { extSettings } = getContextSettings();
         const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
@@ -4867,14 +4860,14 @@ function getLLMConfig() {
  * Get lorebook configuration (Fixed: No Promise contamination)
  * @returns {Object} Lorebook configuration object with resolved values
  */
-function getLorebookConfig() {
+async function getLorebookConfig() {
     try {
-        const position = getSetting('lorebookPosition');
-        const depth = getSetting('lorebookDepth');
-        const cooldown = getSetting('lorebookCooldown');
-        const scanDepth = getSetting('lorebookScanDepth');
-        const probability = getSetting('lorebookProbability');
-        const enabled = getSetting('lorebookEnabled');
+        const position = await getSetting('lorebookPosition');
+        const depth = await getSetting('lorebookDepth');
+        const cooldown = await getSetting('lorebookCooldown');
+        const scanDepth = await getSetting('lorebookScanDepth');
+        const probability = await getSetting('lorebookProbability');
+        const enabled = await getSetting('lorebookEnabled');
 
         // Ensure no Promise objects are returned
         return {
@@ -4938,7 +4931,7 @@ function set_chat_metadata(key, value) {
             metadata[MODULE_NAME][key] = value;
             debug.log(`Updated chat data ${key}`);
 
-            _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveMetadata().catch(err => {
+            _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata().catch(err => {
                 debug.warn('Failed to save chat metadata:', err.message);
             });
         } catch (error) {
@@ -7344,11 +7337,8 @@ async function showPurgeConfirmation() {
  */
 async function showSystemPromptEditor() {
     return (0,errors/* withErrorBoundary */.Xc)('showSystemPromptEditor', async () => {
-        // Get current system prompt (await if it returns a Promise)
-        let currentPrompt = (0,core_settings/* getSetting */.PL)('systemPrompt');
-        if (currentPrompt && typeof currentPrompt.then === 'function') {
-            currentPrompt = await currentPrompt;
-        }
+        // Get current system prompt
+        let currentPrompt = await (0,core_settings/* getSetting */.PL)('systemPrompt');
         currentPrompt = currentPrompt || '';
 
         // Create modal dialog
@@ -7400,16 +7390,16 @@ async function showSystemPromptEditor() {
             overlay.remove();
         };
 
-        modal.find('#system_prompt_save').on('click', () => {
+        modal.find('#system_prompt_save').on('click', async () => {
             const newPrompt = modal.find('#system_prompt_editor').val().trim();
-            (0,core_settings/* setSetting */.ZC)('systemPrompt', newPrompt || null);
+            await (0,core_settings/* setSetting */.ZC)('systemPrompt', newPrompt || null);
             ui_notifications.success('System prompt updated');
             removeModal();
         });
 
-        modal.find('#system_prompt_reset').on('click', () => {
+        modal.find('#system_prompt_reset').on('click', async () => {
             modal.find('#system_prompt_editor').val('');
-            (0,core_settings/* setSetting */.ZC)('systemPrompt', null);
+            await (0,core_settings/* setSetting */.ZC)('systemPrompt', null);
             ui_notifications.success('Reset to default system prompt');
             removeModal();
         });
@@ -7797,16 +7787,16 @@ function bindSettingsHandlers() {
             await ui_updateStatusDisplay();
         });
 
-        $('#name_tracker_llm_source').on('change', (event) => {
-            (0,core_settings/* setSetting */.ZC)('llmSource', event.target.value);
+        $('#name_tracker_llm_source').on('change', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('llmSource', event.target.value);
         });
 
-        $('#name_tracker_ollama_endpoint').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('ollamaEndpoint', event.target.value);
+        $('#name_tracker_ollama_endpoint').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('ollamaEndpoint', event.target.value);
         });
 
-        $('#name_tracker_ollama_model').on('change', (event) => {
-            (0,core_settings/* setSetting */.ZC)('ollamaModel', event.target.value);
+        $('#name_tracker_ollama_model').on('change', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('ollamaModel', event.target.value);
         });
 
         $('#name_tracker_load_models').on('click', async () => {
@@ -7820,38 +7810,38 @@ function bindSettingsHandlers() {
             }
         });
 
-        $('#name_tracker_confidence_threshold').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('confidenceThreshold', parseInt(event.target.value) || 70);
+        $('#name_tracker_confidence_threshold').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('confidenceThreshold', parseInt(event.target.value) || 70);
         });
 
         // Lorebook settings handlers
-        $('#name_tracker_lorebook_position').on('change', (event) => {
-            (0,core_settings/* setSetting */.ZC)('lorebookPosition', parseInt(event.target.value) || 0);
+        $('#name_tracker_lorebook_position').on('change', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('lorebookPosition', parseInt(event.target.value) || 0);
         });
 
-        $('#name_tracker_lorebook_depth').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('lorebookDepth', parseInt(event.target.value) || 1);
+        $('#name_tracker_lorebook_depth').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('lorebookDepth', parseInt(event.target.value) || 1);
         });
 
-        $('#name_tracker_lorebook_cooldown').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('lorebookCooldown', parseInt(event.target.value) || 5);
+        $('#name_tracker_lorebook_cooldown').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('lorebookCooldown', parseInt(event.target.value) || 5);
         });
 
-        $('#name_tracker_lorebook_probability').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('lorebookProbability', parseInt(event.target.value) || 100);
+        $('#name_tracker_lorebook_probability').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('lorebookProbability', parseInt(event.target.value) || 100);
         });
 
-        $('#name_tracker_lorebook_enabled').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('lorebookEnabled', event.target.checked);
+        $('#name_tracker_lorebook_enabled').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('lorebookEnabled', event.target.checked);
         });
 
-        $('#name_tracker_debug_mode').on('input', (event) => {
-            (0,core_settings/* setSetting */.ZC)('debugMode', event.target.checked);
+        $('#name_tracker_debug_mode').on('input', async (event) => {
+            await (0,core_settings/* setSetting */.ZC)('debugMode', event.target.checked);
         });
 
         // Action button handlers
         $('#name_tracker_manual_analyze').on('click', async () => {
-            const messageFreq = (0,core_settings/* getSetting */.PL)('messageFrequency', 10);
+            const messageFreq = await (0,core_settings/* getSetting */.PL)('messageFrequency', 10);
             await harvestMessages(messageFreq, true);
             await ui_updateCharacterList();
             await ui_updateStatusDisplay();
@@ -8172,19 +8162,19 @@ async function dumpContextToConsole() {
 async function updateUI() {
     return (0,errors/* withErrorBoundary */.Xc)('updateUI', async () => {
         // Update all form elements with current settings
-        $('#name_tracker_enabled').prop('checked', (0,core_settings/* getSetting */.PL)('enabled', true));
-        $('#name_tracker_auto_analyze').prop('checked', (0,core_settings/* getSetting */.PL)('autoAnalyze', true));
-        $('#name_tracker_message_frequency').val((0,core_settings/* getSetting */.PL)('messageFrequency', 10));
-        $('#name_tracker_llm_source').val((0,core_settings/* getSetting */.PL)('llmSource', 'sillytavern'));
-        $('#name_tracker_ollama_endpoint').val((0,core_settings/* getSetting */.PL)('ollamaEndpoint', 'http://localhost:11434'));
-        $('#name_tracker_ollama_model').val((0,core_settings/* getSetting */.PL)('ollamaModel', ''));
-        $('#name_tracker_confidence_threshold').val((0,core_settings/* getSetting */.PL)('confidenceThreshold', 70));
-        $('#name_tracker_lorebook_position').val((0,core_settings/* getSetting */.PL)('lorebookPosition', 0));
-        $('#name_tracker_lorebook_depth').val((0,core_settings/* getSetting */.PL)('lorebookDepth', 1));
-        $('#name_tracker_lorebook_cooldown').val((0,core_settings/* getSetting */.PL)('lorebookCooldown', 5));
-        $('#name_tracker_lorebook_probability').val((0,core_settings/* getSetting */.PL)('lorebookProbability', 100));
-        $('#name_tracker_lorebook_enabled').prop('checked', (0,core_settings/* getSetting */.PL)('lorebookEnabled', true));
-        $('#name_tracker_debug_mode').prop('checked', (0,core_settings/* getSetting */.PL)('debugMode', false));
+        $('#name_tracker_enabled').prop('checked', await (0,core_settings/* getSetting */.PL)('enabled', true));
+        $('#name_tracker_auto_analyze').prop('checked', await (0,core_settings/* getSetting */.PL)('autoAnalyze', true));
+        $('#name_tracker_message_frequency').val(await (0,core_settings/* getSetting */.PL)('messageFrequency', 10));
+        $('#name_tracker_llm_source').val(await (0,core_settings/* getSetting */.PL)('llmSource', 'sillytavern'));
+        $('#name_tracker_ollama_endpoint').val(await (0,core_settings/* getSetting */.PL)('ollamaEndpoint', 'http://localhost:11434'));
+        $('#name_tracker_ollama_model').val(await (0,core_settings/* getSetting */.PL)('ollamaModel', ''));
+        $('#name_tracker_confidence_threshold').val(await (0,core_settings/* getSetting */.PL)('confidenceThreshold', 70));
+        $('#name_tracker_lorebook_position').val(await (0,core_settings/* getSetting */.PL)('lorebookPosition', 0));
+        $('#name_tracker_lorebook_depth').val(await (0,core_settings/* getSetting */.PL)('lorebookDepth', 1));
+        $('#name_tracker_lorebook_cooldown').val(await (0,core_settings/* getSetting */.PL)('lorebookCooldown', 5));
+        $('#name_tracker_lorebook_probability').val(await (0,core_settings/* getSetting */.PL)('lorebookProbability', 100));
+        $('#name_tracker_lorebook_enabled').prop('checked', await (0,core_settings/* getSetting */.PL)('lorebookEnabled', true));
+        $('#name_tracker_debug_mode').prop('checked', await (0,core_settings/* getSetting */.PL)('debugMode', false));
 
         // Update character list and status
         await ui_updateCharacterList();
