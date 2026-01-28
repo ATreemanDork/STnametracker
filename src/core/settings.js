@@ -95,12 +95,22 @@ function get_settings() {
         hasLoggedUnavailable = false;
 
         // Initialize if not exists
+        let needsSave = false;
         if (!extSettings[MODULE_NAME]) {
+            console.log('[STnametracker] First-time initialization: creating default settings');
             extSettings[MODULE_NAME] = { ...DEFAULT_SETTINGS };
+            needsSave = true;
         }
 
         // Merge with defaults to ensure all properties exist
         const settings = { ...DEFAULT_SETTINGS, ...extSettings[MODULE_NAME] };
+        
+        // Persist defaults if this was first initialization
+        if (needsSave && saveSettings && typeof saveSettings === 'function') {
+            console.log('[STnametracker] Saving default settings to persist them');
+            saveSettings();
+        }
+        
         return settings;
     }, { ...DEFAULT_SETTINGS });
 }

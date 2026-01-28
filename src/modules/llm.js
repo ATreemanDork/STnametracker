@@ -248,6 +248,8 @@ MANDATORY SYNTAX RULES:
 - Your ENTIRE response must be valid JSON starting with { and ending with }
 - ALL property names MUST use double quotes: "name", "aliases", etc.
 - ALL string values MUST use double quotes and escape internal quotes: "He said \\"hello\\""
+- NEVER output unquoted text in any field: "roleSkills": observed symptoms ❌ WRONG
+- CORRECT: "roleSkills": "observed symptoms" ✅ or "roleSkills": null ✅
 - NO control characters (line breaks, tabs) inside string values
 - NO trailing commas before } or ]
 - EVERY property must have a colon: "name": "value" (not "name" "value")
@@ -305,7 +307,7 @@ REQUIRED JSON structure (copy this exact format):
       "personality": "Personality traits",
       "sexuality": "Sexual orientation if mentioned",
       "raceEthnicity": "Race/ethnicity if mentioned",
-      "roleSkills": "Job/role/skills",
+      "roleSkills": "Job/role/skills (MUST be quoted string or null, never unquoted text)",
       "relationships": ["currentchar, otherchar, relationship"],
       "confidence": 75
     }
@@ -354,28 +356,46 @@ RELATIONSHIPS FIELD - NATURAL LANGUAGE FORMAT:
 - Narrative text: "Living in luxury penthouse since age 17"
 - Actions/events: "Takes charge of organizing rescue mission"
 
-🔄 RELATIONSHIP GUIDELINES - CORE TYPES ONLY:
-⚠️ CRITICAL: Use ONLY these core relationship types. NO situational descriptors.
+🔄 RELATIONSHIP FORMAT - DIRECTIONALITY IS CRITICAL:
+⚠️ MANDATORY FORMAT: "[CurrentCharacter] is to [TargetCharacter]: [role]"
 
-FAMILY: parent, child, son, daughter, sibling, brother, sister, spouse, husband, wife
-ROMANTIC: lover, partner, boyfriend, girlfriend, ex-lover
-SOCIAL: friend, best friend, rival, enemy, acquaintance
-PROFESSIONAL: colleague, boss, subordinate, mentor, student, coworker, teammate
+DIRECTIONALITY EXAMPLES (notice the direction matters!):
+✅ CORRECT:
+- "John Blackwood is to Julia Chen: son" (John is Julia's son)
+- "Julia Chen is to John Blackwood: mother" (Julia is John's mother)
+- "Emma is to David: wife" (Emma is David's wife)
+- "David is to Emma: husband" (David is Emma's husband)
 
-✅ ALLOWED combinations (core types only):
-- "Emma is to David: wife, business partner"
-- "Marcus is to Elena: brother, protector, friend"
-- "Jessica is to Robert: student, friend"
-- "Alex is to Morgan: rival, former colleague"
+❌ WRONG - These lose directionality:
+- "John, Julia, son" ← NO! Ambiguous direction
+- "Julia is to John: son" ← NO! Julia is not John's son
 
-❌ FORBIDDEN situational/descriptive terms:
-- "sexual participant", "dominant", "submissive" (use "lover" or "partner" instead)
-- "observer", "witness", "bystander" (not relationships)
-- "debt collector", "rescuer", "helper" (actions, not relationships)
-- "challenge giver", "organizer" (roles, not relationships)
+ALLOWED CORE RELATIONSHIP TYPES ONLY:
+FAMILY: parent, mother, father, child, son, daughter, sibling, brother, sister, spouse, husband, wife
+**Standardized Relationships (Directional Dynamics):**
 
-CRITICAL: Relationships describe permanent social/familial standing ONLY.
-Use canonical character names from lorebook. NEVER use aliases in relationship strings.
+Relationships MUST follow this specific string format: "[CurrentCharacterName] is to [TargetCharacterName]: [Role1], [Role2]"
+
+**Directionality is Critical:** The first name MUST be the character defined in the current JSON entry. The second name is the target.
+
+**Multi-Faceted Roles:** Include all applicable dynamics.
+Example: "John is to Jasmine: Friend, Lab Partner, Lover, Rival"
+
+**Depth Requirement:** Capture real social, professional, romantic, or power dynamics.
+
+**ALLOWED (Examples, not exhaustive):** Friend, Lover, Spouse, Rival, Boss, Employee, Captor, Prisoner, Illicit Affair Partner, Sexual Dominant, Submissive, Mentor, Protégé, Parent, Child, Sibling, Cousin, Uncle, Aunt, Neighbor, Landlord, Tenant, Doctor, Patient, Teacher, Student, etc.
+
+**FORBIDDEN:** Do not use situational "concepts" or passive states like "Witness," "Bystander," "Observer," "Listener," or "Interviewer." If no real dynamic exists beyond "witnessing," do not include the relationship.
+
+**Strict Constraint:** Do NOT include actions, events, or history (e.g., "John met Julia at a bar" or "John is angry at Julia"). Only include the core social or familial standing.
+
+**No History/Actions:** Do not include events (e.g., "John is to Jasmine: Person who saved her life"). Focus strictly on the current standing/role.
+
+⚠️ CRITICAL FORMAT RULES:
+1. ALWAYS use "[Name] is to [Name]: [role]" format
+2. Use CANONICAL character names from lorebook (never aliases)
+3. Direction matters: "A is to B: parent" ≠ "B is to A: parent"
+4. Multiple roles allowed per relationship: "A is to B: Friend, Colleague, Rival"
 
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.

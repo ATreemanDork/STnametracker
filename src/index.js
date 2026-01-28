@@ -313,11 +313,17 @@ jQuery(async () => {
         console.log('[STnametracker] Current extension_settings keys:', Object.keys(window.extension_settings));
         window.extension_settings[extensionName] = window.extension_settings[extensionName] || {};
 
-        // Call get_settings() to trigger default merge
+        // Call get_settings() to trigger default merge and persistence
         console.log('[STnametracker] Initializing defaults...');
         const initialSettings = await get_settings();
-        console.log('[STnametracker] Settings initialized with defaults. llmSource:', initialSettings.llmSource);
-        console.log('[STnametracker] Extension settings keys after init:', Object.keys(window.extension_settings[extensionName]));
+        console.log('[STnametracker] Settings initialized with defaults.');
+        console.log('[STnametracker]   llmSource:', initialSettings.llmSource);
+        console.log('[STnametracker]   messageFrequency:', initialSettings.messageFrequency);
+        console.log('[STnametracker]   lorebookPosition:', initialSettings.lorebookPosition);
+        console.log('[STnametracker]   lorebookScanDepth:', initialSettings.lorebookScanDepth);
+        console.log('[STnametracker]   lorebookProbability:', initialSettings.lorebookProbability);
+        console.log('[STnametracker] Total extension_settings keys:', Object.keys(window.extension_settings[extensionName]).length);
+        console.log('[STnametracker] Extension settings keys:', Object.keys(window.extension_settings[extensionName]).slice(0, 10).join(', '));
 
         console.log('[STnametracker] Starting main initialization...');
         await nameTrackerExtension.initialize();

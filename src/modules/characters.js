@@ -221,11 +221,11 @@ function parseNewRelationshipFormat(relationships, currentCharName, allCharacter
     return parsedTriplets;
 }
 /**
- * Normalize and rationalize character relationships with new natural language format
+ * Normalize and deduplicate relationships while preserving "is to" format
  * @param {Array<string>} relationships - Raw relationship strings from LLM
  * @param {string} currentCharName - Name of the current character
  * @param {Object} allCharacters - All known characters for name resolution
- * @returns {Array<string>} Cleaned relationship triplets
+ * @returns {Array<string>} Cleaned "is to" format relationships
  */
 function rationalizeRelationships(relationships, currentCharName, allCharacters) {
     if (!relationships || !Array.isArray(relationships)) {
@@ -234,90 +234,39 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
 
     debugLog(`🔧 Rationalizing ${relationships.length} relationships for ${currentCharName}`);
 
-    // First, check for legacy triplet format and warn
-    const hasLegacyTriplets = relationships.some(rel => {
-        if (typeof rel === 'string') {
-            const parts = rel.split(',');
-            return parts.length === 3 && !rel.includes(' is to ');
-        }
-        return false;
-    });
+    // Check if we have "is to" format
+    const hasIsToFormat = relationships.some(rel => typeof rel === 'string' && /\s+is\s+to\s+.+:/.test(rel));
 
-    if (hasLegacyTriplets) {
-        debugLog('⚠️ WARNING: Detected legacy triplet format in relationships. LLM should use new format.');
+    if (!hasIsToFormat) {
+        debugLog('⚠️ WARNING: No "is to" format detected. Expected format: "[Name] is to [Name]: [role]"');
+        return [];
     }
 
-    // Determine if we're dealing with new format or legacy triplets
-    const hasNewFormat = relationships.some(rel => typeof rel === 'string' && /\s+is\s+to\s+.+:/.test(rel));
+    // Parse and normalize to "is to" format with canonical names
+    const normalized = parseNewRelationshipFormat(relationships, currentCharName, allCharacters);
 
-    let parsedTriplets;
-    if (hasNewFormat) {
-        // Parse new natural language format
-        parsedTriplets = parseNewRelationshipFormat(relationships, currentCharName, allCharacters);
-    } else {
-        // Handle legacy triplet format
-        parsedTriplets = relationships.filter(rel => {
-            if (!rel || typeof rel !== 'string') return false;
-            const parts = rel.split(',');
-            return parts.length === 3 && parts.every(part => part.trim().length > 0);
-        });
-    }
-
-    if (parsedTriplets.length === 0) {
+    if (normalized.length === 0) {
         debugLog('❌ No valid relationships found after parsing');
         return [];
     }
 
-    // Continue with existing rationalization logic for the triplets
-    const relationshipObjects = [];
+    // Deduplicate exact matches (case-insensitive)
+    const uniqueRelationships = [];
+    const seen = new Set();
 
-    for (const triplet of parsedTriplets) {
-        const parts = triplet.split(',').map(part => part.trim());
-        if (parts.length !== 3) continue;
-
-        const [char1, char2, relationship] = parts;
-
-        // Normalize character names again (in case of legacy format)
-        const normalizedChar1 = findPreferredName(char1, allCharacters);
-        const normalizedChar2 = findPreferredName(char2, allCharacters);
-
-        if (normalizedChar1 && normalizedChar2 && relationship) {
-            relationshipObjects.push({
-                char1: normalizedChar1,
-                char2: normalizedChar2,
-                relationship: relationship.toLowerCase().trim(),
-                original: triplet,
-            });
+    for (const rel of normalized) {
+        const normalized_lower = rel.toLowerCase().trim();
+        if (!seen.has(normalized_lower)) {
+            seen.add(normalized_lower);
+            uniqueRelationships.push(rel);
+        } else {
+            debugLog(`🗑️ Removed duplicate: "${rel}"`);
         }
     }
 
-    debugLog(`📋 Processed ${relationshipObjects.length} relationship objects`);
+    debugLog(`✅ Deduplicated to ${uniqueRelationships.length} unique relationships (from ${normalized.length})`);
 
-    // Group relationships by character pair for deduplication
-    const relationshipsByPair = new Map();
-
-    for (const rel of relationshipObjects) {
-        const pairKey = `${rel.char1}|${rel.char2}`;
-
-        if (!relationshipsByPair.has(pairKey)) {
-            relationshipsByPair.set(pairKey, []);
-        }
-        relationshipsByPair.get(pairKey).push(rel);
-    }
-
-    // Rationalize each character pair
-    const finalizedRelationships = [];
-
-    for (const [, rels] of relationshipsByPair.entries()) {
-        const rationalized = rationalizeRelationshipGroup(rels);
-        if (rationalized) {
-            finalizedRelationships.push(`${rationalized.char1}, ${rationalized.char2}, ${rationalized.relationship}`);
-        }
-    }
-
-    debugLog(`✅ Finalized ${finalizedRelationships.length} relationships (reduced from ${relationships.length})`);
-
-    return finalizedRelationships;
+    return uniqueRelationships;
 }
 
 /**
@@ -805,7 +754,22 @@ export async function createCharacter(analyzedChar, isMainChar = false) {
             sexuality: cleanedChar.sexuality || '',
             raceEthnicity: cleanedChar.raceEthnicity || '',
             roleSkills: cleanedChar.roleSkills || '',
-            relationships: rationalizeRelationships(cleanedChar.relationships || [], cleanedChar.name, allCharacters),
+            relationships: (() => {
+                const rawRels = cleanedChar.relationships || [];
+                console.log(`[NT-Characters] 🔗 Processing relationships for ${cleanedChar.name}:`);
+                console.log(`[NT-Characters]    Raw relationships:`, JSON.stringify(rawRels, null, 2));
+                
+                const normalized = rationalizeRelationships(rawRels, cleanedChar.name, allCharacters);
+                
+                console.log(`[NT-Characters]    Raw count: ${rawRels.length}`);
+                console.log(`[NT-Characters]    Normalized count: ${normalized.length}`);
+                console.log(`[NT-Characters]    Normalized relationships:`, JSON.stringify(normalized, null, 2));
+                
+                if (normalized.length > 0) {
+                    console.log(`[NT-Characters]    Sample normalized: ${normalized[0]}`);
+                }
+                return normalized;
+            })(),
             ignored: false,
             confidence: cleanedChar.confidence || 50,
             lorebookEntryId: null,

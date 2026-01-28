@@ -2349,6 +2349,8 @@ MANDATORY SYNTAX RULES:
 - Your ENTIRE response must be valid JSON starting with { and ending with }
 - ALL property names MUST use double quotes: "name", "aliases", etc.
 - ALL string values MUST use double quotes and escape internal quotes: "He said \\"hello\\""
+- NEVER output unquoted text in any field: "roleSkills": observed symptoms ❌ WRONG
+- CORRECT: "roleSkills": "observed symptoms" ✅ or "roleSkills": null ✅
 - NO control characters (line breaks, tabs) inside string values
 - NO trailing commas before } or ]
 - EVERY property must have a colon: "name": "value" (not "name" "value")
@@ -2406,7 +2408,7 @@ REQUIRED JSON structure (copy this exact format):
       "personality": "Personality traits",
       "sexuality": "Sexual orientation if mentioned",
       "raceEthnicity": "Race/ethnicity if mentioned",
-      "roleSkills": "Job/role/skills",
+      "roleSkills": "Job/role/skills (MUST be quoted string or null, never unquoted text)",
       "relationships": ["currentchar, otherchar, relationship"],
       "confidence": 75
     }
@@ -2455,28 +2457,46 @@ RELATIONSHIPS FIELD - NATURAL LANGUAGE FORMAT:
 - Narrative text: "Living in luxury penthouse since age 17"
 - Actions/events: "Takes charge of organizing rescue mission"
 
-🔄 RELATIONSHIP GUIDELINES - CORE TYPES ONLY:
-⚠️ CRITICAL: Use ONLY these core relationship types. NO situational descriptors.
+🔄 RELATIONSHIP FORMAT - DIRECTIONALITY IS CRITICAL:
+⚠️ MANDATORY FORMAT: "[CurrentCharacter] is to [TargetCharacter]: [role]"
 
-FAMILY: parent, child, son, daughter, sibling, brother, sister, spouse, husband, wife
-ROMANTIC: lover, partner, boyfriend, girlfriend, ex-lover
-SOCIAL: friend, best friend, rival, enemy, acquaintance
-PROFESSIONAL: colleague, boss, subordinate, mentor, student, coworker, teammate
+DIRECTIONALITY EXAMPLES (notice the direction matters!):
+✅ CORRECT:
+- "John Blackwood is to Julia Chen: son" (John is Julia's son)
+- "Julia Chen is to John Blackwood: mother" (Julia is John's mother)
+- "Emma is to David: wife" (Emma is David's wife)
+- "David is to Emma: husband" (David is Emma's husband)
 
-✅ ALLOWED combinations (core types only):
-- "Emma is to David: wife, business partner"
-- "Marcus is to Elena: brother, protector, friend"
-- "Jessica is to Robert: student, friend"
-- "Alex is to Morgan: rival, former colleague"
+❌ WRONG - These lose directionality:
+- "John, Julia, son" ← NO! Ambiguous direction
+- "Julia is to John: son" ← NO! Julia is not John's son
 
-❌ FORBIDDEN situational/descriptive terms:
-- "sexual participant", "dominant", "submissive" (use "lover" or "partner" instead)
-- "observer", "witness", "bystander" (not relationships)
-- "debt collector", "rescuer", "helper" (actions, not relationships)
-- "challenge giver", "organizer" (roles, not relationships)
+ALLOWED CORE RELATIONSHIP TYPES ONLY:
+FAMILY: parent, mother, father, child, son, daughter, sibling, brother, sister, spouse, husband, wife
+**Standardized Relationships (Directional Dynamics):**
 
-CRITICAL: Relationships describe permanent social/familial standing ONLY.
-Use canonical character names from lorebook. NEVER use aliases in relationship strings.
+Relationships MUST follow this specific string format: "[CurrentCharacterName] is to [TargetCharacterName]: [Role1], [Role2]"
+
+**Directionality is Critical:** The first name MUST be the character defined in the current JSON entry. The second name is the target.
+
+**Multi-Faceted Roles:** Include all applicable dynamics.
+Example: "John is to Jasmine: Friend, Lab Partner, Lover, Rival"
+
+**Depth Requirement:** Capture real social, professional, romantic, or power dynamics.
+
+**ALLOWED (Examples, not exhaustive):** Friend, Lover, Spouse, Rival, Boss, Employee, Captor, Prisoner, Illicit Affair Partner, Sexual Dominant, Submissive, Mentor, Protégé, Parent, Child, Sibling, Cousin, Uncle, Aunt, Neighbor, Landlord, Tenant, Doctor, Patient, Teacher, Student, etc.
+
+**FORBIDDEN:** Do not use situational "concepts" or passive states like "Witness," "Bystander," "Observer," "Listener," or "Interviewer." If no real dynamic exists beyond "witnessing," do not include the relationship.
+
+**Strict Constraint:** Do NOT include actions, events, or history (e.g., "John met Julia at a bar" or "John is angry at Julia"). Only include the core social or familial standing.
+
+**No History/Actions:** Do not include events (e.g., "John is to Jasmine: Person who saved her life"). Focus strictly on the current standing/role.
+
+⚠️ CRITICAL FORMAT RULES:
+1. ALWAYS use "[Name] is to [Name]: [role]" format
+2. Use CANONICAL character names from lorebook (never aliases)
+3. Direction matters: "A is to B: parent" ≠ "B is to A: parent"
+4. Multiple roles allowed per relationship: "A is to B: Friend, Colleague, Rival"
 
 Rules:
 - One entry per distinct person. NEVER combine two different people into one entry.
@@ -4586,12 +4606,22 @@ function get_settings() {
         hasLoggedUnavailable = false;
 
         // Initialize if not exists
+        let needsSave = false;
         if (!extSettings[MODULE_NAME]) {
+            console.log('[STnametracker] First-time initialization: creating default settings');
             extSettings[MODULE_NAME] = { ...DEFAULT_SETTINGS };
+            needsSave = true;
         }
 
         // Merge with defaults to ensure all properties exist
         const settings = { ...DEFAULT_SETTINGS, ...extSettings[MODULE_NAME] };
+        
+        // Persist defaults if this was first initialization
+        if (needsSave && saveSettings && typeof saveSettings === 'function') {
+            console.log('[STnametracker] Saving default settings to persist them');
+            saveSettings();
+        }
+        
         return settings;
     }, { ...DEFAULT_SETTINGS });
 }
@@ -5164,11 +5194,11 @@ function parseNewRelationshipFormat(relationships, currentCharName, allCharacter
     return parsedTriplets;
 }
 /**
- * Normalize and rationalize character relationships with new natural language format
+ * Normalize and deduplicate relationships while preserving "is to" format
  * @param {Array<string>} relationships - Raw relationship strings from LLM
  * @param {string} currentCharName - Name of the current character
  * @param {Object} allCharacters - All known characters for name resolution
- * @returns {Array<string>} Cleaned relationship triplets
+ * @returns {Array<string>} Cleaned "is to" format relationships
  */
 function rationalizeRelationships(relationships, currentCharName, allCharacters) {
     if (!relationships || !Array.isArray(relationships)) {
@@ -5177,90 +5207,39 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
 
     debugLog(`🔧 Rationalizing ${relationships.length} relationships for ${currentCharName}`);
 
-    // First, check for legacy triplet format and warn
-    const hasLegacyTriplets = relationships.some(rel => {
-        if (typeof rel === 'string') {
-            const parts = rel.split(',');
-            return parts.length === 3 && !rel.includes(' is to ');
-        }
-        return false;
-    });
+    // Check if we have "is to" format
+    const hasIsToFormat = relationships.some(rel => typeof rel === 'string' && /\s+is\s+to\s+.+:/.test(rel));
 
-    if (hasLegacyTriplets) {
-        debugLog('⚠️ WARNING: Detected legacy triplet format in relationships. LLM should use new format.');
+    if (!hasIsToFormat) {
+        debugLog('⚠️ WARNING: No "is to" format detected. Expected format: "[Name] is to [Name]: [role]"');
+        return [];
     }
 
-    // Determine if we're dealing with new format or legacy triplets
-    const hasNewFormat = relationships.some(rel => typeof rel === 'string' && /\s+is\s+to\s+.+:/.test(rel));
+    // Parse and normalize to "is to" format with canonical names
+    const normalized = parseNewRelationshipFormat(relationships, currentCharName, allCharacters);
 
-    let parsedTriplets;
-    if (hasNewFormat) {
-        // Parse new natural language format
-        parsedTriplets = parseNewRelationshipFormat(relationships, currentCharName, allCharacters);
-    } else {
-        // Handle legacy triplet format
-        parsedTriplets = relationships.filter(rel => {
-            if (!rel || typeof rel !== 'string') return false;
-            const parts = rel.split(',');
-            return parts.length === 3 && parts.every(part => part.trim().length > 0);
-        });
-    }
-
-    if (parsedTriplets.length === 0) {
+    if (normalized.length === 0) {
         debugLog('❌ No valid relationships found after parsing');
         return [];
     }
 
-    // Continue with existing rationalization logic for the triplets
-    const relationshipObjects = [];
+    // Deduplicate exact matches (case-insensitive)
+    const uniqueRelationships = [];
+    const seen = new Set();
 
-    for (const triplet of parsedTriplets) {
-        const parts = triplet.split(',').map(part => part.trim());
-        if (parts.length !== 3) continue;
-
-        const [char1, char2, relationship] = parts;
-
-        // Normalize character names again (in case of legacy format)
-        const normalizedChar1 = findPreferredName(char1, allCharacters);
-        const normalizedChar2 = findPreferredName(char2, allCharacters);
-
-        if (normalizedChar1 && normalizedChar2 && relationship) {
-            relationshipObjects.push({
-                char1: normalizedChar1,
-                char2: normalizedChar2,
-                relationship: relationship.toLowerCase().trim(),
-                original: triplet,
-            });
+    for (const rel of normalized) {
+        const normalized_lower = rel.toLowerCase().trim();
+        if (!seen.has(normalized_lower)) {
+            seen.add(normalized_lower);
+            uniqueRelationships.push(rel);
+        } else {
+            debugLog(`🗑️ Removed duplicate: "${rel}"`);
         }
     }
 
-    debugLog(`📋 Processed ${relationshipObjects.length} relationship objects`);
+    debugLog(`✅ Deduplicated to ${uniqueRelationships.length} unique relationships (from ${normalized.length})`);
 
-    // Group relationships by character pair for deduplication
-    const relationshipsByPair = new Map();
-
-    for (const rel of relationshipObjects) {
-        const pairKey = `${rel.char1}|${rel.char2}`;
-
-        if (!relationshipsByPair.has(pairKey)) {
-            relationshipsByPair.set(pairKey, []);
-        }
-        relationshipsByPair.get(pairKey).push(rel);
-    }
-
-    // Rationalize each character pair
-    const finalizedRelationships = [];
-
-    for (const [, rels] of relationshipsByPair.entries()) {
-        const rationalized = rationalizeRelationshipGroup(rels);
-        if (rationalized) {
-            finalizedRelationships.push(`${rationalized.char1}, ${rationalized.char2}, ${rationalized.relationship}`);
-        }
-    }
-
-    debugLog(`✅ Finalized ${finalizedRelationships.length} relationships (reduced from ${relationships.length})`);
-
-    return finalizedRelationships;
+    return uniqueRelationships;
 }
 
 /**
@@ -5748,7 +5727,22 @@ async function createCharacter(analyzedChar, isMainChar = false) {
             sexuality: cleanedChar.sexuality || '',
             raceEthnicity: cleanedChar.raceEthnicity || '',
             roleSkills: cleanedChar.roleSkills || '',
-            relationships: rationalizeRelationships(cleanedChar.relationships || [], cleanedChar.name, allCharacters),
+            relationships: (() => {
+                const rawRels = cleanedChar.relationships || [];
+                console.log(`[NT-Characters] 🔗 Processing relationships for ${cleanedChar.name}:`);
+                console.log(`[NT-Characters]    Raw relationships:`, JSON.stringify(rawRels, null, 2));
+                
+                const normalized = rationalizeRelationships(rawRels, cleanedChar.name, allCharacters);
+                
+                console.log(`[NT-Characters]    Raw count: ${rawRels.length}`);
+                console.log(`[NT-Characters]    Normalized count: ${normalized.length}`);
+                console.log(`[NT-Characters]    Normalized relationships:`, JSON.stringify(normalized, null, 2));
+                
+                if (normalized.length > 0) {
+                    console.log(`[NT-Characters]    Sample normalized: ${normalized[0]}`);
+                }
+                return normalized;
+            })(),
             ignored: false,
             confidence: cleanedChar.confidence || 50,
             lorebookEntryId: null,
@@ -7350,7 +7344,12 @@ async function showPurgeConfirmation() {
  */
 async function showSystemPromptEditor() {
     return (0,errors/* withErrorBoundary */.Xc)('showSystemPromptEditor', async () => {
-        const currentPrompt = (0,core_settings/* getSetting */.PL)('systemPrompt') || '';
+        // Get current system prompt (await if it returns a Promise)
+        let currentPrompt = (0,core_settings/* getSetting */.PL)('systemPrompt');
+        if (currentPrompt && typeof currentPrompt.then === 'function') {
+            currentPrompt = await currentPrompt;
+        }
+        currentPrompt = currentPrompt || '';
 
         // Create modal dialog
         const modal = $(`
@@ -9753,11 +9752,17 @@ jQuery(async () => {
         console.log('[STnametracker] Current extension_settings keys:', Object.keys(window.extension_settings));
         window.extension_settings[extensionName] = window.extension_settings[extensionName] || {};
 
-        // Call get_settings() to trigger default merge
+        // Call get_settings() to trigger default merge and persistence
         console.log('[STnametracker] Initializing defaults...');
         const initialSettings = await (0,core_settings/* get_settings */.TJ)();
-        console.log('[STnametracker] Settings initialized with defaults. llmSource:', initialSettings.llmSource);
-        console.log('[STnametracker] Extension settings keys after init:', Object.keys(window.extension_settings[extensionName]));
+        console.log('[STnametracker] Settings initialized with defaults.');
+        console.log('[STnametracker]   llmSource:', initialSettings.llmSource);
+        console.log('[STnametracker]   messageFrequency:', initialSettings.messageFrequency);
+        console.log('[STnametracker]   lorebookPosition:', initialSettings.lorebookPosition);
+        console.log('[STnametracker]   lorebookScanDepth:', initialSettings.lorebookScanDepth);
+        console.log('[STnametracker]   lorebookProbability:', initialSettings.lorebookProbability);
+        console.log('[STnametracker] Total extension_settings keys:', Object.keys(window.extension_settings[extensionName]).length);
+        console.log('[STnametracker] Extension settings keys:', Object.keys(window.extension_settings[extensionName]).slice(0, 10).join(', '));
 
         console.log('[STnametracker] Starting main initialization...');
         await nameTrackerExtension.initialize();

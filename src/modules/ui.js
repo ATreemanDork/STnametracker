@@ -289,7 +289,12 @@ export async function showPurgeConfirmation() {
  */
 export async function showSystemPromptEditor() {
     return withErrorBoundary('showSystemPromptEditor', async () => {
-        const currentPrompt = getSetting('systemPrompt') || '';
+        // Get current system prompt (await if it returns a Promise)
+        let currentPrompt = getSetting('systemPrompt');
+        if (currentPrompt && typeof currentPrompt.then === 'function') {
+            currentPrompt = await currentPrompt;
+        }
+        currentPrompt = currentPrompt || '';
 
         // Create modal dialog
         const modal = $(`
