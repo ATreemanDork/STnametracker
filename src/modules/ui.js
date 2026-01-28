@@ -8,7 +8,7 @@
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
 import {
-    get_settings, set_settings,
+    get_settings,
     getCharacters, getCharacter, setCharacter, removeCharacter,
     getSetting, setSetting,
 } from '../core/settings.js';
@@ -139,7 +139,7 @@ export function updateStatusDisplay() {
 
         const characters = await getCharacters();
         const characterCount = Object.keys(characters).length;
-        
+
         // Await settings to avoid Promise objects and ensure proper types
         const messageCounter = await getSetting('messageCounter') || 0;
         const lastScannedId = await getSetting('lastScannedMessageId') || -1;
@@ -147,13 +147,13 @@ export function updateStatusDisplay() {
 
         const context = stContext.getContext();
         const currentMessageId = context?.chat?.length || 0;
-        
+
         // Ensure numeric values to prevent NaN
         const safeLastScanned = typeof lastScannedId === 'number' ? lastScannedId : -1;
         const safeMessageCounter = typeof messageCounter === 'number' ? messageCounter : 0;
         const safeMessageFreq = typeof messageFreq === 'number' ? messageFreq : 10;
         const safeChatLength = typeof currentMessageId === 'number' ? currentMessageId : 0;
-        
+
         const pendingMessages = Math.max(0, safeChatLength - safeLastScanned);
         const progressText = safeMessageCounter > 0 ? ` (${safeMessageCounter} analyzed)` : '';
         const messagesToNextScan = Math.max(0, safeMessageFreq - (safeChatLength - safeLastScanned));
@@ -311,7 +311,7 @@ export async function showSystemPromptEditor() {
             ">
                 <h3 style="margin-top: 0;">Edit System Prompt</h3>
                 <p>Customize the system prompt used for character analysis. Leave blank to use default.</p>
-                <textarea id="system_prompt_editor" rows="20" style="width: 100%; margin: 10px 0;" 
+                <textarea id="system_prompt_editor" rows="20" style="width: 100%; margin: 10px 0;"
                           placeholder="Enter custom system prompt or leave blank for default...">${escapeHtml(currentPrompt)}</textarea>
                 <div style="margin-top: 20px; text-align: right;">
                     <button class="menu_button" id="system_prompt_save">Save</button>
@@ -477,6 +477,7 @@ export function initializeUIHandlers() {
  * @param {string} characterName - Name of character to edit
  * @returns {Promise<void>}
  */
+// eslint-disable-next-line no-unused-vars
 async function showEditLorebookModal(characterName) {
     return withErrorBoundary('showEditLorebookModal', async () => {
         const character = await getCharacter(characterName);
@@ -492,24 +493,24 @@ async function showEditLorebookModal(characterName) {
         const dialogHtml = `
             <div class="lorebook-entry-editor">
                 <h3>Edit Lorebook Entry: ${escapeHtml(characterName)}</h3>
-                
+
                 <div class="editor-section">
                     <label for="entry-keys">Keys (comma-separated):</label>
-                    <input type="text" id="entry-keys" class="text_pole" value="${escapeHtml(currentKeys)}" 
+                    <input type="text" id="entry-keys" class="text_pole" value="${escapeHtml(currentKeys)}"
                            placeholder="${escapeHtml(characterName)}, aliases, nicknames">
                     <small>These words trigger this entry in the chat context</small>
                 </div>
-                
+
                 <div class="editor-section">
                     <label for="entry-content">Entry Content:</label>
-                    <textarea id="entry-content" rows="10" class="text_pole" 
+                    <textarea id="entry-content" rows="10" class="text_pole"
                               placeholder="Description, personality, background, relationships...">${escapeHtml(character.notes || '')}</textarea>
                     <small>This will be injected into context when keys are mentioned</small>
                 </div>
-                
+
                 <div class="editor-section">
                     <label for="entry-relationships">Relationships:</label>
-                    <textarea id="entry-relationships" rows="3" class="text_pole" 
+                    <textarea id="entry-relationships" rows="3" class="text_pole"
                               placeholder="Friend of Alice; Enemy of Bob; Works for XYZ Corp">${escapeHtml((character.relationships || []).join('; '))}</textarea>
                     <small>One relationship per line or semicolon-separated</small>
                 </div>

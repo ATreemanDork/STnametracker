@@ -3,7 +3,7 @@
  * Provides module-specific logging, performance monitoring, and state inspection
  */
 
-const MODULE_NAME = 'STnametracker';
+const MODULE_NAME = 'NT';
 
 class DebugLogger {
     constructor() {

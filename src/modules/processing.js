@@ -686,19 +686,19 @@ export async function harvestMessages(messageCount, showProgress = true) {
                         failedBatches++;
                         continue;
                     }
-                    
+
                     if (!analysis.characters) {
                         console.warn('[NT-Batch] ⚠️ Analysis missing characters property, skipping batch');
                         failedBatches++;
                         continue;
                     }
-                    
+
                     if (!Array.isArray(analysis.characters)) {
                         console.warn('[NT-Batch] ⚠️ analysis.characters is not an array:', typeof analysis.characters);
                         failedBatches++;
                         continue;
                     }
-                    
+
                     // Valid analysis - process results
                     console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
                     await processAnalysisResults(analysis.characters);
@@ -928,7 +928,7 @@ function showProgressBar(current, total, status = '') {
         const recentTimestamps = batchTimestamps.slice(-Math.min(THROUGHPUT_WINDOW_SIZE, batchTimestamps.length));
         const timeSpan = recentTimestamps[recentTimestamps.length - 1] - recentTimestamps[0];
         const batchesCompleted = recentTimestamps.length - 1;
-        
+
         if (timeSpan > 0 && batchesCompleted > 0) {
             const batchesPerMin = (batchesCompleted / (timeSpan / 60000)).toFixed(1);
             const remainingBatches = total - current;
@@ -1075,19 +1075,19 @@ export async function scanEntireChat() {
                     failedBatches++;
                     continue;
                 }
-                
+
                 if (!analysis.characters) {
                     console.warn(`[NT-Processing] Batch ${i + 1}: Analysis missing characters property, skipping`);
                     failedBatches++;
                     continue;
                 }
-                
+
                 if (!Array.isArray(analysis.characters)) {
                     console.warn(`[NT-Processing] Batch ${i + 1}: analysis.characters is not an array (${typeof analysis.characters}), skipping`);
                     failedBatches++;
                     continue;
                 }
-                
+
                 // Process valid analysis results
                 await processAnalysisResults(analysis.characters);
                 // Track unique characters

@@ -1827,7 +1827,7 @@ __webpack_require__.d(__webpack_exports__, {
   Bw: () => (/* binding */ loadOllamaModels)
 });
 
-// UNUSED EXPORTS: callOllama, callSillyTavern, clearAnalysisCache, getCacheStats, getOllamaModelContext, getOllamaModels, parseJSONResponse
+// UNUSED EXPORTS: callOllama, callSillyTavern, clearAnalysisCache, getCacheStats, getOllamaModelContext, getOllamaModels, logSessionTelemetry, parseJSONResponse, resetSessionTelemetry
 
 // EXTERNAL MODULE: ./src/core/debug.js
 var debug = __webpack_require__(806);
@@ -2170,6 +2170,152 @@ const CACHE_INVALIDATION_TIME = 3600000; // 1 hour cache duration
 const analysisCache = new Map(); // Cache for LLM analysis results
 let ollamaModels = []; // Available Ollama models
 
+// Session telemetry tracking (reset on chat change)
+const sessionTelemetry = {
+    budgetingMethod: [], // 'NER' or 'fallback'
+    entityCounts: [],
+    rosterSizes: [],
+    calculatedBudgets: [],
+    actualResponseTokens: [],
+    totalCalls: 0,
+    nerSuccesses: 0,
+    nerFailures: 0,
+};
+
+/**
+ * Reset session telemetry (call on chat change)
+ */
+function resetSessionTelemetry() {
+    sessionTelemetry.budgetingMethod = [];
+    sessionTelemetry.entityCounts = [];
+    sessionTelemetry.rosterSizes = [];
+    sessionTelemetry.calculatedBudgets = [];
+    sessionTelemetry.actualResponseTokens = [];
+    sessionTelemetry.totalCalls = 0;
+    sessionTelemetry.nerSuccesses = 0;
+    sessionTelemetry.nerFailures = 0;
+    console.log('[NT-Telemetry] Session telemetry reset');
+}
+
+/**
+ * Log session telemetry summary
+ */
+function logSessionTelemetry() {
+    if (sessionTelemetry.totalCalls === 0) {
+        console.log('[NT-Telemetry] No LLM calls this session');
+        return;
+    }
+
+    console.log('[NT-Telemetry] ========== Session Summary ==========');
+    console.log('[NT-Telemetry] Total LLM calls:', sessionTelemetry.totalCalls);
+    console.log('[NT-Telemetry] NER successes:', sessionTelemetry.nerSuccesses,
+        `(${((sessionTelemetry.nerSuccesses / sessionTelemetry.totalCalls) * 100).toFixed(1)}%)`);
+    console.log('[NT-Telemetry] NER failures (fallback used):', sessionTelemetry.nerFailures,
+        `(${((sessionTelemetry.nerFailures / sessionTelemetry.totalCalls) * 100).toFixed(1)}%)`);
+
+    if (sessionTelemetry.calculatedBudgets.length > 0) {
+        const avgBudget = sessionTelemetry.calculatedBudgets.reduce((a, b) => a + b, 0) / sessionTelemetry.calculatedBudgets.length;
+        console.log('[NT-Telemetry] Average calculated budget:', Math.round(avgBudget), 'tokens');
+    }
+
+    if (sessionTelemetry.actualResponseTokens.length > 0) {
+        const avgActual = sessionTelemetry.actualResponseTokens.reduce((a, b) => a + b, 0) / sessionTelemetry.actualResponseTokens.length;
+        console.log('[NT-Telemetry] Average actual response:', Math.round(avgActual), 'tokens');
+
+        // Calculate efficiency
+        if (sessionTelemetry.calculatedBudgets.length === sessionTelemetry.actualResponseTokens.length) {
+            let totalEfficiency = 0;
+            for (let i = 0; i < sessionTelemetry.calculatedBudgets.length; i++) {
+                totalEfficiency += (sessionTelemetry.actualResponseTokens[i] / sessionTelemetry.calculatedBudgets[i]) * 100;
+            }
+            const avgEfficiency = totalEfficiency / sessionTelemetry.calculatedBudgets.length;
+            console.log('[NT-Telemetry] Average efficiency:', avgEfficiency.toFixed(1) + '%');
+        }
+    }
+
+    console.log('[NT-Telemetry] ========================================');
+}
+
+/**
+ * Calculate response token budget using NER with fallback
+ * @param {string} messageText - Messages to analyze for entity count
+ * @param {number} rosterSize - Number of existing characters in lorebook
+ * @returns {Promise<{budget: number, method: string, entityCount: number}>}
+ */
+// eslint-disable-next-line no-unused-vars
+async function calculateResponseBudget(messageText, rosterSize) {
+    const settings = await get_settings();
+    const maxResponseTokens = settings.maxResponseTokens || 5000;
+
+    let entityCount = 0;
+    let method = 'fallback';
+
+    // Try NER-based entity extraction
+    try {
+        // Attempt to use SillyTavern transformers for NER
+        // This is the proper way to access transformers in ST extensions
+        const context = stContext.getContext();
+        if (context?.ai?.transformers?.pipeline) {
+            const ner = await context.ai.transformers.pipeline('ner');
+            const entities = await ner(messageText);
+
+            // Count unique entities (people)
+            const uniqueEntities = new Set();
+            for (const entity of entities) {
+                if (entity.entity_group === 'PER' || entity.entity.startsWith('B-PER') || entity.entity.startsWith('I-PER')) {
+                    uniqueEntities.add(entity.word.toLowerCase());
+                }
+            }
+
+            entityCount = uniqueEntities.size;
+            method = 'NER';
+            sessionTelemetry.nerSuccesses++;
+
+            console.log('[NT-Budget] NER detected', entityCount, 'entities');
+        } else {
+            throw new Error('Transformers pipeline not available');
+        }
+    } catch (error) {
+        // Fallback to character count estimation
+        console.log('[NT-Budget] NER unavailable, using fallback estimation:', error.message);
+        method = 'fallback';
+        sessionTelemetry.nerFailures++;
+
+        // Estimate: characterCount × 300 + 1000
+        const characterCount = messageText.length;
+        entityCount = Math.ceil(characterCount / 1000); // Rough estimate for logging
+    }
+
+    // Calculate budget based on method
+    let budget;
+    if (method === 'NER') {
+        // NER-based: entityCount + rosterSize, scaled by 300 tokens per character
+        const totalCharacters = entityCount + rosterSize;
+        budget = (totalCharacters * 300) + 1000; // Base 1000 + scaling
+    } else {
+        // Fallback: character count × 300 + 1000
+        budget = (messageText.length * 300) + 1000;
+    }
+
+    // Apply cap
+    budget = Math.min(budget, maxResponseTokens);
+
+    console.log('[NT-Budget] Method:', method);
+    console.log('[NT-Budget] Entity count:', entityCount);
+    console.log('[NT-Budget] Roster size:', rosterSize);
+    console.log('[NT-Budget] Calculated budget:', budget, 'tokens');
+    console.log('[NT-Budget] Max cap:', maxResponseTokens, 'tokens');
+
+    // Track telemetry
+    sessionTelemetry.totalCalls++;
+    sessionTelemetry.budgetingMethod.push(method);
+    sessionTelemetry.entityCounts.push(entityCount);
+    sessionTelemetry.rosterSizes.push(rosterSize);
+    sessionTelemetry.calculatedBudgets.push(budget);
+
+    return { budget, method, entityCount };
+}
+
 /**
  * Default system prompt for character analysis
  */
@@ -2243,7 +2389,7 @@ DO NOT repeat unchanged characters from the Current Lorebook Entries
 
 DO NOT include:
 - Any text before the JSON
-- Any text after the JSON  
+- Any text after the JSON
 - Code block markers like \\\`\\\`\\\`json
 - Explanations, commentary, or thinking tags
 - XML tags like <think> or </think> (these break JSON parsing)
@@ -2291,7 +2437,7 @@ RELATIONSHIPS FIELD - NATURAL LANGUAGE FORMAT:
 
 ⚠️ CRITICAL NAMING REQUIREMENTS:
 - ALWAYS use the character's CANONICAL/PREFERRED name in relationships
-- If "John Blackwood" is the main name, use "John Blackwood" NOT "John" 
+- If "John Blackwood" is the main name, use "John Blackwood" NOT "John"
 - Maintain name consistency across ALL relationship entries
 - Multiple relationships for same pair: separate with commas
 
@@ -2339,11 +2485,11 @@ FIELD EXAMPLES:
 
 NAME EXAMPLES:
 ✅ "John Blackwood" (not "John Blackwood, John")
-✅ "Maria Santos" (not "Maria/Marie")  
+✅ "Maria Santos" (not "Maria/Marie")
 ✅ "Alex" (when full name unknown)
 
 ALIAS EXAMPLES:
-✅ ["John", "Scout", "JB"] 
+✅ ["John", "Scout", "JB"]
 ✅ ["Marie", "Maria"]
 ✅ ["Mom", "Mother", "Sarah"]
 
@@ -2483,16 +2629,16 @@ async function buildCharacterRoster() {
 
         const entries = characterNames.map(name => {
             const char = characters[name];
-            
+
             // Build keys array (name + aliases)
             const keys = [char.preferredName || name];
             if (char.aliases && char.aliases.length > 0) {
                 keys.push(...char.aliases);
             }
-            
+
             // Build formatted content (same format as lorebook)
             const contentParts = [];
-            
+
             // Age info
             if (char.physicalAge || char.mentalAge) {
                 const ageInfo = [];
@@ -2500,32 +2646,32 @@ async function buildCharacterRoster() {
                 if (char.mentalAge) ageInfo.push(`Mental: ${char.mentalAge}`);
                 contentParts.push(`**Age:** ${ageInfo.join(', ')}`);
             }
-            
+
             // Physical
             if (char.physical) {
                 contentParts.push(`\\n**Physical Description:**\\n${char.physical}`);
             }
-            
+
             // Personality
             if (char.personality) {
                 contentParts.push(`\\n**Personality:**\\n${char.personality}`);
             }
-            
+
             // Sexuality
             if (char.sexuality) {
                 contentParts.push(`\\n**Sexuality:**\\n${char.sexuality}`);
             }
-            
+
             // Race/Ethnicity
             if (char.raceEthnicity) {
                 contentParts.push(`**Race/Ethnicity:** ${char.raceEthnicity}`);
             }
-            
+
             // Role & Skills
             if (char.roleSkills) {
                 contentParts.push(`\\n**Role & Skills:**\\n${char.roleSkills}`);
             }
-            
+
             // Relationships
             if (char.relationships && char.relationships.length > 0) {
                 contentParts.push('\\n**Relationships:**');
@@ -2533,9 +2679,9 @@ async function buildCharacterRoster() {
                     contentParts.push(`- ${rel}`);
                 });
             }
-            
+
             const content = contentParts.join('\\n');
-            
+
             return `
 ---
 KEYS: ${keys.join(', ')}
@@ -2715,7 +2861,7 @@ async function getMaxPromptLength() {
                 } else {
                     maxContext = Math.floor(detectedMaxContext);
                     logEntry(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
-                    detectionMethod = detectionMethod; // Keep the method that worked
+                    // detectionMethod already set correctly
                 }
             }
 
@@ -2834,7 +2980,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
         // Calculate token counts separately for better tracking
         const maxContext = context.maxContext || 8192;
         let systemTokens, userTokens, totalPromptTokens;
-        
+
         try {
             systemTokens = await context.getTokenCountAsync(systemPrompt);
             const userPromptText = prompt + (prefill ? '\n' + prefill : '');
@@ -2852,7 +2998,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
         // Calculate response length with 20% buffer
         const bufferTokens = Math.ceil(maxContext * 0.20); // 20% buffer
         const calculatedResponseLength = Math.max(1024, maxContext - totalPromptTokens - bufferTokens);
-        
+
         // Log context usage tracking
         console.log('[NT-CONTEXT] ========== Context Usage Tracking ==========');
         console.log('[NT-CONTEXT] maxContext:', maxContext);
@@ -2862,7 +3008,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
         console.log('[NT-CONTEXT] bufferTokens (20%):', bufferTokens);
         console.log('[NT-CONTEXT] calculatedResponseLength:', calculatedResponseLength);
         console.log('[NT-CONTEXT] contextUtilization:', ((totalPromptTokens / maxContext) * 100).toFixed(1) + '%');
-        
+
         const maxTokens = calculatedResponseLength;
         llm_debug.log();
 
@@ -2892,15 +3038,24 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                     });
                 }
 
+                // Add /nothink suffix to instruct model to avoid thinking contamination
+                // Escalate suffix on retries after contamination detection
+                let promptWithSuffix = prompt + '\n\n/nothink';
+                if (attempt > 1 && lastError?.code === 'THINKING_CONTAMINATION') {
+                    // Use stronger prompt on retry after contamination
+                    promptWithSuffix = prompt + '\n\n/nothink\n\nCRITICAL: OUTPUT ONLY VALID JSON - NO THINKING OR COMMENTARY';
+                    console.log('[NT-ST-Call] Using escalated anti-thinking prompt on retry', attempt);
+                }
+
                 const result = await context.generateRaw({
                     systemPrompt,
-                    prompt,
+                    prompt: promptWithSuffix,
                     prefill,
                     temperature: GENERATION_TEMPERATURE,
                     top_p: GENERATION_TOP_P,
                     top_k: GENERATION_TOP_K,
                     rep_pen: GENERATION_REP_PEN,
-                    responseLength: maxTokens // Use all available tokens for response (no 2048 limit)
+                    responseLength: maxTokens, // Use all available tokens for response (no 2048 limit)
                 });
 
                 if (DEBUG_LOGGING) {
@@ -2941,13 +3096,13 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                     console.log(resultText);
                     console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
                 }
-                
+
                 // Log raw response for debugging if debug mode enabled
                 const debugMode = await (0,core_settings/* get_settings */.TJ)('debugMode');
                 if (debugMode) {
                     logRawResponse(resultText, 'SillyTavern');
                 }
-                
+
                 // Log actual response token usage
                 try {
                     const responseTokens = await context.getTokenCountAsync(resultText);
@@ -2961,7 +3116,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                     console.log('[NT-CONTEXT] estimatedResponseTokens:', estimatedTokens);
                 }
                 console.log('[NT-CONTEXT] ===============================================');
-                
+
                 llm_debug.log();
 
                 // The result should be a string
@@ -2969,11 +3124,19 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                     throw new errors/* NameTrackerError */.S_('Empty or invalid response from SillyTavern LLM');
                 }
 
+                // Check for thinking contamination BEFORE attempting parse
+                const isContaminated = detectThinkingContamination(resultText, calculatedResponseLength);
+                if (isContaminated) {
+                    const error = new errors/* NameTrackerError */.S_('LLM response contains thinking contamination - rejecting and will retry');
+                    error.code = 'THINKING_CONTAMINATION';
+                    throw error;
+                }
+
                 // Pre-validation: Check if response follows JSON format requirements
                 console.log('[NT-ST-Call] 🔍 Pre-validation checks...');
-                
+
                 const trimmedResult = resultText.trim();
-                
+
                 // Check for common format violations before parsing
                 if (!trimmedResult.startsWith('{')) {
                     console.warn('[NT-ST-Call] ⚠️ Response does not start with { - attempting extraction');
@@ -2987,7 +3150,7 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                         throw new errors/* NameTrackerError */.S_('LLM response does not contain valid JSON format');
                     }
                 }
-                
+
                 // Check for orphaned strings (common parsing issue)
                 const orphanedStringPattern = /"[^"]+",\s*"[^"]*[a-zA-Z][^"]*",\s*"[a-zA-Z_]/;
                 if (orphanedStringPattern.test(resultText)) {
@@ -3080,11 +3243,14 @@ async function callOllama(prompt) {
 
         llm_debug.log();
 
-        // Calculate response tokens: use generous allocation within available context  
+        // Calculate response tokens: use generous allocation within available context
         const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
         const promptTokens = Math.ceil(prompt.length / 4); // Rough estimate
         const maxTokens = Math.max(8192, maxContext - promptTokens - 1000); // Generous response allocation with safety buffer
         llm_debug.log();
+
+        // Add /nothink suffix to instruct model to avoid thinking contamination
+        const promptWithSuffix = prompt + '\n\n/nothink';
 
         const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
             method: 'POST',
@@ -3093,7 +3259,7 @@ async function callOllama(prompt) {
             },
             body: JSON.stringify({
                 model: llmConfig.ollamaModel,
-                prompt: prompt,
+                prompt: promptWithSuffix,
                 stream: false,
                 format: 'json',
                 // Ollama-specific generation parameters for structured output
@@ -3116,8 +3282,95 @@ async function callOllama(prompt) {
         llm_debug.log();
         llm_debug.log();
 
+        // Check for thinking contamination before parsing
+        const responseText = data.response || '';
+        const estimatedTokens = Math.ceil(responseText.length / 4);
+        const isContaminated = detectThinkingContamination(responseText, estimatedTokens);
+
+        if (isContaminated) {
+            console.warn('[NT-Ollama] Response contaminated with thinking - attempting parse anyway (Ollama has no retry)');
+            // Note: Ollama doesn't have built-in retry like SillyTavern, so we proceed with repair
+        }
+
         return await parseJSONResponse(data.response);
     });
+}
+
+/**
+ * Detect thinking contamination in LLM response (binary detection)
+ * @param {string} text - LLM response text
+ * @param {number} budgetTokens - Expected response budget in tokens
+ * @returns {boolean} True if thinking contamination detected
+ */
+function detectThinkingContamination(text, budgetTokens = 5000) {
+    console.log('[NT-Contamination] Checking for thinking contamination...');
+
+    // Check 1: Response length exceeds budget by 2x
+    const estimatedTokens = Math.ceil(text.length / 4);
+    if (estimatedTokens > budgetTokens * 2.0) {
+        console.log('[NT-Contamination] ❌ DETECTED: Response too long');
+        console.log('[NT-Contamination] Estimated:', estimatedTokens, 'Budget:', budgetTokens, 'Ratio:', (estimatedTokens / budgetTokens).toFixed(2));
+        return true;
+    }
+
+    // Check 2: Common thinking phrases
+    const thinkingPhrases = [
+        /however[,\s]/i,
+        /let me (think|consider|analyze|reconsider)/i,
+        /upon (reflection|analysis|consideration)/i,
+        /it (seems|appears) that/i,
+        /looking at (this|these|the)/i,
+        /based on (this|these|the) (message|conversation|text)/i,
+        /from (this|these|the) (message|conversation|text)/i,
+        /these messages (reveal|show|indicate|suggest)/i,
+        /this (message|conversation) (reveal|show|indicate|suggest)/i,
+        /i (notice|observe|see) that/i,
+        /we can (see|infer|deduce|conclude)/i,
+        /this (indicates|suggests|shows)/i,
+    ];
+
+    for (const pattern of thinkingPhrases) {
+        if (pattern.test(text)) {
+            console.log('[NT-Contamination] ❌ DETECTED: Thinking phrase found:', pattern.source);
+            return true;
+        }
+    }
+
+    // Check 3: Unquoted prose patterns (text outside JSON structure)
+    // Look for sentence-like patterns outside quotes
+    const jsonStripped = text.replace(/"([^"]*)"/g, '""'); // Remove all string contents
+    const sentencePattern = /[A-Z][a-z]+\s+[a-z]+\s+[a-z]+/; // "Word word word" pattern
+    if (sentencePattern.test(jsonStripped)) {
+        console.log('[NT-Contamination] ❌ DETECTED: Unquoted prose pattern');
+        return true;
+    }
+
+    // Check 4: Non-schema fields (common thinking artifacts)
+    const nonSchemaFields = [
+        /"thinking":/i,
+        /"thoughts":/i,
+        /"analysis":/i,
+        /"reasoning":/i,
+        /"notes":/i,
+        /"commentary":/i,
+        /"observations":/i,
+    ];
+
+    for (const pattern of nonSchemaFields) {
+        if (pattern.test(text)) {
+            console.log('[NT-Contamination] ❌ DETECTED: Non-schema field:', pattern.source);
+            return true;
+        }
+    }
+
+    // Check 5: XML-style thinking tags
+    if (/<think>/i.test(text) || /<thinking>/i.test(text) || /<\/think>/i.test(text)) {
+        console.log('[NT-Contamination] ❌ DETECTED: XML thinking tags');
+        return true;
+    }
+
+    console.log('[NT-Contamination] ✅ No contamination detected');
+    return false;
 }
 
 /**
@@ -3168,13 +3421,13 @@ function repairJSON(text) {
 
     // 3. Fix missing commas between object properties (line breaks without commas)
     repaired = repaired.replace(/([}\]])\s*\n\s*(")/g, '$1,\n    $2');
-    
+
     // 4. Fix control characters (newlines, tabs, etc. in strings) - ENHANCED
     repaired = repaired.replace(/"([^"]*[\n\r\t\f\b\v][^"]*)"/g, (match, content) => {
         const cleaned = content
             .replace(/\n/g, ' ')     // newlines -> space
             .replace(/\r/g, '')      // carriage returns -> remove
-            .replace(/\t/g, ' ')     // tabs -> space  
+            .replace(/\t/g, ' ')     // tabs -> space
             .replace(/\f/g, ' ')     // form feeds -> space
             .replace(/\b/g, '')      // backspace -> remove
             .replace(/\v/g, ' ')     // vertical tabs -> space
@@ -3189,7 +3442,7 @@ function repairJSON(text) {
     repaired = repaired.replace(/,\s*"[^"]*encountered a problem[^"]*"/gi, '');
     repaired = repaired.replace(/,\s*"[^"]*Please try again[^"]*"/gi, '');
     repaired = repaired.replace(/"[^"]*I'm sorry[^"]*"\s*,/gi, '');
-    
+
     // Remove property names that are error messages (missing opening quote)
     repaired = repaired.replace(/,\s*[A-Za-z]+"\s*:\s*"[^"]*I'm sorry[^"]*/gi, '');
 
@@ -3200,8 +3453,8 @@ function repairJSON(text) {
     // 7. Fix trailing commas before closing brackets/braces
     repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
 
-    // 6. Fix missing colons after property names  
-    repaired = repaired.replace(/"([^"]+)"\s+(?=["{\[])/g, '"$1": ');
+    // 6. Fix missing colons after property names
+    repaired = repaired.replace(/"([^"]+)"\s+(?=["'{[])/g, '"$1": ');
 
     // 7. Fix double commas introduced by repairs
     repaired = repaired.replace(/,,+/g, ',');
@@ -3219,7 +3472,7 @@ function repairJSON(text) {
     });
 
     console.log('[NT-Repair] Applied repairs, length change:', repaired.length - text.length);
-    
+
     return repaired;
 }
 
@@ -3233,11 +3486,11 @@ function parseJSONResponse(text) {
         // Create debug session if debug mode is enabled
         const debugMode = await (0,core_settings/* get_settings */.TJ)('debugMode');
         const session = debugMode ? createParsingSession() : null;
-        
+
         if (session) {
             session.logStart('parseJSONResponse', text);
         }
-        
+
         console.log('[NT-Parse] ========== PARSE START ==========');
         console.log('[NT-Parse] Input type:', typeof text);
         console.log('[NT-Parse] Input is null?:', text === null);
@@ -3275,6 +3528,7 @@ function parseJSONResponse(text) {
                 text = JSON.parse('"' + text.replace(/"/g, '\\"') + '"');
                 console.log('[NT-Parse] ✅ Successfully unescaped response');
             }
+        // eslint-disable-next-line no-unused-vars
         } catch (unescapeError) {
             console.log('[NT-Parse] ⚠️ Could not unescape response, proceeding with raw text');
         }
@@ -3283,11 +3537,11 @@ function parseJSONResponse(text) {
         const beforeTrim = text;
         text = text.trim();
         console.log('[NT-Parse] After trim, length:', text.length);
-        
+
         if (session) {
             session.logTransform('Trim whitespace', beforeTrim, text);
         }
-        
+
         if (text.length === 0) {
             console.error('[NT-Parse] ❌ Text is empty after trim');
             if (session) session.logEnd(false, new Error('Empty after trim'), text);
@@ -3297,21 +3551,21 @@ function parseJSONResponse(text) {
         // Extract JSON from markdown code blocks ONLY if response starts with markdown
         // This prevents false positives from backticks embedded in JSON string values
         const startsWithMarkdown = /^```(?:json)?[\s\n]/.test(text);
-        
+
         if (startsWithMarkdown) {
             console.log('[NT-Parse] 🔍 Response starts with markdown code block, extracting JSON');
             const beforeExtraction = text;
-            
+
             // Extract content between first ``` and last ```
             const codeBlockMatch = text.match(/^```(?:json)?[\s\n]+([\s\S]*?)```\s*$/);
             if (codeBlockMatch && codeBlockMatch[1]) {
                 text = codeBlockMatch[1].trim();
                 console.log('[NT-Parse] 📄 After markdown extraction, length:', text.length);
-                
+
                 if (session) {
                     logRegexExtraction(beforeExtraction, '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/', text);
                     session.logTransform('Extract markdown code block', beforeExtraction, text, {
-                        regex: '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/'
+                        regex: '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/',
                     });
                 }
             } else {
@@ -3319,7 +3573,7 @@ function parseJSONResponse(text) {
                 // Remove opening and closing markers
                 text = text.replace(/^```(?:json)?[\s\n]+/, '').replace(/```\s*$/, '');
                 console.log('[NT-Parse] 🧹 Removed markdown markers, length:', text.length);
-                
+
                 if (session) {
                     session.logTransform('Remove malformed markdown', beforeExtraction, text);
                 }
@@ -3329,26 +3583,26 @@ function parseJSONResponse(text) {
             console.log('[NT-Parse] ℹ️ Found backticks in response but not at start - likely embedded in JSON strings, not extracting');
             console.log('[NT-Parse] First 50 chars:', text.substring(0, 50));
         }
-        
+
         // Remove any remaining XML/HTML tags that may interfere
         if (text.includes('<') || text.includes('>')) {
             const beforeTagRemoval = text;
             const originalLength = text.length;
             text = text.replace(/<[^>]*>/g, '');
             console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
-            
+
             if (session) {
                 session.logTransform('Remove XML/HTML tags', beforeTagRemoval, text);
             }
         }
-        
+
         // Check if response contains obvious error messages
-        if (text.includes("I'm sorry") || text.includes("encountered a problem") || text.includes("Please try again")) {
+        if (text.includes('I\'m sorry') || text.includes('encountered a problem') || text.includes('Please try again')) {
             console.error(`[NT-Parse] 🚨 Response contains error message: "${text.substring(0, 200)}"`);
             if (session) session.logEnd(false, new Error('LLM error message'), text);
             throw new Error('LLM generated an error response instead of JSON. Try adjusting your request.');
         }
-        
+
         // Check if response is completely non-JSON (like pure XML tags or text)
         if (text.length < 20 || (!text.includes('{') && !text.includes('['))) {
             console.error(`[NT-Parse] 🚨 Response appears to be non-JSON content: "${text}"`);
@@ -3413,11 +3667,11 @@ function parseJSONResponse(text) {
 
             console.log('[NT-Parse] ✅ Valid response with', parsed.characters.length, 'characters');
             console.log('[NT-Parse] ========== PARSE END (SUCCESS) ==========');
-            
+
             if (session) {
                 session.logEnd(true, parsed, text);
             }
-            
+
             return parsed;
         } catch (error) {
             console.error('[NT-Parse] ❌ JSON.parse failed:', error.message);
@@ -3426,11 +3680,11 @@ function parseJSONResponse(text) {
             console.log('[NT-Parse] Text being parsed (last 200 chars):', text.substring(Math.max(0, text.length - 200)));
 
             // Additional targeted repairs for specific common errors
-            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
+            if (error.message.includes('Expected \':\'') || error.message.includes('after property name')) {
                 console.log('[NT-Parse] Attempting targeted repair for missing property names...');
-                
+
                 let targetedRepair = text;
-                
+
                 // Specific fix for pattern: "name": "value", "orphaned description", "nextProp":
                 // This is the exact pattern causing most failures
                 targetedRepair = targetedRepair.replace(
@@ -3438,9 +3692,9 @@ function parseJSONResponse(text) {
                     (match, name, orphanedText, nextProp) => {
                         console.log(`[NT-Parse] 🎯 Targeted repair: assigning "${orphanedText.substring(0, 30)}..." to physical for ${name}`);
                         return `"name": "${name}", "physical": "${orphanedText}", "${nextProp}": `;
-                    }
+                    },
                 );
-                
+
                 // Try parsing again with targeted repair
                 try {
                     const repairedParsed = JSON.parse(targetedRepair);
@@ -3497,21 +3751,21 @@ function parseJSONResponse(text) {
             }
 
             console.log('[NT-Parse] ========== PARSE END (FAILED) ==========');
-            
+
             if (session) {
                 session.logEnd(false, error, text);
             }
-            
+
             // Provide specific feedback about the JSON error
             let errorHelp = 'Failed to parse LLM response as JSON.';
-            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
+            if (error.message.includes('Expected \':\'') || error.message.includes('after property name')) {
                 errorHelp = 'JSON parsing failed: Missing colon after property name or orphaned string without property. The LLM likely generated a description without specifying which field it belongs to.';
             } else if (error.message.includes('Unexpected token')) {
                 errorHelp = 'JSON parsing failed: Unexpected character found. Check for missing quotes, commas, or control characters.';
             } else if (error.message.includes('Unexpected end')) {
                 errorHelp = 'JSON parsing failed: Response appears truncated. Try analyzing fewer messages at once.';
             }
-            
+
             throw new errors/* NameTrackerError */.S_(errorHelp);
         }
     });
@@ -3698,10 +3952,10 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
         // Check for empty response and retry once with stronger emphasis
         if (result && Array.isArray(result.characters) && result.characters.length === 0 && retryCount === 0) {
             console.warn('[NT-LLM] Empty response detected, retrying with stronger user character emphasis...');
-            
+
             // Add stronger user character requirement to the user prompt
             const retryUserPrompt = userPrompt + '\n\nCRITICAL ERROR: Previous response was empty. You MUST return at minimum the user character ({{user}}) with any available details from these messages. An empty character list is INVALID.';
-            
+
             try {
                 let retryResult;
                 if (llmConfig.source === 'ollama') {
@@ -3710,7 +3964,7 @@ async function callLLMAnalysis(messageObjs, knownCharacters = '', depth = 0, ret
                 } else {
                     retryResult = await callSillyTavern(systemMessage, retryUserPrompt, prefill, false);
                 }
-                
+
                 if (retryResult && Array.isArray(retryResult.characters) && retryResult.characters.length > 0) {
                     console.log('[NT-LLM] Retry successful, got', retryResult.characters.length, 'characters');
                     result = retryResult;
@@ -4310,6 +4564,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     lorebookEnabled: true,
     debugMode: false,
     systemPrompt: null, // null means use default
+    maxResponseTokens: 5000, // Maximum tokens for LLM response (budget cap)
     lastScannedMessageId: -1,
     totalCharactersDetected: 0,
     lastAnalysisTime: null,
@@ -4577,12 +4832,12 @@ function getLLMConfig() {
         const ollamaEndpoint = getSetting('ollamaEndpoint');
         const ollamaModel = getSetting('ollamaModel');
         const systemPrompt = getSetting('systemPrompt');
-        
+
         const { extSettings } = getContextSettings();
         const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
         debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
         debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
-        
+
         // Ensure no Promise objects are returned
         return {
             source: (typeof llmSource === 'string') ? llmSource : 'sillytavern',
@@ -4608,7 +4863,7 @@ function getLorebookConfig() {
         const scanDepth = getSetting('lorebookScanDepth');
         const probability = getSetting('lorebookProbability');
         const enabled = getSetting('lorebookEnabled');
-        
+
         // Ensure no Promise objects are returned
         return {
             position: (typeof position === 'number') ? position : 0,
@@ -4735,24 +4990,24 @@ function validateCharacterData(analyzedChar, allCharacters = []) {
     if (!name) {
         throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .NameTrackerError */ .S_('Character name is required');
     }
-    
+
     // Validate confidence score
-    const confidence = typeof analyzedChar.confidence === 'number' && analyzedChar.confidence >= 0 && analyzedChar.confidence <= 100 
-        ? analyzedChar.confidence 
+    const confidence = typeof analyzedChar.confidence === 'number' && analyzedChar.confidence >= 0 && analyzedChar.confidence <= 100
+        ? analyzedChar.confidence
         : 75;
-    
+
     // Clean and validate arrays
     const aliases = Array.isArray(analyzedChar.aliases) ? analyzedChar.aliases.filter(a => typeof a === 'string' && a.trim()) : [];
     const relationships = Array.isArray(analyzedChar.relationships) ? analyzedChar.relationships.filter(r => typeof r === 'string' && r.trim()) : [];
-    
+
     // Clean text fields
     const cleanTextField = (field) => {
         return typeof field === 'string' ? field.trim() : '';
     };
-    
+
     // Clean name using helper if available (fallback to basic sanitization)
     const sanitizedName = name.replace(/[<>&"']/g, '').trim();
-    
+
     return {
         name: sanitizedName,
         aliases,
@@ -4764,7 +5019,7 @@ function validateCharacterData(analyzedChar, allCharacters = []) {
         raceEthnicity: cleanTextField(analyzedChar.raceEthnicity),
         roleSkills: cleanTextField(analyzedChar.roleSkills),
         relationships,
-        confidence
+        confidence,
     };
 }
 
@@ -4792,8 +5047,6 @@ async function validateCharacterLorebookSync() {
     return withErrorBoundary('validateCharacterLorebookSync', async () => {
         const characters = await getCharacters();
         const issues = [];
-        let orphanedCharacters = 0;
-        let orphanedEntries = 0;
 
         debugLog('🔍 Validating character-lorebook synchronization...');
 
@@ -4801,7 +5054,6 @@ async function validateCharacterLorebookSync() {
         for (const [name, character] of Object.entries(characters)) {
             if (!character.lorebookEntryId) {
                 issues.push(`Character '${name}' missing lorebookEntryId`);
-                orphanedCharacters++;
             }
         }
 
@@ -4810,19 +5062,19 @@ async function validateCharacterLorebookSync() {
             const { getLorebookStats } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 158));
             const stats = await getLorebookStats();
             const characterCount = Object.keys(characters).length;
-            
+
             if (stats.totalEntries !== characterCount) {
                 issues.push(`Count mismatch: ${characterCount} characters vs ${stats.totalEntries} lorebook entries`);
             }
-            
+
             debugLog(`📊 Sync validation: ${characterCount} characters, ${stats.totalEntries} entries`);
-            
+
         } catch (error) {
             issues.push(`Could not validate lorebook entries: ${error.message}`);
         }
 
         const valid = issues.length === 0;
-        
+
         if (!valid) {
             console.warn('[NT-Characters] ⚠️ Character-Lorebook sync issues:', issues);
         } else {
@@ -4904,11 +5156,11 @@ function parseNewRelationshipFormat(relationships, currentCharName, allCharacter
         const [, char1, char2, relationshipsPart] = match;
         const char1Trimmed = char1.trim();
         const char2Trimmed = char2.trim();
-        
+
         // Normalize character names to preferred names
         const normalizedChar1 = findPreferredName(char1Trimmed, allCharacters);
         const normalizedChar2 = findPreferredName(char2Trimmed, allCharacters);
-        
+
         if (!normalizedChar1 || !normalizedChar2) {
             debugLog(`❌ Could not normalize names: "${char1Trimmed}" -> "${normalizedChar1}", "${char2Trimmed}" -> "${normalizedChar2}"`);
             continue;
@@ -4916,7 +5168,7 @@ function parseNewRelationshipFormat(relationships, currentCharName, allCharacter
 
         // Split multiple relationships and create individual triplets
         const relationshipTypes = relationshipsPart.split(',').map(r => r.trim());
-        
+
         for (const relType of relationshipTypes) {
             if (relType) {
                 const triplet = `${normalizedChar1}, ${normalizedChar2}, ${relType.toLowerCase()}`;
@@ -4936,6 +5188,7 @@ function parseNewRelationshipFormat(relationships, currentCharName, allCharacter
  * @param {Object} allCharacters - All known characters for name resolution
  * @returns {Array<string>} Cleaned relationship triplets
  */
+// eslint-disable-next-line no-unused-vars
 function rationalizeRelationships(relationships, currentCharName, allCharacters) {
     if (!relationships || !Array.isArray(relationships)) {
         return [];
@@ -4951,14 +5204,14 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
         }
         return false;
     });
-    
+
     if (hasLegacyTriplets) {
-        debugLog(`⚠️ WARNING: Detected legacy triplet format in relationships. LLM should use new format.`);
+        debugLog('⚠️ WARNING: Detected legacy triplet format in relationships. LLM should use new format.');
     }
 
     // Determine if we're dealing with new format or legacy triplets
     const hasNewFormat = relationships.some(rel => typeof rel === 'string' && /\s+is\s+to\s+.+:/.test(rel));
-    
+
     let parsedTriplets;
     if (hasNewFormat) {
         // Parse new natural language format
@@ -4973,29 +5226,29 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
     }
 
     if (parsedTriplets.length === 0) {
-        debugLog(`❌ No valid relationships found after parsing`);
+        debugLog('❌ No valid relationships found after parsing');
         return [];
     }
 
     // Continue with existing rationalization logic for the triplets
     const relationshipObjects = [];
-    
+
     for (const triplet of parsedTriplets) {
         const parts = triplet.split(',').map(part => part.trim());
         if (parts.length !== 3) continue;
-        
+
         const [char1, char2, relationship] = parts;
-        
+
         // Normalize character names again (in case of legacy format)
         const normalizedChar1 = findPreferredName(char1, allCharacters);
         const normalizedChar2 = findPreferredName(char2, allCharacters);
-        
+
         if (normalizedChar1 && normalizedChar2 && relationship) {
             relationshipObjects.push({
                 char1: normalizedChar1,
                 char2: normalizedChar2,
                 relationship: relationship.toLowerCase().trim(),
-                original: triplet
+                original: triplet,
             });
         }
     }
@@ -5004,10 +5257,10 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
 
     // Group relationships by character pair for deduplication
     const relationshipsByPair = new Map();
-    
+
     for (const rel of relationshipObjects) {
         const pairKey = `${rel.char1}|${rel.char2}`;
-        
+
         if (!relationshipsByPair.has(pairKey)) {
             relationshipsByPair.set(pairKey, []);
         }
@@ -5016,8 +5269,8 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
 
     // Rationalize each character pair
     const finalizedRelationships = [];
-    
-    for (const [pairKey, rels] of relationshipsByPair.entries()) {
+
+    for (const [, rels] of relationshipsByPair.entries()) {
         const rationalized = rationalizeRelationshipGroup(rels);
         if (rationalized) {
             finalizedRelationships.push(`${rationalized.char1}, ${rationalized.char2}, ${rationalized.relationship}`);
@@ -5025,7 +5278,7 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
     }
 
     debugLog(`✅ Finalized ${finalizedRelationships.length} relationships (reduced from ${relationships.length})`);
-    
+
     return finalizedRelationships;
 }
 
@@ -5037,21 +5290,21 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
  */
 function findPreferredName(name, allCharacters) {
     if (!name || !allCharacters) return name;
-    
+
     // First, try exact match on preferred names
-    for (const [preferredName, character] of Object.entries(allCharacters)) {
+    for (const [preferredName] of Object.entries(allCharacters)) {
         if (preferredName === name) {
             return preferredName;
         }
     }
-    
+
     // Then try aliases
     for (const [preferredName, character] of Object.entries(allCharacters)) {
         if (character.aliases && character.aliases.includes(name)) {
             return preferredName;
         }
     }
-    
+
     // Return original if no match found
     return name;
 }
@@ -5064,10 +5317,10 @@ function findPreferredName(name, allCharacters) {
  */
 function rationalizeRelationshipGroup(relationships) {
     if (!relationships || relationships.length === 0) return null;
-    
+
     const relTypes = relationships.map(r => r.relationship);
     debugLog(`🎯 Rationalizing group: [${relTypes.join(', ')}]`);
-    
+
     // Deduplication mapping - convert synonyms to canonical forms
     const equivalents = {
         'sexual partner': 'lover',
@@ -5083,30 +5336,30 @@ function rationalizeRelationshipGroup(relationships) {
         'brother': 'sibling',
         'sister': 'sibling',
         'manager': 'boss',
-        'supervisor': 'boss'
+        'supervisor': 'boss',
     };
-    
+
     // Normalize to canonical forms and remove duplicates
     const normalizedRels = [...new Set(relTypes.map(rel => equivalents[rel] || rel))];
-    
+
     // Remove contradictory relationships (keep the first one found)
     const contradictions = [
         ['dominant', 'submissive'],
         ['leader', 'follower'],
         ['boss', 'employee'],
-        ['parent', 'child']
+        ['parent', 'child'],
     ];
-    
+
     let filteredRels = [...normalizedRels];
     for (const [rel1, rel2] of contradictions) {
         const hasRel1 = filteredRels.includes(rel1);
         const hasRel2 = filteredRels.includes(rel2);
-        
+
         if (hasRel1 && hasRel2) {
             // Keep the first one, remove the second
             const index1 = filteredRels.indexOf(rel1);
             const index2 = filteredRels.indexOf(rel2);
-            
+
             if (index1 < index2) {
                 filteredRels = filteredRels.filter(r => r !== rel2);
                 debugLog(`🚫 Removed contradictory '${rel2}', kept '${rel1}'`);
@@ -5116,22 +5369,22 @@ function rationalizeRelationshipGroup(relationships) {
             }
         }
     }
-    
+
     if (filteredRels.length === 0) {
-        debugLog(`❌ No relationships left after filtering contradictions`);
+        debugLog('❌ No relationships left after filtering contradictions');
         return null;
     }
-    
+
     // Combine multiple relationships with commas (new approach)
     const combinedRelationship = filteredRels.join(', ');
-    
+
     debugLog(`🎯 Combined relationships: "${combinedRelationship}" from [${relTypes.join(', ')}]`);
-    
+
     const baseRel = relationships[0];
     return {
         char1: baseRel.char1,
         char2: baseRel.char2,
-        relationship: combinedRelationship
+        relationship: combinedRelationship,
     };
 }
 
@@ -5494,13 +5747,13 @@ async function createCharacter(analyzedChar, isMainChar = false) {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_2__/* .withErrorBoundary */ .Xc)('createCharacter', async () => {
         debug.log();
         console.log('[NT-Characters] 🟦 createCharacter() called for:', analyzedChar.name);
-        
+
         // Get all characters for relationship normalization
         const allCharacters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_3__/* .getCharacters */ .bg)();
-        
+
         // Validate and clean character data from LLM
         const cleanedChar = validateCharacterData(analyzedChar, allCharacters);
-        
+
         // Clean and filter aliases
         const aliases = await cleanAliases(cleanedChar.aliases || [], cleanedChar.name);
 
@@ -5531,7 +5784,7 @@ async function createCharacter(analyzedChar, isMainChar = false) {
 
         // Create lorebook entry and ensure ID is saved
         await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_0__.updateLorebookEntry)(character, character.preferredName);
-        
+
         // Verify lorebook entry was created successfully
         if (!character.lorebookEntryId) {
             console.warn(`[NT-Characters] ⚠️ Lorebook entry creation may have failed for: ${character.preferredName}`);
@@ -6200,7 +6453,7 @@ logger.debug('Notifications module loaded');
  * Provides module-specific logging, performance monitoring, and state inspection
  */
 
-const MODULE_NAME = 'STnametracker';
+const MODULE_NAME = 'NT';
 
 class DebugLogger {
     constructor() {
@@ -6966,7 +7219,7 @@ function ui_updateStatusDisplay() {
 
         const characters = await (0,core_settings/* getCharacters */.bg)();
         const characterCount = Object.keys(characters).length;
-        
+
         // Await settings to avoid Promise objects and ensure proper types
         const messageCounter = await (0,core_settings/* getSetting */.PL)('messageCounter') || 0;
         const lastScannedId = await (0,core_settings/* getSetting */.PL)('lastScannedMessageId') || -1;
@@ -6974,13 +7227,13 @@ function ui_updateStatusDisplay() {
 
         const context = core_context.stContext.getContext();
         const currentMessageId = context?.chat?.length || 0;
-        
+
         // Ensure numeric values to prevent NaN
         const safeLastScanned = typeof lastScannedId === 'number' ? lastScannedId : -1;
         const safeMessageCounter = typeof messageCounter === 'number' ? messageCounter : 0;
         const safeMessageFreq = typeof messageFreq === 'number' ? messageFreq : 10;
         const safeChatLength = typeof currentMessageId === 'number' ? currentMessageId : 0;
-        
+
         const pendingMessages = Math.max(0, safeChatLength - safeLastScanned);
         const progressText = safeMessageCounter > 0 ? ` (${safeMessageCounter} analyzed)` : '';
         const messagesToNextScan = Math.max(0, safeMessageFreq - (safeChatLength - safeLastScanned));
@@ -7138,7 +7391,7 @@ async function showSystemPromptEditor() {
             ">
                 <h3 style="margin-top: 0;">Edit System Prompt</h3>
                 <p>Customize the system prompt used for character analysis. Leave blank to use default.</p>
-                <textarea id="system_prompt_editor" rows="20" style="width: 100%; margin: 10px 0;" 
+                <textarea id="system_prompt_editor" rows="20" style="width: 100%; margin: 10px 0;"
                           placeholder="Enter custom system prompt or leave blank for default...">${(0,helpers/* escapeHtml */.ZD)(currentPrompt)}</textarea>
                 <div style="margin-top: 20px; text-align: right;">
                     <button class="menu_button" id="system_prompt_save">Save</button>
@@ -7304,6 +7557,7 @@ function initializeUIHandlers() {
  * @param {string} characterName - Name of character to edit
  * @returns {Promise<void>}
  */
+// eslint-disable-next-line no-unused-vars
 async function showEditLorebookModal(characterName) {
     return withErrorBoundary('showEditLorebookModal', async () => {
         const character = await getCharacter(characterName);
@@ -7319,24 +7573,24 @@ async function showEditLorebookModal(characterName) {
         const dialogHtml = `
             <div class="lorebook-entry-editor">
                 <h3>Edit Lorebook Entry: ${escapeHtml(characterName)}</h3>
-                
+
                 <div class="editor-section">
                     <label for="entry-keys">Keys (comma-separated):</label>
-                    <input type="text" id="entry-keys" class="text_pole" value="${escapeHtml(currentKeys)}" 
+                    <input type="text" id="entry-keys" class="text_pole" value="${escapeHtml(currentKeys)}"
                            placeholder="${escapeHtml(characterName)}, aliases, nicknames">
                     <small>These words trigger this entry in the chat context</small>
                 </div>
-                
+
                 <div class="editor-section">
                     <label for="entry-content">Entry Content:</label>
-                    <textarea id="entry-content" rows="10" class="text_pole" 
+                    <textarea id="entry-content" rows="10" class="text_pole"
                               placeholder="Description, personality, background, relationships...">${escapeHtml(character.notes || '')}</textarea>
                     <small>This will be injected into context when keys are mentioned</small>
                 </div>
-                
+
                 <div class="editor-section">
                     <label for="entry-relationships">Relationships:</label>
-                    <textarea id="entry-relationships" rows="3" class="text_pole" 
+                    <textarea id="entry-relationships" rows="3" class="text_pole"
                               placeholder="Friend of Alice; Enemy of Bob; Works for XYZ Corp">${escapeHtml((character.relationships || []).join('; '))}</textarea>
                     <small>One relationship per line or semicolon-separated</small>
                 </div>
@@ -8649,19 +8903,19 @@ async function harvestMessages(messageCount, showProgress = true) {
                         failedBatches++;
                         continue;
                     }
-                    
+
                     if (!analysis.characters) {
                         console.warn('[NT-Batch] ⚠️ Analysis missing characters property, skipping batch');
                         failedBatches++;
                         continue;
                     }
-                    
+
                     if (!Array.isArray(analysis.characters)) {
                         console.warn('[NT-Batch] ⚠️ analysis.characters is not an array:', typeof analysis.characters);
                         failedBatches++;
                         continue;
                     }
-                    
+
                     // Valid analysis - process results
                     console.log('[NT-Batch] ✅ Calling processAnalysisResults with', analysis.characters.length, 'characters');
                     await processAnalysisResults(analysis.characters);
@@ -8891,7 +9145,7 @@ function showProgressBar(current, total, status = '') {
         const recentTimestamps = batchTimestamps.slice(-Math.min(THROUGHPUT_WINDOW_SIZE, batchTimestamps.length));
         const timeSpan = recentTimestamps[recentTimestamps.length - 1] - recentTimestamps[0];
         const batchesCompleted = recentTimestamps.length - 1;
-        
+
         if (timeSpan > 0 && batchesCompleted > 0) {
             const batchesPerMin = (batchesCompleted / (timeSpan / 60000)).toFixed(1);
             const remainingBatches = total - current;
@@ -9038,19 +9292,19 @@ async function scanEntireChat() {
                     failedBatches++;
                     continue;
                 }
-                
+
                 if (!analysis.characters) {
                     console.warn(`[NT-Processing] Batch ${i + 1}: Analysis missing characters property, skipping`);
                     failedBatches++;
                     continue;
                 }
-                
+
                 if (!Array.isArray(analysis.characters)) {
                     console.warn(`[NT-Processing] Batch ${i + 1}: analysis.characters is not an array (${typeof analysis.characters}), skipping`);
                     failedBatches++;
                     continue;
                 }
-                
+
                 // Process valid analysis results
                 await processAnalysisResults(analysis.characters);
                 // Track unique characters

@@ -68,6 +68,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     lorebookEnabled: true,
     debugMode: false,
     systemPrompt: null, // null means use default
+    maxResponseTokens: 5000, // Maximum tokens for LLM response (budget cap)
     lastScannedMessageId: -1,
     totalCharactersDetected: 0,
     lastAnalysisTime: null,
@@ -335,12 +336,12 @@ function getLLMConfig() {
         const ollamaEndpoint = getSetting('ollamaEndpoint');
         const ollamaModel = getSetting('ollamaModel');
         const systemPrompt = getSetting('systemPrompt');
-        
+
         const { extSettings } = getContextSettings();
         const moduleSettings = extSettings ? extSettings[MODULE_NAME] : null;
         debug.log('[NT-LLMConfig] llmSource setting:', llmSource);
         debug.log('[NT-LLMConfig] extension_settings keys for module:', moduleSettings ? Object.keys(moduleSettings) : 'none');
-        
+
         // Ensure no Promise objects are returned
         return {
             source: (typeof llmSource === 'string') ? llmSource : 'sillytavern',
@@ -366,7 +367,7 @@ function getLorebookConfig() {
         const scanDepth = getSetting('lorebookScanDepth');
         const probability = getSetting('lorebookProbability');
         const enabled = getSetting('lorebookEnabled');
-        
+
         // Ensure no Promise objects are returned
         return {
             position: (typeof position === 'number') ? position : 0,

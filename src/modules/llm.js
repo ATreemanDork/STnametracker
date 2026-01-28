@@ -12,11 +12,10 @@ import { get_settings, getCharacters, getLLMConfig } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { simpleHash } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
-import { 
-    logRawResponse, 
-    logParseAttempt, 
-    logRegexExtraction, 
-    createParsingSession 
+import {
+    logRawResponse,
+    logRegexExtraction,
+    createParsingSession,
 } from '../../tests/debug-parser.js';
 
 const debug = createModuleLogger('llm');
@@ -69,6 +68,152 @@ const CACHE_INVALIDATION_TIME = 3600000; // 1 hour cache duration
 // LLM state management
 const analysisCache = new Map(); // Cache for LLM analysis results
 let ollamaModels = []; // Available Ollama models
+
+// Session telemetry tracking (reset on chat change)
+const sessionTelemetry = {
+    budgetingMethod: [], // 'NER' or 'fallback'
+    entityCounts: [],
+    rosterSizes: [],
+    calculatedBudgets: [],
+    actualResponseTokens: [],
+    totalCalls: 0,
+    nerSuccesses: 0,
+    nerFailures: 0,
+};
+
+/**
+ * Reset session telemetry (call on chat change)
+ */
+export function resetSessionTelemetry() {
+    sessionTelemetry.budgetingMethod = [];
+    sessionTelemetry.entityCounts = [];
+    sessionTelemetry.rosterSizes = [];
+    sessionTelemetry.calculatedBudgets = [];
+    sessionTelemetry.actualResponseTokens = [];
+    sessionTelemetry.totalCalls = 0;
+    sessionTelemetry.nerSuccesses = 0;
+    sessionTelemetry.nerFailures = 0;
+    console.log('[NT-Telemetry] Session telemetry reset');
+}
+
+/**
+ * Log session telemetry summary
+ */
+export function logSessionTelemetry() {
+    if (sessionTelemetry.totalCalls === 0) {
+        console.log('[NT-Telemetry] No LLM calls this session');
+        return;
+    }
+
+    console.log('[NT-Telemetry] ========== Session Summary ==========');
+    console.log('[NT-Telemetry] Total LLM calls:', sessionTelemetry.totalCalls);
+    console.log('[NT-Telemetry] NER successes:', sessionTelemetry.nerSuccesses,
+        `(${((sessionTelemetry.nerSuccesses / sessionTelemetry.totalCalls) * 100).toFixed(1)}%)`);
+    console.log('[NT-Telemetry] NER failures (fallback used):', sessionTelemetry.nerFailures,
+        `(${((sessionTelemetry.nerFailures / sessionTelemetry.totalCalls) * 100).toFixed(1)}%)`);
+
+    if (sessionTelemetry.calculatedBudgets.length > 0) {
+        const avgBudget = sessionTelemetry.calculatedBudgets.reduce((a, b) => a + b, 0) / sessionTelemetry.calculatedBudgets.length;
+        console.log('[NT-Telemetry] Average calculated budget:', Math.round(avgBudget), 'tokens');
+    }
+
+    if (sessionTelemetry.actualResponseTokens.length > 0) {
+        const avgActual = sessionTelemetry.actualResponseTokens.reduce((a, b) => a + b, 0) / sessionTelemetry.actualResponseTokens.length;
+        console.log('[NT-Telemetry] Average actual response:', Math.round(avgActual), 'tokens');
+
+        // Calculate efficiency
+        if (sessionTelemetry.calculatedBudgets.length === sessionTelemetry.actualResponseTokens.length) {
+            let totalEfficiency = 0;
+            for (let i = 0; i < sessionTelemetry.calculatedBudgets.length; i++) {
+                totalEfficiency += (sessionTelemetry.actualResponseTokens[i] / sessionTelemetry.calculatedBudgets[i]) * 100;
+            }
+            const avgEfficiency = totalEfficiency / sessionTelemetry.calculatedBudgets.length;
+            console.log('[NT-Telemetry] Average efficiency:', avgEfficiency.toFixed(1) + '%');
+        }
+    }
+
+    console.log('[NT-Telemetry] ========================================');
+}
+
+/**
+ * Calculate response token budget using NER with fallback
+ * @param {string} messageText - Messages to analyze for entity count
+ * @param {number} rosterSize - Number of existing characters in lorebook
+ * @returns {Promise<{budget: number, method: string, entityCount: number}>}
+ */
+// eslint-disable-next-line no-unused-vars
+async function calculateResponseBudget(messageText, rosterSize) {
+    const settings = await get_settings();
+    const maxResponseTokens = settings.maxResponseTokens || 5000;
+
+    let entityCount = 0;
+    let method = 'fallback';
+
+    // Try NER-based entity extraction
+    try {
+        // Attempt to use SillyTavern transformers for NER
+        // This is the proper way to access transformers in ST extensions
+        const context = stContext.getContext();
+        if (context?.ai?.transformers?.pipeline) {
+            const ner = await context.ai.transformers.pipeline('ner');
+            const entities = await ner(messageText);
+
+            // Count unique entities (people)
+            const uniqueEntities = new Set();
+            for (const entity of entities) {
+                if (entity.entity_group === 'PER' || entity.entity.startsWith('B-PER') || entity.entity.startsWith('I-PER')) {
+                    uniqueEntities.add(entity.word.toLowerCase());
+                }
+            }
+
+            entityCount = uniqueEntities.size;
+            method = 'NER';
+            sessionTelemetry.nerSuccesses++;
+
+            console.log('[NT-Budget] NER detected', entityCount, 'entities');
+        } else {
+            throw new Error('Transformers pipeline not available');
+        }
+    } catch (error) {
+        // Fallback to character count estimation
+        console.log('[NT-Budget] NER unavailable, using fallback estimation:', error.message);
+        method = 'fallback';
+        sessionTelemetry.nerFailures++;
+
+        // Estimate: characterCount × 300 + 1000
+        const characterCount = messageText.length;
+        entityCount = Math.ceil(characterCount / 1000); // Rough estimate for logging
+    }
+
+    // Calculate budget based on method
+    let budget;
+    if (method === 'NER') {
+        // NER-based: entityCount + rosterSize, scaled by 300 tokens per character
+        const totalCharacters = entityCount + rosterSize;
+        budget = (totalCharacters * 300) + 1000; // Base 1000 + scaling
+    } else {
+        // Fallback: character count × 300 + 1000
+        budget = (messageText.length * 300) + 1000;
+    }
+
+    // Apply cap
+    budget = Math.min(budget, maxResponseTokens);
+
+    console.log('[NT-Budget] Method:', method);
+    console.log('[NT-Budget] Entity count:', entityCount);
+    console.log('[NT-Budget] Roster size:', rosterSize);
+    console.log('[NT-Budget] Calculated budget:', budget, 'tokens');
+    console.log('[NT-Budget] Max cap:', maxResponseTokens, 'tokens');
+
+    // Track telemetry
+    sessionTelemetry.totalCalls++;
+    sessionTelemetry.budgetingMethod.push(method);
+    sessionTelemetry.entityCounts.push(entityCount);
+    sessionTelemetry.rosterSizes.push(rosterSize);
+    sessionTelemetry.calculatedBudgets.push(budget);
+
+    return { budget, method, entityCount };
+}
 
 /**
  * Default system prompt for character analysis
@@ -143,7 +288,7 @@ DO NOT repeat unchanged characters from the Current Lorebook Entries
 
 DO NOT include:
 - Any text before the JSON
-- Any text after the JSON  
+- Any text after the JSON
 - Code block markers like \\\`\\\`\\\`json
 - Explanations, commentary, or thinking tags
 - XML tags like <think> or </think> (these break JSON parsing)
@@ -191,7 +336,7 @@ RELATIONSHIPS FIELD - NATURAL LANGUAGE FORMAT:
 
 ⚠️ CRITICAL NAMING REQUIREMENTS:
 - ALWAYS use the character's CANONICAL/PREFERRED name in relationships
-- If "John Blackwood" is the main name, use "John Blackwood" NOT "John" 
+- If "John Blackwood" is the main name, use "John Blackwood" NOT "John"
 - Maintain name consistency across ALL relationship entries
 - Multiple relationships for same pair: separate with commas
 
@@ -239,11 +384,11 @@ FIELD EXAMPLES:
 
 NAME EXAMPLES:
 ✅ "John Blackwood" (not "John Blackwood, John")
-✅ "Maria Santos" (not "Maria/Marie")  
+✅ "Maria Santos" (not "Maria/Marie")
 ✅ "Alex" (when full name unknown)
 
 ALIAS EXAMPLES:
-✅ ["John", "Scout", "JB"] 
+✅ ["John", "Scout", "JB"]
 ✅ ["Marie", "Maria"]
 ✅ ["Mom", "Mother", "Sarah"]
 
@@ -383,16 +528,16 @@ export async function buildCharacterRoster() {
 
         const entries = characterNames.map(name => {
             const char = characters[name];
-            
+
             // Build keys array (name + aliases)
             const keys = [char.preferredName || name];
             if (char.aliases && char.aliases.length > 0) {
                 keys.push(...char.aliases);
             }
-            
+
             // Build formatted content (same format as lorebook)
             const contentParts = [];
-            
+
             // Age info
             if (char.physicalAge || char.mentalAge) {
                 const ageInfo = [];
@@ -400,32 +545,32 @@ export async function buildCharacterRoster() {
                 if (char.mentalAge) ageInfo.push(`Mental: ${char.mentalAge}`);
                 contentParts.push(`**Age:** ${ageInfo.join(', ')}`);
             }
-            
+
             // Physical
             if (char.physical) {
                 contentParts.push(`\\n**Physical Description:**\\n${char.physical}`);
             }
-            
+
             // Personality
             if (char.personality) {
                 contentParts.push(`\\n**Personality:**\\n${char.personality}`);
             }
-            
+
             // Sexuality
             if (char.sexuality) {
                 contentParts.push(`\\n**Sexuality:**\\n${char.sexuality}`);
             }
-            
+
             // Race/Ethnicity
             if (char.raceEthnicity) {
                 contentParts.push(`**Race/Ethnicity:** ${char.raceEthnicity}`);
             }
-            
+
             // Role & Skills
             if (char.roleSkills) {
                 contentParts.push(`\\n**Role & Skills:**\\n${char.roleSkills}`);
             }
-            
+
             // Relationships
             if (char.relationships && char.relationships.length > 0) {
                 contentParts.push('\\n**Relationships:**');
@@ -433,9 +578,9 @@ export async function buildCharacterRoster() {
                     contentParts.push(`- ${rel}`);
                 });
             }
-            
+
             const content = contentParts.join('\\n');
-            
+
             return `
 ---
 KEYS: ${keys.join(', ')}
@@ -615,7 +760,7 @@ export async function getMaxPromptLength() {
                 } else {
                     maxContext = Math.floor(detectedMaxContext);
                     logEntry(`Detected maxContext: ${maxContext} (type: ${typeof maxContext})`);
-                    detectionMethod = detectionMethod; // Keep the method that worked
+                    // detectionMethod already set correctly
                 }
             }
 
@@ -734,7 +879,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
         // Calculate token counts separately for better tracking
         const maxContext = context.maxContext || 8192;
         let systemTokens, userTokens, totalPromptTokens;
-        
+
         try {
             systemTokens = await context.getTokenCountAsync(systemPrompt);
             const userPromptText = prompt + (prefill ? '\n' + prefill : '');
@@ -752,7 +897,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
         // Calculate response length with 20% buffer
         const bufferTokens = Math.ceil(maxContext * 0.20); // 20% buffer
         const calculatedResponseLength = Math.max(1024, maxContext - totalPromptTokens - bufferTokens);
-        
+
         // Log context usage tracking
         console.log('[NT-CONTEXT] ========== Context Usage Tracking ==========');
         console.log('[NT-CONTEXT] maxContext:', maxContext);
@@ -762,7 +907,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
         console.log('[NT-CONTEXT] bufferTokens (20%):', bufferTokens);
         console.log('[NT-CONTEXT] calculatedResponseLength:', calculatedResponseLength);
         console.log('[NT-CONTEXT] contextUtilization:', ((totalPromptTokens / maxContext) * 100).toFixed(1) + '%');
-        
+
         const maxTokens = calculatedResponseLength;
         debug.log();
 
@@ -792,15 +937,24 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                     });
                 }
 
+                // Add /nothink suffix to instruct model to avoid thinking contamination
+                // Escalate suffix on retries after contamination detection
+                let promptWithSuffix = prompt + '\n\n/nothink';
+                if (attempt > 1 && lastError?.code === 'THINKING_CONTAMINATION') {
+                    // Use stronger prompt on retry after contamination
+                    promptWithSuffix = prompt + '\n\n/nothink\n\nCRITICAL: OUTPUT ONLY VALID JSON - NO THINKING OR COMMENTARY';
+                    console.log('[NT-ST-Call] Using escalated anti-thinking prompt on retry', attempt);
+                }
+
                 const result = await context.generateRaw({
                     systemPrompt,
-                    prompt,
+                    prompt: promptWithSuffix,
                     prefill,
                     temperature: GENERATION_TEMPERATURE,
                     top_p: GENERATION_TOP_P,
                     top_k: GENERATION_TOP_K,
                     rep_pen: GENERATION_REP_PEN,
-                    responseLength: maxTokens // Use all available tokens for response (no 2048 limit)
+                    responseLength: maxTokens, // Use all available tokens for response (no 2048 limit)
                 });
 
                 if (DEBUG_LOGGING) {
@@ -841,13 +995,13 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                     console.log(resultText);
                     console.log('[NT-ST-Call] ========== EXTRACTED TEXT END ==========');
                 }
-                
+
                 // Log raw response for debugging if debug mode enabled
                 const debugMode = await get_settings('debugMode');
                 if (debugMode) {
                     logRawResponse(resultText, 'SillyTavern');
                 }
-                
+
                 // Log actual response token usage
                 try {
                     const responseTokens = await context.getTokenCountAsync(resultText);
@@ -861,7 +1015,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                     console.log('[NT-CONTEXT] estimatedResponseTokens:', estimatedTokens);
                 }
                 console.log('[NT-CONTEXT] ===============================================');
-                
+
                 debug.log();
 
                 // The result should be a string
@@ -869,11 +1023,19 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                     throw new NameTrackerError('Empty or invalid response from SillyTavern LLM');
                 }
 
+                // Check for thinking contamination BEFORE attempting parse
+                const isContaminated = detectThinkingContamination(resultText, calculatedResponseLength);
+                if (isContaminated) {
+                    const error = new NameTrackerError('LLM response contains thinking contamination - rejecting and will retry');
+                    error.code = 'THINKING_CONTAMINATION';
+                    throw error;
+                }
+
                 // Pre-validation: Check if response follows JSON format requirements
                 console.log('[NT-ST-Call] 🔍 Pre-validation checks...');
-                
+
                 const trimmedResult = resultText.trim();
-                
+
                 // Check for common format violations before parsing
                 if (!trimmedResult.startsWith('{')) {
                     console.warn('[NT-ST-Call] ⚠️ Response does not start with { - attempting extraction');
@@ -887,7 +1049,7 @@ export async function callSillyTavern(systemPrompt, prompt, prefill = '', intera
                         throw new NameTrackerError('LLM response does not contain valid JSON format');
                     }
                 }
-                
+
                 // Check for orphaned strings (common parsing issue)
                 const orphanedStringPattern = /"[^"]+",\s*"[^"]*[a-zA-Z][^"]*",\s*"[a-zA-Z_]/;
                 if (orphanedStringPattern.test(resultText)) {
@@ -980,11 +1142,14 @@ export async function callOllama(prompt) {
 
         debug.log();
 
-        // Calculate response tokens: use generous allocation within available context  
+        // Calculate response tokens: use generous allocation within available context
         const maxContext = await getOllamaModelContext(llmConfig.ollamaModel);
         const promptTokens = Math.ceil(prompt.length / 4); // Rough estimate
         const maxTokens = Math.max(8192, maxContext - promptTokens - 1000); // Generous response allocation with safety buffer
         debug.log();
+
+        // Add /nothink suffix to instruct model to avoid thinking contamination
+        const promptWithSuffix = prompt + '\n\n/nothink';
 
         const response = await fetch(`${llmConfig.ollamaEndpoint}/api/generate`, {
             method: 'POST',
@@ -993,7 +1158,7 @@ export async function callOllama(prompt) {
             },
             body: JSON.stringify({
                 model: llmConfig.ollamaModel,
-                prompt: prompt,
+                prompt: promptWithSuffix,
                 stream: false,
                 format: 'json',
                 // Ollama-specific generation parameters for structured output
@@ -1016,8 +1181,95 @@ export async function callOllama(prompt) {
         debug.log();
         debug.log();
 
+        // Check for thinking contamination before parsing
+        const responseText = data.response || '';
+        const estimatedTokens = Math.ceil(responseText.length / 4);
+        const isContaminated = detectThinkingContamination(responseText, estimatedTokens);
+
+        if (isContaminated) {
+            console.warn('[NT-Ollama] Response contaminated with thinking - attempting parse anyway (Ollama has no retry)');
+            // Note: Ollama doesn't have built-in retry like SillyTavern, so we proceed with repair
+        }
+
         return await parseJSONResponse(data.response);
     });
+}
+
+/**
+ * Detect thinking contamination in LLM response (binary detection)
+ * @param {string} text - LLM response text
+ * @param {number} budgetTokens - Expected response budget in tokens
+ * @returns {boolean} True if thinking contamination detected
+ */
+function detectThinkingContamination(text, budgetTokens = 5000) {
+    console.log('[NT-Contamination] Checking for thinking contamination...');
+
+    // Check 1: Response length exceeds budget by 2x
+    const estimatedTokens = Math.ceil(text.length / 4);
+    if (estimatedTokens > budgetTokens * 2.0) {
+        console.log('[NT-Contamination] ❌ DETECTED: Response too long');
+        console.log('[NT-Contamination] Estimated:', estimatedTokens, 'Budget:', budgetTokens, 'Ratio:', (estimatedTokens / budgetTokens).toFixed(2));
+        return true;
+    }
+
+    // Check 2: Common thinking phrases
+    const thinkingPhrases = [
+        /however[,\s]/i,
+        /let me (think|consider|analyze|reconsider)/i,
+        /upon (reflection|analysis|consideration)/i,
+        /it (seems|appears) that/i,
+        /looking at (this|these|the)/i,
+        /based on (this|these|the) (message|conversation|text)/i,
+        /from (this|these|the) (message|conversation|text)/i,
+        /these messages (reveal|show|indicate|suggest)/i,
+        /this (message|conversation) (reveal|show|indicate|suggest)/i,
+        /i (notice|observe|see) that/i,
+        /we can (see|infer|deduce|conclude)/i,
+        /this (indicates|suggests|shows)/i,
+    ];
+
+    for (const pattern of thinkingPhrases) {
+        if (pattern.test(text)) {
+            console.log('[NT-Contamination] ❌ DETECTED: Thinking phrase found:', pattern.source);
+            return true;
+        }
+    }
+
+    // Check 3: Unquoted prose patterns (text outside JSON structure)
+    // Look for sentence-like patterns outside quotes
+    const jsonStripped = text.replace(/"([^"]*)"/g, '""'); // Remove all string contents
+    const sentencePattern = /[A-Z][a-z]+\s+[a-z]+\s+[a-z]+/; // "Word word word" pattern
+    if (sentencePattern.test(jsonStripped)) {
+        console.log('[NT-Contamination] ❌ DETECTED: Unquoted prose pattern');
+        return true;
+    }
+
+    // Check 4: Non-schema fields (common thinking artifacts)
+    const nonSchemaFields = [
+        /"thinking":/i,
+        /"thoughts":/i,
+        /"analysis":/i,
+        /"reasoning":/i,
+        /"notes":/i,
+        /"commentary":/i,
+        /"observations":/i,
+    ];
+
+    for (const pattern of nonSchemaFields) {
+        if (pattern.test(text)) {
+            console.log('[NT-Contamination] ❌ DETECTED: Non-schema field:', pattern.source);
+            return true;
+        }
+    }
+
+    // Check 5: XML-style thinking tags
+    if (/<think>/i.test(text) || /<thinking>/i.test(text) || /<\/think>/i.test(text)) {
+        console.log('[NT-Contamination] ❌ DETECTED: XML thinking tags');
+        return true;
+    }
+
+    console.log('[NT-Contamination] ✅ No contamination detected');
+    return false;
 }
 
 /**
@@ -1068,13 +1320,13 @@ function repairJSON(text) {
 
     // 3. Fix missing commas between object properties (line breaks without commas)
     repaired = repaired.replace(/([}\]])\s*\n\s*(")/g, '$1,\n    $2');
-    
+
     // 4. Fix control characters (newlines, tabs, etc. in strings) - ENHANCED
     repaired = repaired.replace(/"([^"]*[\n\r\t\f\b\v][^"]*)"/g, (match, content) => {
         const cleaned = content
             .replace(/\n/g, ' ')     // newlines -> space
             .replace(/\r/g, '')      // carriage returns -> remove
-            .replace(/\t/g, ' ')     // tabs -> space  
+            .replace(/\t/g, ' ')     // tabs -> space
             .replace(/\f/g, ' ')     // form feeds -> space
             .replace(/\b/g, '')      // backspace -> remove
             .replace(/\v/g, ' ')     // vertical tabs -> space
@@ -1089,7 +1341,7 @@ function repairJSON(text) {
     repaired = repaired.replace(/,\s*"[^"]*encountered a problem[^"]*"/gi, '');
     repaired = repaired.replace(/,\s*"[^"]*Please try again[^"]*"/gi, '');
     repaired = repaired.replace(/"[^"]*I'm sorry[^"]*"\s*,/gi, '');
-    
+
     // Remove property names that are error messages (missing opening quote)
     repaired = repaired.replace(/,\s*[A-Za-z]+"\s*:\s*"[^"]*I'm sorry[^"]*/gi, '');
 
@@ -1100,8 +1352,8 @@ function repairJSON(text) {
     // 7. Fix trailing commas before closing brackets/braces
     repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
 
-    // 6. Fix missing colons after property names  
-    repaired = repaired.replace(/"([^"]+)"\s+(?=["{\[])/g, '"$1": ');
+    // 6. Fix missing colons after property names
+    repaired = repaired.replace(/"([^"]+)"\s+(?=["'{[])/g, '"$1": ');
 
     // 7. Fix double commas introduced by repairs
     repaired = repaired.replace(/,,+/g, ',');
@@ -1119,7 +1371,7 @@ function repairJSON(text) {
     });
 
     console.log('[NT-Repair] Applied repairs, length change:', repaired.length - text.length);
-    
+
     return repaired;
 }
 
@@ -1133,11 +1385,11 @@ export function parseJSONResponse(text) {
         // Create debug session if debug mode is enabled
         const debugMode = await get_settings('debugMode');
         const session = debugMode ? createParsingSession() : null;
-        
+
         if (session) {
             session.logStart('parseJSONResponse', text);
         }
-        
+
         console.log('[NT-Parse] ========== PARSE START ==========');
         console.log('[NT-Parse] Input type:', typeof text);
         console.log('[NT-Parse] Input is null?:', text === null);
@@ -1175,6 +1427,7 @@ export function parseJSONResponse(text) {
                 text = JSON.parse('"' + text.replace(/"/g, '\\"') + '"');
                 console.log('[NT-Parse] ✅ Successfully unescaped response');
             }
+        // eslint-disable-next-line no-unused-vars
         } catch (unescapeError) {
             console.log('[NT-Parse] ⚠️ Could not unescape response, proceeding with raw text');
         }
@@ -1183,11 +1436,11 @@ export function parseJSONResponse(text) {
         const beforeTrim = text;
         text = text.trim();
         console.log('[NT-Parse] After trim, length:', text.length);
-        
+
         if (session) {
             session.logTransform('Trim whitespace', beforeTrim, text);
         }
-        
+
         if (text.length === 0) {
             console.error('[NT-Parse] ❌ Text is empty after trim');
             if (session) session.logEnd(false, new Error('Empty after trim'), text);
@@ -1197,21 +1450,21 @@ export function parseJSONResponse(text) {
         // Extract JSON from markdown code blocks ONLY if response starts with markdown
         // This prevents false positives from backticks embedded in JSON string values
         const startsWithMarkdown = /^```(?:json)?[\s\n]/.test(text);
-        
+
         if (startsWithMarkdown) {
             console.log('[NT-Parse] 🔍 Response starts with markdown code block, extracting JSON');
             const beforeExtraction = text;
-            
+
             // Extract content between first ``` and last ```
             const codeBlockMatch = text.match(/^```(?:json)?[\s\n]+([\s\S]*?)```\s*$/);
             if (codeBlockMatch && codeBlockMatch[1]) {
                 text = codeBlockMatch[1].trim();
                 console.log('[NT-Parse] 📄 After markdown extraction, length:', text.length);
-                
+
                 if (session) {
                     logRegexExtraction(beforeExtraction, '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/', text);
                     session.logTransform('Extract markdown code block', beforeExtraction, text, {
-                        regex: '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/'
+                        regex: '/^```(?:json)?[\\s\\n]+([\\s\\S]*?)```\\s*$/',
                     });
                 }
             } else {
@@ -1219,7 +1472,7 @@ export function parseJSONResponse(text) {
                 // Remove opening and closing markers
                 text = text.replace(/^```(?:json)?[\s\n]+/, '').replace(/```\s*$/, '');
                 console.log('[NT-Parse] 🧹 Removed markdown markers, length:', text.length);
-                
+
                 if (session) {
                     session.logTransform('Remove malformed markdown', beforeExtraction, text);
                 }
@@ -1229,26 +1482,26 @@ export function parseJSONResponse(text) {
             console.log('[NT-Parse] ℹ️ Found backticks in response but not at start - likely embedded in JSON strings, not extracting');
             console.log('[NT-Parse] First 50 chars:', text.substring(0, 50));
         }
-        
+
         // Remove any remaining XML/HTML tags that may interfere
         if (text.includes('<') || text.includes('>')) {
             const beforeTagRemoval = text;
             const originalLength = text.length;
             text = text.replace(/<[^>]*>/g, '');
             console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
-            
+
             if (session) {
                 session.logTransform('Remove XML/HTML tags', beforeTagRemoval, text);
             }
         }
-        
+
         // Check if response contains obvious error messages
-        if (text.includes("I'm sorry") || text.includes("encountered a problem") || text.includes("Please try again")) {
+        if (text.includes('I\'m sorry') || text.includes('encountered a problem') || text.includes('Please try again')) {
             console.error(`[NT-Parse] 🚨 Response contains error message: "${text.substring(0, 200)}"`);
             if (session) session.logEnd(false, new Error('LLM error message'), text);
             throw new Error('LLM generated an error response instead of JSON. Try adjusting your request.');
         }
-        
+
         // Check if response is completely non-JSON (like pure XML tags or text)
         if (text.length < 20 || (!text.includes('{') && !text.includes('['))) {
             console.error(`[NT-Parse] 🚨 Response appears to be non-JSON content: "${text}"`);
@@ -1313,11 +1566,11 @@ export function parseJSONResponse(text) {
 
             console.log('[NT-Parse] ✅ Valid response with', parsed.characters.length, 'characters');
             console.log('[NT-Parse] ========== PARSE END (SUCCESS) ==========');
-            
+
             if (session) {
                 session.logEnd(true, parsed, text);
             }
-            
+
             return parsed;
         } catch (error) {
             console.error('[NT-Parse] ❌ JSON.parse failed:', error.message);
@@ -1326,11 +1579,11 @@ export function parseJSONResponse(text) {
             console.log('[NT-Parse] Text being parsed (last 200 chars):', text.substring(Math.max(0, text.length - 200)));
 
             // Additional targeted repairs for specific common errors
-            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
+            if (error.message.includes('Expected \':\'') || error.message.includes('after property name')) {
                 console.log('[NT-Parse] Attempting targeted repair for missing property names...');
-                
+
                 let targetedRepair = text;
-                
+
                 // Specific fix for pattern: "name": "value", "orphaned description", "nextProp":
                 // This is the exact pattern causing most failures
                 targetedRepair = targetedRepair.replace(
@@ -1338,9 +1591,9 @@ export function parseJSONResponse(text) {
                     (match, name, orphanedText, nextProp) => {
                         console.log(`[NT-Parse] 🎯 Targeted repair: assigning "${orphanedText.substring(0, 30)}..." to physical for ${name}`);
                         return `"name": "${name}", "physical": "${orphanedText}", "${nextProp}": `;
-                    }
+                    },
                 );
-                
+
                 // Try parsing again with targeted repair
                 try {
                     const repairedParsed = JSON.parse(targetedRepair);
@@ -1397,21 +1650,21 @@ export function parseJSONResponse(text) {
             }
 
             console.log('[NT-Parse] ========== PARSE END (FAILED) ==========');
-            
+
             if (session) {
                 session.logEnd(false, error, text);
             }
-            
+
             // Provide specific feedback about the JSON error
             let errorHelp = 'Failed to parse LLM response as JSON.';
-            if (error.message.includes("Expected ':'") || error.message.includes("after property name")) {
+            if (error.message.includes('Expected \':\'') || error.message.includes('after property name')) {
                 errorHelp = 'JSON parsing failed: Missing colon after property name or orphaned string without property. The LLM likely generated a description without specifying which field it belongs to.';
             } else if (error.message.includes('Unexpected token')) {
                 errorHelp = 'JSON parsing failed: Unexpected character found. Check for missing quotes, commas, or control characters.';
             } else if (error.message.includes('Unexpected end')) {
                 errorHelp = 'JSON parsing failed: Response appears truncated. Try analyzing fewer messages at once.';
             }
-            
+
             throw new NameTrackerError(errorHelp);
         }
     });
@@ -1598,10 +1851,10 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
         // Check for empty response and retry once with stronger emphasis
         if (result && Array.isArray(result.characters) && result.characters.length === 0 && retryCount === 0) {
             console.warn('[NT-LLM] Empty response detected, retrying with stronger user character emphasis...');
-            
+
             // Add stronger user character requirement to the user prompt
             const retryUserPrompt = userPrompt + '\n\nCRITICAL ERROR: Previous response was empty. You MUST return at minimum the user character ({{user}}) with any available details from these messages. An empty character list is INVALID.';
-            
+
             try {
                 let retryResult;
                 if (llmConfig.source === 'ollama') {
@@ -1610,7 +1863,7 @@ export async function callLLMAnalysis(messageObjs, knownCharacters = '', depth =
                 } else {
                     retryResult = await callSillyTavern(systemMessage, retryUserPrompt, prefill, false);
                 }
-                
+
                 if (retryResult && Array.isArray(retryResult.characters) && retryResult.characters.length > 0) {
                     console.log('[NT-LLM] Retry successful, got', retryResult.characters.length, 'characters');
                     result = retryResult;
