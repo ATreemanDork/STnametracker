@@ -255,7 +255,7 @@ function validateMethodCalls() {
         'stContext': {
             methods: [
                 'getContext', 'getChat', 'getChatMetadata', 'getChatId', 'getCharacterId', 'getCharacters', 'getUserName',
-                'getExtensionSettings', 'saveExtensionSettings', 'saveChatMetadata', 'generateQuietPrompt',
+                'getExtensionSettings', 'saveExtensionSettings', 'saveMetadata', 'saveChatMetadata', 'generateQuietPrompt',
                 'loadWorldInfo', 'saveWorldInfo', 'saveWorldInfoEntry', 'setSelectedWorldInfo',
                 'getEventSource', 'getEventTypes', 'isContextAvailable', 'getStatus', 'clearCache', 'dumpContextToConsole'
             ],

@@ -1128,9 +1128,10 @@ export async function updateUI() {
         $('#name_tracker_lorebook_enabled').prop('checked', await getSetting('lorebookEnabled', true));
         $('#name_tracker_debug_mode').prop('checked', await getSetting('debugMode', false));
 
-        // Update character list and status
+        // Update character list
         await updateCharacterList();
-        await updateStatusDisplay();
+        // Note: updateStatusDisplay() is called via CHAT_LOADED event, not here
+        // (calling it here would show 0 messages since chat hasn't loaded yet)
 
         debug.log();
     });

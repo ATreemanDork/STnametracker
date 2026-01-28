@@ -229,6 +229,13 @@ class NameTrackerExtension {
                 await setChatData({ characters: {}, lastScannedMessageId: -1 });
             });
 
+            eventSource.on(event_types.CHAT_LOADED, async () => {
+                logger.debug('Chat loaded event received - updating status display');
+                // Import updateStatusDisplay dynamically to avoid circular dependency
+                const { updateStatusDisplay } = await import('./modules/ui.js');
+                await updateStatusDisplay();
+            });
+
             logger.debug('Event listeners registered');
         } catch (error) {
             logger.error('Failed to register event listeners:', error);

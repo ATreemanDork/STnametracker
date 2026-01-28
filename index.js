@@ -651,10 +651,11 @@ class SillyTavernContext {
     async saveMetadata() {
         return _errors_js__WEBPACK_IMPORTED_MODULE_1__/* .errorHandler */ .r_.withErrorBoundary('Context', async () => {
             const context = this.getContext();
-            if (context.saveMetadata) {
-                await context.saveMetadata();
+            // SillyTavern context provides saveChatMetadata() method
+            if (context.saveChatMetadata) {
+                await context.saveChatMetadata();
             } else {
-                logger.warn('saveMetadata not available');
+                logger.warn('saveChatMetadata not available on SillyTavern context');
             }
         }, { silent: true });
     }
@@ -754,9 +755,9 @@ class SillyTavernContext {
 
             context.chatMetadata.world_info = lorebookName;
 
-            // Save the metadata
-            if (context.saveMetadata && typeof context.saveMetadata === 'function') {
-                await context.saveMetadata();
+            // Save the metadata using SillyTavern's saveChatMetadata method
+            if (context.saveChatMetadata && typeof context.saveChatMetadata === 'function') {
+                await context.saveChatMetadata();
             }
 
             logger.debug(`Selected world info: ${lorebookName}`);
@@ -4553,7 +4554,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     confidenceThreshold: 70,
     lorebookPosition: 0, // after character defs
     lorebookDepth: 1,
-    lorebookCooldown: 5,
+    lorebookCooldown: 10,
     lorebookScanDepth: 1,
     lorebookProbability: 100,
     lorebookEnabled: true,
@@ -4686,7 +4687,7 @@ async function setCharacters(characters) {
             metadata[MODULE_NAME].characters = characters;
 
             // CRITICAL: AWAIT the save to complete before returning
-            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata();
+            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveMetadata();
         } catch (error) {
             debug.warn('Failed to set characters:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -4734,7 +4735,7 @@ async function setChatData(data) {
             Object.assign(metadata[MODULE_NAME], data);
 
             // CRITICAL: AWAIT the save to complete before returning
-            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata();
+            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveMetadata();
         } catch (error) {
             debug.warn('Failed to set chat data:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -4931,7 +4932,7 @@ function set_chat_metadata(key, value) {
             metadata[MODULE_NAME][key] = value;
             debug.log(`Updated chat data ${key}`);
 
-            _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveChatMetadata().catch(err => {
+            _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveMetadata().catch(err => {
                 debug.warn('Failed to save chat metadata:', err.message);
             });
         } catch (error) {
@@ -6916,140 +6917,30 @@ logger.debug('Utils module loaded');
 });
 
 
-/***/ }
+/***/ },
 
-/******/ 	});
-/************************************************************************/
-/******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
-/******/ 	
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/ 		// Check if module is in cache
-/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
-/******/ 		if (cachedModule !== undefined) {
-/******/ 			return cachedModule.exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			id: moduleId,
-/******/ 			// no module.loaded needed
-/******/ 			exports: {}
-/******/ 		};
-/******/ 	
-/******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-/******/ 	
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	/* webpack/runtime/compat get default export */
-/******/ 	(() => {
-/******/ 		// getDefaultExport function for compatibility with non-harmony modules
-/******/ 		__webpack_require__.n = (module) => {
-/******/ 			var getter = module && module.__esModule ?
-/******/ 				() => (module['default']) :
-/******/ 				() => (module);
-/******/ 			__webpack_require__.d(getter, { a: getter });
-/******/ 			return getter;
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/define property getters */
-/******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__webpack_require__.d = (exports, definition) => {
-/******/ 			for(var key in definition) {
-/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
-/******/ 			}
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	(() => {
-/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/nonce */
-/******/ 	(() => {
-/******/ 		__webpack_require__.nc = undefined;
-/******/ 	})();
-/******/ 	
-/************************************************************************/
-var __webpack_exports__ = {};
+/***/ 897
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
-// UNUSED EXPORTS: default
-
-// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js
-var injectStylesIntoStyleTag = __webpack_require__(72);
-var injectStylesIntoStyleTag_default = /*#__PURE__*/__webpack_require__.n(injectStylesIntoStyleTag);
-// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/styleDomAPI.js
-var styleDomAPI = __webpack_require__(825);
-var styleDomAPI_default = /*#__PURE__*/__webpack_require__.n(styleDomAPI);
-// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/insertBySelector.js
-var insertBySelector = __webpack_require__(659);
-var insertBySelector_default = /*#__PURE__*/__webpack_require__.n(insertBySelector);
-// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/setAttributesWithoutAttributes.js
-var setAttributesWithoutAttributes = __webpack_require__(56);
-var setAttributesWithoutAttributes_default = /*#__PURE__*/__webpack_require__.n(setAttributesWithoutAttributes);
-// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/insertStyleElement.js
-var insertStyleElement = __webpack_require__(540);
-var insertStyleElement_default = /*#__PURE__*/__webpack_require__.n(insertStyleElement);
-// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/styleTagTransform.js
-var styleTagTransform = __webpack_require__(113);
-var styleTagTransform_default = /*#__PURE__*/__webpack_require__.n(styleTagTransform);
-// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js!./style.css
-var cjs_js_style = __webpack_require__(83);
-;// ./style.css
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-var options = {};
-
-options.styleTagTransform = (styleTagTransform_default());
-options.setAttributes = (setAttributesWithoutAttributes_default());
-options.insert = insertBySelector_default().bind(null, "head");
-options.domAPI = (styleDomAPI_default());
-options.insertStyleElement = (insertStyleElement_default());
-
-var update = injectStylesIntoStyleTag_default()(cjs_js_style/* default */.A, options);
-
-
-
-
-       /* harmony default export */ const style = (cjs_js_style/* default */.A && cjs_js_style/* default */.A.locals ? cjs_js_style/* default */.A.locals : undefined);
-
-// EXTERNAL MODULE: ./src/core/debug.js
-var debug = __webpack_require__(806);
-// EXTERNAL MODULE: ./src/core/errors.js
-var errors = __webpack_require__(462);
-// EXTERNAL MODULE: ./src/core/context.js
-var core_context = __webpack_require__(102);
-// EXTERNAL MODULE: ./src/core/settings.js
-var core_settings = __webpack_require__(548);
-// EXTERNAL MODULE: ./src/utils/notifications.js
-var notifications = __webpack_require__(695);
-// EXTERNAL MODULE: ./src/utils/helpers.js
-var helpers = __webpack_require__(854);
-// EXTERNAL MODULE: ./src/modules/characters.js
-var modules_characters = __webpack_require__(551);
-// EXTERNAL MODULE: ./src/modules/llm.js + 1 modules
-var llm = __webpack_require__(248);
-// EXTERNAL MODULE: ./src/modules/lorebook.js + 1 modules
-var lorebook = __webpack_require__(158);
-;// ./src/modules/ui.js
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   AG: () => (/* binding */ updateUI),
+/* harmony export */   Fo: () => (/* binding */ initializeMenuButtons),
+/* harmony export */   L2: () => (/* binding */ updateCharacterList),
+/* harmony export */   Ow: () => (/* binding */ initializeUIHandlers),
+/* harmony export */   oy: () => (/* binding */ bindSettingsHandlers),
+/* harmony export */   updateStatusDisplay: () => (/* binding */ updateStatusDisplay)
+/* harmony export */ });
+/* unused harmony exports showMergeDialog, showCreateCharacterModal, showPurgeConfirmation, showSystemPromptEditor, showCharacterListModal, addMenuButton, toggleAutoHarvest, openChatLorebook, loadSettingsHTML */
+/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
+/* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
+/* harmony import */ var _core_context_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(102);
+/* harmony import */ var _utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(854);
+/* harmony import */ var _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(695);
+/* harmony import */ var _characters_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(551);
+/* harmony import */ var _llm_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(248);
+/* harmony import */ var _processing_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(972);
+/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(158);
 /**
  * UI Management Module
  *
@@ -7068,15 +6959,15 @@ var lorebook = __webpack_require__(158);
 
 
 
-const ui_debug = (0,debug/* createModuleLogger */.Xv)('ui');
-const ui_notifications = new notifications/* NotificationManager */.h('UI Management');
+const debug = (0,_core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* .createModuleLogger */ .Xv)('ui');
+const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__/* .NotificationManager */ .h('UI Management');
 
 /**
  * Update character list display in settings
  * @returns {void}
  */
-function ui_updateCharacterList() {
-    return (0,errors/* withErrorBoundary */.Xc)('updateCharacterList', async () => {
+function updateCharacterList() {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('updateCharacterList', async () => {
         let $container = $('#name_tracker_character_list');
         if ($container.length === 0) {
             // Fallback: create a minimal container if settings HTML wasn't loaded
@@ -7087,13 +6978,13 @@ function ui_updateCharacterList() {
                 settingsRoot.appendChild(placeholder);
                 $container = $('#name_tracker_character_list');
             } else {
-                ui_debug.log();
+                debug.log();
                 return;
             }
         }
 
         console.log('[NT-UI] 🟡 updateCharacterList() called');
-        const characters = await (0,core_settings/* getCharacters */.bg)();
+        const characters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
         console.log('[NT-UI] 🟡 getCharacters() returned:', Object.keys(characters || {}));
         const characterNames = Object.keys(characters);
         console.log('[NT-UI] 🟡 Character count:', characterNames.length);
@@ -7121,14 +7012,14 @@ function ui_updateCharacterList() {
         for (const character of sortedCharacters) {
             const charIcon = character.isMainChar ? '<i class="fa-solid fa-user"></i>' : '';
             const ignoreIcon = character.ignored ? '<span class="char-ignored-badge">IGNORED</span>' : '';
-            const reviewBadge = await (0,modules_characters/* hasUnresolvedRelationships */.pp)(character) ? '<span class="char-review-badge">NEEDS REVIEW</span>' : '';
+            const reviewBadge = await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .hasUnresolvedRelationships */ .pp)(character) ? '<span class="char-review-badge">NEEDS REVIEW</span>' : '';
 
             const aliasText = character.aliases && character.aliases.length > 0
-                ? `<div class="char-aliases">Aliases: ${(0,helpers/* escapeHtml */.ZD)(character.aliases.join(', '))}</div>`
+                ? `<div class="char-aliases">Aliases: ${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(character.aliases.join(', '))}</div>`
                 : '';
 
             const relationshipText = character.relationships && character.relationships.length > 0
-                ? `<div class="char-relationships">Relationships: ${(0,helpers/* escapeHtml */.ZD)(character.relationships.join('; '))}</div>`
+                ? `<div class="char-relationships">Relationships: ${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(character.relationships.join('; '))}</div>`
                 : '';
 
             const lastUpdated = character.lastUpdated
@@ -7136,25 +7027,25 @@ function ui_updateCharacterList() {
                 : 'Never';
 
             html += `
-                <div class="name_tracker_character_item" data-character="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}">
+                <div class="name_tracker_character_item" data-character="${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(character.preferredName)}">
                     <div class="char-header">
                         <span class="char-name">
                             ${charIcon}
-                            ${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}
+                            ${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(character.preferredName)}
                             ${ignoreIcon}
                             ${reviewBadge}
                         </span>
                         <div class="char-actions">
-                            <button class="char-action-btn char-action-view" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="View in lorebook">
+                            <button class="char-action-btn char-action-view" data-name="${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(character.preferredName)}" title="View in lorebook">
                                 <i class="fa-solid fa-book"></i>
                             </button>
-                            <button class="char-action-btn char-action-acknowledge ${character.needsReview ? 'needs-review' : ''}" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="Acknowledge review">
+                            <button class="char-action-btn char-action-acknowledge ${character.needsReview ? 'needs-review' : ''}" data-name="${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(character.preferredName)}" title="Acknowledge review">
                                 <i class="fa-solid fa-check"></i>
                             </button>
-                            <button class="char-action-btn char-action-ignore" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="${character.ignored ? 'Unignore' : 'Ignore'} character">
+                            <button class="char-action-btn char-action-ignore" data-name="${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(character.preferredName)}" title="${character.ignored ? 'Unignore' : 'Ignore'} character">
                                 <i class="fa-solid ${character.ignored ? 'fa-eye' : 'fa-eye-slash'}"></i>
                             </button>
-                            <button class="char-action-btn char-action-merge" data-name="${(0,helpers/* escapeHtml */.ZD)(character.preferredName)}" title="Merge with another character">
+                            <button class="char-action-btn char-action-merge" data-name="${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(character.preferredName)}" title="Merge with another character">
                                 <i class="fa-solid fa-code-merge"></i>
                             </button>
                         </div>
@@ -7178,22 +7069,22 @@ function ui_updateCharacterList() {
  * Update status display in settings
  * @returns {void}
  */
-function ui_updateStatusDisplay() {
-    return (0,errors/* withErrorBoundary */.Xc)('updateStatusDisplay', async () => {
+function updateStatusDisplay() {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('updateStatusDisplay', async () => {
         const $statusContainer = $('#name_tracker_status_display');
         if ($statusContainer.length === 0) {
             return;
         }
 
-        const characters = await (0,core_settings/* getCharacters */.bg)();
+        const characters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
         const characterCount = Object.keys(characters).length;
 
         // Await settings to avoid Promise objects and ensure proper types
-        const messageCounter = await (0,core_settings/* getSetting */.PL)('messageCounter') || 0;
-        const lastScannedId = await (0,core_settings/* getSetting */.PL)('lastScannedMessageId') || -1;
-        const messageFreq = await (0,core_settings/* getSetting */.PL)('messageFrequency') || 10;
+        const messageCounter = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('messageCounter') || 0;
+        const lastScannedId = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('lastScannedMessageId') || -1;
+        const messageFreq = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('messageFrequency') || 10;
 
-        const context = core_context.stContext.getContext();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         const currentMessageId = context?.chat?.length || 0;
 
         // Ensure numeric values to prevent NaN
@@ -7239,14 +7130,14 @@ function ui_updateStatusDisplay() {
  * @returns {Promise<void>}
  */
 async function showMergeDialog(sourceName) {
-    return (0,errors/* withErrorBoundary */.Xc)('showMergeDialog', async () => {
-        const characters = await (0,core_settings/* getCharacters */.bg)();
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('showMergeDialog', async () => {
+        const characters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
 
         // Create list of other characters
         const otherChars = Object.keys(characters).filter(name => name !== sourceName);
 
         if (otherChars.length === 0) {
-            ui_notifications.warning('No other characters to merge with');
+            notifications.warning('No other characters to merge with');
             return;
         }
 
@@ -7258,17 +7149,17 @@ async function showMergeDialog(sourceName) {
 
         try {
             if (characters[targetName]) {
-                await (0,modules_characters/* mergeCharacters */.lF)(sourceName, targetName);
-                ui_notifications.success(`Merged ${sourceName} into ${targetName}`);
+                await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .mergeCharacters */ .lF)(sourceName, targetName);
+                notifications.success(`Merged ${sourceName} into ${targetName}`);
             } else {
-                ui_notifications.error('Invalid target character name');
+                notifications.error('Invalid target character name');
             }
         } catch (error) {
-            ui_notifications.error(`Merge failed: ${error.message}`, 'Merge Error');
+            notifications.error(`Merge failed: ${error.message}`, 'Merge Error');
         } finally {
             // Always update UI after merge attempt
-            await ui_updateCharacterList();
-            await ui_updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         }
     });
 }
@@ -7278,7 +7169,7 @@ async function showMergeDialog(sourceName) {
  * @returns {Promise<void>}
  */
 async function showCreateCharacterModal() {
-    return (0,errors/* withErrorBoundary */.Xc)('showCreateCharacterModal', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('showCreateCharacterModal', async () => {
         const characterName = prompt('Enter character name:');
 
         if (!characterName || !characterName.trim()) {
@@ -7286,14 +7177,14 @@ async function showCreateCharacterModal() {
         }
 
         try {
-            await (0,modules_characters/* createNewCharacter */.g9)(characterName.trim());
-            ui_notifications.success(`Created character: ${characterName.trim()}`);
+            await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .createNewCharacter */ .g9)(characterName.trim());
+            notifications.success(`Created character: ${characterName.trim()}`);
         } catch (error) {
-            ui_notifications.error(`Failed to create character: ${error.message}`, 'Creation Error');
+            notifications.error(`Failed to create character: ${error.message}`, 'Creation Error');
         } finally {
             // Always update UI after character creation attempt
-            await ui_updateCharacterList();
-            await ui_updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         }
     });
 }
@@ -7303,12 +7194,12 @@ async function showCreateCharacterModal() {
  * @returns {Promise<void>}
  */
 async function showPurgeConfirmation() {
-    return (0,errors/* withErrorBoundary */.Xc)('showPurgeConfirmation', async () => {
-        const characters = await (0,core_settings/* getCharacters */.bg)();
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('showPurgeConfirmation', async () => {
+        const characters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
         const characterCount = Object.keys(characters).length;
 
         if (characterCount === 0) {
-            ui_notifications.info('No characters to purge');
+            notifications.info('No characters to purge');
             return;
         }
 
@@ -7319,14 +7210,14 @@ async function showPurgeConfirmation() {
         }
 
         try {
-            const deletedCount = await (0,modules_characters/* purgeAllCharacters */.vu)();
-            ui_notifications.success(`Purged ${deletedCount} characters`, 'Purge Complete');
+            const deletedCount = await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .purgeAllCharacters */ .vu)();
+            notifications.success(`Purged ${deletedCount} characters`, 'Purge Complete');
         } catch (error) {
-            ui_notifications.error(`Failed to purge characters: ${error.message}`, 'Purge Error');
+            notifications.error(`Failed to purge characters: ${error.message}`, 'Purge Error');
         } finally {
             // Always update UI after purge attempt
-            await ui_updateCharacterList();
-            await ui_updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
         }
     });
 }
@@ -7336,9 +7227,9 @@ async function showPurgeConfirmation() {
  * @returns {Promise<void>}
  */
 async function showSystemPromptEditor() {
-    return (0,errors/* withErrorBoundary */.Xc)('showSystemPromptEditor', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('showSystemPromptEditor', async () => {
         // Get current system prompt
-        let currentPrompt = await (0,core_settings/* getSetting */.PL)('systemPrompt');
+        let currentPrompt = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('systemPrompt');
         currentPrompt = currentPrompt || '';
 
         // Create modal dialog
@@ -7362,7 +7253,7 @@ async function showSystemPromptEditor() {
                 <h3 style="margin-top: 0;">Edit System Prompt</h3>
                 <p>Customize the system prompt used for character analysis. Leave blank to use default.</p>
                 <textarea id="system_prompt_editor" rows="20" style="width: 100%; margin: 10px 0;"
-                          placeholder="Enter custom system prompt or leave blank for default...">${(0,helpers/* escapeHtml */.ZD)(currentPrompt)}</textarea>
+                          placeholder="Enter custom system prompt or leave blank for default...">${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(currentPrompt)}</textarea>
                 <div style="margin-top: 20px; text-align: right;">
                     <button class="menu_button" id="system_prompt_save">Save</button>
                     <button class="menu_button" id="system_prompt_reset">Reset to Default</button>
@@ -7392,15 +7283,15 @@ async function showSystemPromptEditor() {
 
         modal.find('#system_prompt_save').on('click', async () => {
             const newPrompt = modal.find('#system_prompt_editor').val().trim();
-            await (0,core_settings/* setSetting */.ZC)('systemPrompt', newPrompt || null);
-            ui_notifications.success('System prompt updated');
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('systemPrompt', newPrompt || null);
+            notifications.success('System prompt updated');
             removeModal();
         });
 
         modal.find('#system_prompt_reset').on('click', async () => {
             modal.find('#system_prompt_editor').val('');
-            await (0,core_settings/* setSetting */.ZC)('systemPrompt', null);
-            ui_notifications.success('Reset to default system prompt');
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('systemPrompt', null);
+            notifications.success('Reset to default system prompt');
             removeModal();
         });
 
@@ -7414,8 +7305,8 @@ async function showSystemPromptEditor() {
  * @returns {void}
  */
 async function showCharacterListModal() {
-    return (0,errors/* withErrorBoundary */.Xc)('showCharacterListModal', async () => {
-        const characters = Object.values(await (0,core_settings/* getCharacters */.bg)() || {});
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('showCharacterListModal', async () => {
+        const characters = Object.values(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)() || {});
 
         // Build character list HTML
         let charactersHtml = '';
@@ -7435,17 +7326,17 @@ async function showCharacterListModal() {
                 const badges = [];
                 if (char.isMainChar) badges.push('<span style="background: var(--SmartThemeBodyColor); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">MAIN</span>');
                 if (char.ignored) badges.push('<span style="background: var(--black70a); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">IGNORED</span>');
-                if (await (0,modules_characters/* hasUnresolvedRelationships */.pp)(char)) badges.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');
+                if (await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .hasUnresolvedRelationships */ .pp)(char)) badges.push('<span style="background: var(--crimsonDark); padding: 2px 6px; border-radius: 3px; font-size: 0.85em; margin-left: 5px;">NEEDS REVIEW</span>');
 
                 const aliasText = char.aliases && char.aliases.length > 0
-                    ? `<div style="font-size: 0.9em; color: var(--SmartThemeQuoteColor); margin-top: 3px;">Aliases: ${(0,helpers/* escapeHtml */.ZD)(char.aliases.join(', '))}</div>`
+                    ? `<div style="font-size: 0.9em; color: var(--SmartThemeQuoteColor); margin-top: 3px;">Aliases: ${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(char.aliases.join(', '))}</div>`
                     : '';
 
                 charactersHtml += `
                     <div style="padding: 10px; margin: 5px 0; background: var(--SmartThemeBlurTintColor); border: 1px solid var(--SmartThemeBorderColor); border-radius: 5px;">
                         <div style="font-weight: bold;">
                             ${char.isMainChar ? '<i class="fa-solid fa-user" style="margin-right: 5px;"></i>' : ''}
-                            ${(0,helpers/* escapeHtml */.ZD)(char.preferredName)}
+                            ${(0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .escapeHtml */ .ZD)(char.preferredName)}
                             ${badges.join('')}
                         </div>
                         ${aliasText}
@@ -7468,7 +7359,7 @@ async function showCharacterListModal() {
             </div>
         `;
 
-        const context = core_context.stContext.getContext();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         context.callGenericPopup(modalHtml, context.POPUP_TYPE.TEXT, '', { wider: true, okButton: 'Close' });
     });
 }
@@ -7478,7 +7369,7 @@ async function showCharacterListModal() {
  * @returns {void}
  */
 function initializeUIHandlers() {
-    return (0,errors/* withErrorBoundary */.Xc)('initializeUIHandlers', () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('initializeUIHandlers', () => {
         // Character action handlers
         $(document).on('click', '.char-action-merge', async function() {
             const sourceName = $(this).data('name');
@@ -7488,37 +7379,37 @@ function initializeUIHandlers() {
         $(document).on('click', '.char-action-ignore', async function() {
             const name = $(this).data('name');
             try {
-                await (0,modules_characters/* toggleIgnoreCharacter */.el)(name);
+                await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .toggleIgnoreCharacter */ .el)(name);
             } catch (error) {
-                ui_notifications.error(`Failed to toggle ignore: ${error.message}`, 'Toggle Error');
+                notifications.error(`Failed to toggle ignore: ${error.message}`, 'Toggle Error');
             } finally {
                 // Always update UI after ignore toggle attempt
-                await ui_updateCharacterList();
-                await ui_updateStatusDisplay();
+                await updateCharacterList();
+                await updateStatusDisplay();
             }
         });
 
         $(document).on('click', '.char-action-view', async function() {
             const name = $(this).data('name');
-            await (0,lorebook/* viewInLorebook */._Z)(name);
+            await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_9__/* .viewInLorebook */ ._Z)(name);
         });
 
         $(document).on('click', '.char-action-acknowledge', async function() {
             const name = $(this).data('name');
             try {
-                const character = await (0,core_settings/* getCharacter */.qN)(name);
+                const character = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacter */ .qN)(name);
                 if (character) {
                     character.needsReview = false;
-                    await (0,core_settings/* setCharacter */.e7)(name, character);
-                    await ui_updateCharacterList();
-                    ui_notifications.success(`Acknowledged review for ${name}`);
+                    await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setCharacter */ .e7)(name, character);
+                    await updateCharacterList();
+                    notifications.success(`Acknowledged review for ${name}`);
                 }
             } catch (error) {
-                ui_notifications.error(`Failed to acknowledge: ${error.message}`);
+                notifications.error(`Failed to acknowledge: ${error.message}`);
             }
         });
 
-        ui_debug.log();
+        debug.log();
     });
 }
 
@@ -7533,7 +7424,7 @@ async function showEditLorebookModal(characterName) {
         const character = await getCharacter(characterName);
 
         if (!character) {
-            ui_notifications.error('Character not found');
+            notifications.error('Character not found');
             return;
         }
 
@@ -7635,10 +7526,10 @@ async function showEditLorebookModal(characterName) {
             }
             await setCharacter(preferredName, character);
 
-            await ui_updateCharacterList();
-            await ui_updateStatusDisplay();
+            await updateCharacterList();
+            await updateStatusDisplay();
 
-            ui_notifications.success(`Updated lorebook entry for ${preferredName}`);
+            notifications.success(`Updated lorebook entry for ${preferredName}`);
             removeModal();
         });
 
@@ -7657,7 +7548,7 @@ async function showEditLorebookModal(characterName) {
  * @returns {void}
  */
 function addMenuButton(text, faIcon, callback, hover = null, className = '') {
-    return (0,errors/* withErrorBoundary */.Xc)('addMenuButton', () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('addMenuButton', () => {
         const $button = $(`
             <div class="list-group-item flex-container flexGap5 interactable ${className}" title="${hover || text}" tabindex="0">
                 <i class="${faIcon}"></i>
@@ -7681,9 +7572,9 @@ function addMenuButton(text, faIcon, callback, hover = null, className = '') {
  * @returns {Promise<void>}
  */
 async function toggleAutoHarvest() {
-    return (0,errors/* withErrorBoundary */.Xc)('toggleAutoHarvest', async () => {
-        const currentValue = await (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
-        await (0,core_settings/* setSetting */.ZC)('autoAnalyze', !currentValue);
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('toggleAutoHarvest', async () => {
+        const currentValue = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('autoAnalyze', true);
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('autoAnalyze', !currentValue);
 
         // Update the settings UI
         $('#name_tracker_auto_analyze').prop('checked', !currentValue);
@@ -7696,9 +7587,9 @@ async function toggleAutoHarvest() {
             $menuButton.find('i').removeClass('fa-toggle-on').addClass('fa-toggle-off');
         }
 
-        await ui_updateStatusDisplay();
+        await updateStatusDisplay();
 
-        ui_notifications.success(
+        notifications.success(
             `Auto-harvest ${!currentValue ? 'enabled' : 'disabled'}`,
         );
     });
@@ -7709,12 +7600,12 @@ async function toggleAutoHarvest() {
  * @returns {Promise<void>}
  */
 async function openChatLorebook() {
-    return (0,errors/* withErrorBoundary */.Xc)('openChatLorebook', async () => {
-        const context = core_context.stContext.getContext();
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('openChatLorebook', async () => {
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         const lorebookName = context.chatMetadata?.world_info;
 
         if (!lorebookName) {
-            ui_notifications.warning('No active chat or lorebook');
+            notifications.warning('No active chat or lorebook');
             return;
         }
 
@@ -7723,7 +7614,7 @@ async function openChatLorebook() {
         } else {
             // Fallback: show the world info panel
             $('#WorldInfo').click();
-            ui_notifications.info(`Please select "${lorebookName}" from the World Info panel`);
+            notifications.info(`Please select "${lorebookName}" from the World Info panel`);
         }
     });
 }
@@ -7733,9 +7624,9 @@ async function openChatLorebook() {
  * @returns {void}
  */
 function initializeMenuButtons() {
-    return (0,errors/* withErrorBoundary */.Xc)('initializeMenuButtons', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('initializeMenuButtons', async () => {
         // Add toggle auto-harvest button with visual state
-        const autoAnalyze = await (0,core_settings/* getSetting */.PL)('autoAnalyze', true);
+        const autoAnalyze = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('autoAnalyze', true);
         const toggleIcon = autoAnalyze ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off';
         await addMenuButton(
             'Toggle Auto-Harvest',
@@ -7761,7 +7652,7 @@ function initializeMenuButtons() {
             'Open the Name Tracker chat lorebook in the World Info editor',
         );
 
-        ui_debug.log();
+        debug.log();
     });
 }
 
@@ -7770,87 +7661,87 @@ function initializeMenuButtons() {
  * @returns {void}
  */
 function bindSettingsHandlers() {
-    return (0,errors/* withErrorBoundary */.Xc)('bindSettingsHandlers', () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('bindSettingsHandlers', () => {
         // Main settings handlers
         $('#name_tracker_enabled').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('enabled', event.target.checked);
-            await ui_updateStatusDisplay();
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('enabled', event.target.checked);
+            await updateStatusDisplay();
         });
 
         $('#name_tracker_auto_analyze').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('autoAnalyze', event.target.checked);
-            await ui_updateStatusDisplay();
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('autoAnalyze', event.target.checked);
+            await updateStatusDisplay();
         });
 
         $('#name_tracker_message_frequency').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('messageFrequency', parseInt(event.target.value) || 10);
-            await ui_updateStatusDisplay();
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('messageFrequency', parseInt(event.target.value) || 10);
+            await updateStatusDisplay();
         });
 
         $('#name_tracker_llm_source').on('change', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('llmSource', event.target.value);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('llmSource', event.target.value);
         });
 
         $('#name_tracker_ollama_endpoint').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('ollamaEndpoint', event.target.value);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('ollamaEndpoint', event.target.value);
         });
 
         $('#name_tracker_ollama_model').on('change', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('ollamaModel', event.target.value);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('ollamaModel', event.target.value);
         });
 
         $('#name_tracker_load_models').on('click', async () => {
             try {
-                await (0,llm/* loadOllamaModels */.Bw)();
-                ui_notifications.success('Ollama models loaded');
+                await (0,_llm_js__WEBPACK_IMPORTED_MODULE_7__/* .loadOllamaModels */ .Bw)();
+                notifications.success('Ollama models loaded');
                 // eslint-disable-next-line no-unused-vars
             } catch (error) {
-                ui_debug.log();
-                ui_notifications.error('Failed to load Ollama models');
+                debug.log();
+                notifications.error('Failed to load Ollama models');
             }
         });
 
         $('#name_tracker_confidence_threshold').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('confidenceThreshold', parseInt(event.target.value) || 70);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('confidenceThreshold', parseInt(event.target.value) || 70);
         });
 
         // Lorebook settings handlers
         $('#name_tracker_lorebook_position').on('change', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('lorebookPosition', parseInt(event.target.value) || 0);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('lorebookPosition', parseInt(event.target.value) || 0);
         });
 
         $('#name_tracker_lorebook_depth').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('lorebookDepth', parseInt(event.target.value) || 1);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('lorebookDepth', parseInt(event.target.value) || 1);
         });
 
         $('#name_tracker_lorebook_cooldown').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('lorebookCooldown', parseInt(event.target.value) || 5);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('lorebookCooldown', parseInt(event.target.value) || 5);
         });
 
         $('#name_tracker_lorebook_probability').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('lorebookProbability', parseInt(event.target.value) || 100);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('lorebookProbability', parseInt(event.target.value) || 100);
         });
 
         $('#name_tracker_lorebook_enabled').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('lorebookEnabled', event.target.checked);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('lorebookEnabled', event.target.checked);
         });
 
         $('#name_tracker_debug_mode').on('input', async (event) => {
-            await (0,core_settings/* setSetting */.ZC)('debugMode', event.target.checked);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setSetting */ .ZC)('debugMode', event.target.checked);
         });
 
         // Action button handlers
         $('#name_tracker_manual_analyze').on('click', async () => {
-            const messageFreq = await (0,core_settings/* getSetting */.PL)('messageFrequency', 10);
-            await harvestMessages(messageFreq, true);
-            await ui_updateCharacterList();
-            await ui_updateStatusDisplay();
+            const messageFreq = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('messageFrequency', 10);
+            await (0,_processing_js__WEBPACK_IMPORTED_MODULE_8__/* .harvestMessages */ .Ye)(messageFreq, true);
+            await updateCharacterList();
+            await updateStatusDisplay();
         });
 
         $('#name_tracker_scan_all').on('click', async () => {
-            await scanEntireChat();
-            await ui_updateCharacterList();
-            await ui_updateStatusDisplay();
+            await (0,_processing_js__WEBPACK_IMPORTED_MODULE_8__/* .scanEntireChat */ .bu)();
+            await updateCharacterList();
+            await updateStatusDisplay();
         });
 
         $('#name_tracker_create_character').on('click', async () => {
@@ -7858,16 +7749,16 @@ function bindSettingsHandlers() {
         });
 
         $('#name_tracker_clear_cache').on('click', () => {
-            clearProcessingQueue();
-            ui_notifications.info('Cache and processing queue cleared');
+            (0,_processing_js__WEBPACK_IMPORTED_MODULE_8__/* .clearProcessingQueue */ .gH)();
+            notifications.info('Cache and processing queue cleared');
         });
 
         $('#name_tracker_undo_merge').on('click', async () => {
             const { undoLastMerge } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 551));
             const success = await undoLastMerge();
             if (success) {
-                await ui_updateCharacterList();
-                await ui_updateStatusDisplay();
+                await updateCharacterList();
+                await updateStatusDisplay();
             }
         });
 
@@ -7887,7 +7778,7 @@ function bindSettingsHandlers() {
             await dumpContextToConsole();
         });
 
-        ui_debug.log();
+        debug.log();
     });
 }
 
@@ -7896,9 +7787,9 @@ function bindSettingsHandlers() {
  * @returns {void}
  */
 function showDebugStatus() {
-    return (0,errors/* withErrorBoundary */.Xc)('showDebugStatus', async () => {
-        const settings = await (0,core_settings/* get_settings */.TJ)();
-        const characters = await (0,core_settings/* getCharacters */.bg)();
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('showDebugStatus', async () => {
+        const settings = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)();
+        const characters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
 
         // Reusable builder: compute debug info + HTML
         const buildDebugContent = async () => {
@@ -7944,7 +7835,7 @@ function showDebugStatus() {
                 }
             } catch (_error) {
                 console.error('[NT-Debug] Error in buildDebugContent:', _error);
-                ui_debug.log('Could not load LLM config:', _error);
+                debug.log('Could not load LLM config:', _error);
                 contextDetails = {
                     totalContext: 'Error loading',
                     maxGeneration: 'Error',
@@ -8119,7 +8010,7 @@ async function loadSettingsHTML(extensionFolderPath) {
             // Append to the extensions settings panel
             $('#extensions_settings').append(settingsHtml);
 
-            ui_debug.log();
+            debug.log();
         } catch (error) {
             console.error('Failed to load settings HTML:', error);
             throw new NameTrackerError(`Failed to load settings HTML: ${error.message}`);
@@ -8133,10 +8024,10 @@ async function loadSettingsHTML(extensionFolderPath) {
  * @returns {void}
  */
 async function dumpContextToConsole() {
-    return (0,errors/* withErrorBoundary */.Xc)('dumpContextToConsole', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('dumpContextToConsole', async () => {
         try {
-            const dump = await core_context.stContext.dumpContextToConsole();
-            ui_notifications.success('Context dumped to console - Press F12 to view', 'Context Dump');
+            const dump = await _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.dumpContextToConsole();
+            notifications.success('Context dumped to console - Press F12 to view', 'Context Dump');
 
             // Also show a brief summary in a dialog
             const summary = {
@@ -8149,8 +8040,8 @@ async function dumpContextToConsole() {
             console.table(summary);
 
         } catch (error) {
-            ui_debug.log(`Failed to dump context: ${error.message}`);
-            ui_notifications.error(`Failed to dump context: ${error.message}`, 'Context Dump');
+            debug.log(`Failed to dump context: ${error.message}`);
+            notifications.error(`Failed to dump context: ${error.message}`, 'Context Dump');
         }
     });
 }
@@ -8160,31 +8051,53 @@ async function dumpContextToConsole() {
  * @returns {Promise<void>}
  */
 async function updateUI() {
-    return (0,errors/* withErrorBoundary */.Xc)('updateUI', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('updateUI', async () => {
         // Update all form elements with current settings
-        $('#name_tracker_enabled').prop('checked', await (0,core_settings/* getSetting */.PL)('enabled', true));
-        $('#name_tracker_auto_analyze').prop('checked', await (0,core_settings/* getSetting */.PL)('autoAnalyze', true));
-        $('#name_tracker_message_frequency').val(await (0,core_settings/* getSetting */.PL)('messageFrequency', 10));
-        $('#name_tracker_llm_source').val(await (0,core_settings/* getSetting */.PL)('llmSource', 'sillytavern'));
-        $('#name_tracker_ollama_endpoint').val(await (0,core_settings/* getSetting */.PL)('ollamaEndpoint', 'http://localhost:11434'));
-        $('#name_tracker_ollama_model').val(await (0,core_settings/* getSetting */.PL)('ollamaModel', ''));
-        $('#name_tracker_confidence_threshold').val(await (0,core_settings/* getSetting */.PL)('confidenceThreshold', 70));
-        $('#name_tracker_lorebook_position').val(await (0,core_settings/* getSetting */.PL)('lorebookPosition', 0));
-        $('#name_tracker_lorebook_depth').val(await (0,core_settings/* getSetting */.PL)('lorebookDepth', 1));
-        $('#name_tracker_lorebook_cooldown').val(await (0,core_settings/* getSetting */.PL)('lorebookCooldown', 5));
-        $('#name_tracker_lorebook_probability').val(await (0,core_settings/* getSetting */.PL)('lorebookProbability', 100));
-        $('#name_tracker_lorebook_enabled').prop('checked', await (0,core_settings/* getSetting */.PL)('lorebookEnabled', true));
-        $('#name_tracker_debug_mode').prop('checked', await (0,core_settings/* getSetting */.PL)('debugMode', false));
+        $('#name_tracker_enabled').prop('checked', await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('enabled', true));
+        $('#name_tracker_auto_analyze').prop('checked', await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('autoAnalyze', true));
+        $('#name_tracker_message_frequency').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('messageFrequency', 10));
+        $('#name_tracker_llm_source').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('llmSource', 'sillytavern'));
+        $('#name_tracker_ollama_endpoint').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('ollamaEndpoint', 'http://localhost:11434'));
+        $('#name_tracker_ollama_model').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('ollamaModel', ''));
+        $('#name_tracker_confidence_threshold').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('confidenceThreshold', 70));
+        $('#name_tracker_lorebook_position').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('lorebookPosition', 0));
+        $('#name_tracker_lorebook_depth').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('lorebookDepth', 1));
+        $('#name_tracker_lorebook_cooldown').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('lorebookCooldown', 5));
+        $('#name_tracker_lorebook_probability').val(await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('lorebookProbability', 100));
+        $('#name_tracker_lorebook_enabled').prop('checked', await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('lorebookEnabled', true));
+        $('#name_tracker_debug_mode').prop('checked', await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('debugMode', false));
 
-        // Update character list and status
-        await ui_updateCharacterList();
-        await ui_updateStatusDisplay();
+        // Update character list
+        await updateCharacterList();
+        // Note: updateStatusDisplay() is called via CHAT_LOADED event, not here
+        // (calling it here would show 0 messages since chat hasn't loaded yet)
 
-        ui_debug.log();
+        debug.log();
     });
 }
 
-;// ./src/modules/processing.js
+
+/***/ },
+
+/***/ 972
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Wu: () => (/* binding */ onMessageReceived),
+/* harmony export */   Ye: () => (/* binding */ harvestMessages),
+/* harmony export */   bu: () => (/* binding */ scanEntireChat),
+/* harmony export */   gH: () => (/* binding */ clearProcessingQueue)
+/* harmony export */ });
+/* unused harmony exports processAnalysisResults, scanForNewNames, processPhaseTwoAnalysis, addToQueue, processQueue, onChatChanged, getProcessingStatus, abortCurrentScan */
+/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
+/* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
+/* harmony import */ var _core_context_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(102);
+/* harmony import */ var _utils_notifications_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(695);
+/* harmony import */ var _llm_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(248);
+/* harmony import */ var _characters_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(551);
+/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(158);
+/* harmony import */ var _ui_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(897);
 /**
  * Message Processing Module
  *
@@ -8202,8 +8115,8 @@ async function updateUI() {
 
 
 
-const processing_debug = (0,debug/* createModuleLogger */.Xv)('processing');
-const processing_notifications = new notifications/* NotificationManager */.h('Message Processing');
+const debug = (0,_core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* .createModuleLogger */ .Xv)('processing');
+const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_4__/* .NotificationManager */ .h('Message Processing');
 
 // ============================================================================
 // DEBUG CONFIGURATION
@@ -8276,7 +8189,7 @@ async function createMessageBatches(messages, availableTokens, enforceMessageLim
     let currentTokens = 0;
 
     for (const msg of messages) {
-        const msgTokens = await (0,llm/* calculateMessageTokens */.au)([msg]);
+        const msgTokens = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .calculateMessageTokens */ .au)([msg]);
 
         // Check if batch would exceed limits
         const wouldExceedTokens = currentTokens + msgTokens > availableTokens;
@@ -8324,7 +8237,7 @@ const currentProcessingState = {
  * @returns {Promise<void>}
  */
 async function processAnalysisResults(analyzedCharacters) {
-    return (0,errors/* withErrorBoundary */.Xc)('processAnalysisResults', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('processAnalysisResults', async () => {
         debugLog('processAnalysisResults', {
             inputType: typeof analyzedCharacters,
             isArray: Array.isArray(analyzedCharacters),
@@ -8333,7 +8246,7 @@ async function processAnalysisResults(analyzedCharacters) {
 
         if (!analyzedCharacters || !Array.isArray(analyzedCharacters)) {
             console.warn('[NT-Processing] ⚠️  Invalid input - not an array:', analyzedCharacters);
-            processing_debug.log();
+            debug.log();
             return;
         }
 
@@ -8351,11 +8264,11 @@ async function processAnalysisResults(analyzedCharacters) {
 
         debugLog('All characters processed');
         console.log('[NT-Processing] 🟢 About to call updateCharacterList()');
-        const listResult = await ui_updateCharacterList();
+        const listResult = await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__/* .updateCharacterList */ .L2)();
         console.log('[NT-Processing] 🟢 updateCharacterList() returned:', listResult);
-        const statusResult = await ui_updateStatusDisplay();
+        const statusResult = await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__.updateStatusDisplay)();
         console.log('[NT-Processing] 🟢 updateStatusDisplay() returned:', statusResult);
-        const currentChars = await (0,core_settings/* getCharacters */.bg)();
+        const currentChars = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
         console.log('[NT-Processing] 🟢 Current characters in storage:', currentChars);
     });
 }
@@ -8366,13 +8279,13 @@ async function processAnalysisResults(analyzedCharacters) {
  * @returns {Promise<void>}
  */
 async function processCharacterData(analyzedChar) {
-    return (0,errors/* withErrorBoundary */.Xc)('processCharacterData', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('processCharacterData', async () => {
         console.log('[NT-Processing] 🟠 processCharacterData() for:', analyzedChar?.name);
         debugLog('Processing character data', analyzedChar?.name);
 
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
             console.warn('[NT-CharData] ⚠️  Character has no name, skipping');
-            processing_debug.log();
+            debug.log();
             return;
         }
 
@@ -8380,10 +8293,10 @@ async function processCharacterData(analyzedChar) {
         debugLog('Character name', characterName);
 
         // Check if character is ignored
-        const isIgnored = await (0,modules_characters/* isIgnoredCharacter */.eY)(characterName);
+        const isIgnored = await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .isIgnoredCharacter */ .eY)(characterName);
         if (isIgnored) {
             debugLog('Character ignored, skipping', characterName);
-            processing_debug.log();
+            debug.log();
             return;
         }
 
@@ -8394,30 +8307,30 @@ async function processCharacterData(analyzedChar) {
         debugLog('Is main char', isMainChar);
 
         // Check if character already exists
-        const existingChar = await (0,modules_characters/* findExistingCharacter */._$)(characterName);
+        const existingChar = await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .findExistingCharacter */ ._$)(characterName);
         debugLog('Existing character found', !!existingChar);
 
         if (existingChar) {
             // Update existing character
-            await (0,modules_characters/* updateCharacter */.t9)(existingChar, analyzedChar, false, isMainChar);
-            await (0,lorebook.updateLorebookEntry)(existingChar, existingChar.preferredName);
-            processing_debug.log();
+            await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .updateCharacter */ .t9)(existingChar, analyzedChar, false, isMainChar);
+            await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_7__.updateLorebookEntry)(existingChar, existingChar.preferredName);
+            debug.log();
         } else {
             // Check for potential matches (similar names)
-            const potentialMatch = await (0,modules_characters/* findPotentialMatch */.rL)(analyzedChar);
+            const potentialMatch = await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .findPotentialMatch */ .rL)(analyzedChar);
             debugLog('Potential match found', !!potentialMatch);
 
             if (potentialMatch) {
                 // Update potential match and add as alias
-                await (0,modules_characters/* updateCharacter */.t9)(potentialMatch, analyzedChar, true, isMainChar);
-                await (0,lorebook.updateLorebookEntry)(potentialMatch, potentialMatch.preferredName);
-                processing_debug.log();
+                await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .updateCharacter */ .t9)(potentialMatch, analyzedChar, true, isMainChar);
+                await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_7__.updateLorebookEntry)(potentialMatch, potentialMatch.preferredName);
+                debug.log();
             } else {
                 // Create new character
-                const newCharacter = await (0,modules_characters/* createCharacter */.OW)(analyzedChar, isMainChar);
+                const newCharacter = await (0,_characters_js__WEBPACK_IMPORTED_MODULE_6__/* .createCharacter */ .OW)(analyzedChar, isMainChar);
                 console.log('[NT-Processing] 🟠 Created character:', newCharacter?.preferredName);
-                await (0,lorebook.updateLorebookEntry)(newCharacter, newCharacter.preferredName);
-                processing_debug.log();
+                await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_7__.updateLorebookEntry)(newCharacter, newCharacter.preferredName);
+                debug.log();
             }
         }
     });
@@ -8570,7 +8483,7 @@ async function processPhaseTwoAnalysis(newNames, messages, existingMentions = []
 
             // Update existing characters mentioned in messages
             if (existingMentions && existingMentions.length > 0) {
-                processing_debug.log(`Phase 2: Updating ${existingMentions.length} existing characters`);
+                debug.log(`Phase 2: Updating ${existingMentions.length} existing characters`);
 
                 for (const charName of existingMentions) {
                     if (abortScan) break;
@@ -8581,14 +8494,14 @@ async function processPhaseTwoAnalysis(newNames, messages, existingMentions = []
                             await processExistingCharacter(existingChar, messages, results);
                         }
                     } catch (error) {
-                        processing_debug.log(`Failed to update character ${charName}: ${error.message}`);
+                        debug.log(`Failed to update character ${charName}: ${error.message}`);
                         results.failedCharacters.push({ name: charName, error: error.message });
                     }
                 }
             }
 
         } catch (error) {
-            processing_debug.log(`Phase 2 analysis error: ${error.message}`);
+            debug.log(`Phase 2 analysis error: ${error.message}`);
             throw error;
         }
 
@@ -8643,12 +8556,12 @@ async function processNewCharacter(name, messages, results) {
 
             if (opportunity.confidence >= 0.9) {
                 await mergeCharacters(newCharacter.preferredName, opportunity.targetName);
-                processing_notifications.success(`Auto-merged "${newCharacter.preferredName}" into "${opportunity.targetName}" (${Math.round(opportunity.confidence * 100)}% match)`, 'Character Merged');
+                notifications.success(`Auto-merged "${newCharacter.preferredName}" into "${opportunity.targetName}" (${Math.round(opportunity.confidence * 100)}% match)`, 'Character Merged');
                 break; // stop after first high-confidence merge
             }
 
             if (opportunity.confidence >= 0.7) {
-                processing_notifications.info(`Possible duplicate: "${newCharacter.preferredName}" ≈ "${opportunity.targetName}" (${Math.round(opportunity.confidence * 100)}%). Review in settings if needed.`, 'Merge Suggested');
+                notifications.info(`Possible duplicate: "${newCharacter.preferredName}" ≈ "${opportunity.targetName}" (${Math.round(opportunity.confidence * 100)}%). Review in settings if needed.`, 'Merge Suggested');
             }
         }
     }
@@ -8659,13 +8572,13 @@ async function processNewCharacter(name, messages, results) {
  * @private
  */
 async function processExistingCharacter(existingChar, messages, results) {
-    processing_debug.log(`Updating existing character: ${existingChar.preferredName}`);
+    debug.log(`Updating existing character: ${existingChar.preferredName}`);
 
     // Build fresh context for this character from the current message window
     const characterContext = buildCharacterContext(existingChar.preferredName, messages, OVERLAP_SIZE);
 
     if (!characterContext || characterContext.length === 0) {
-        processing_debug.log(`No new context for character ${existingChar.preferredName} since last processing`);
+        debug.log(`No new context for character ${existingChar.preferredName} since last processing`);
         return;
     }
 
@@ -8740,26 +8653,26 @@ function buildCharacterContext(characterName, messages, overlapSize) {
  * @returns {Promise<void>}
  */
 async function harvestMessages(messageCount, showProgress = true) {
-    return (0,errors/* withErrorBoundary */.Xc)('harvestMessages', async () => {
-        if (!await (0,core_settings/* get_settings */.TJ)('enabled', true)) {
-            processing_debug.log();
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('harvestMessages', async () => {
+        if (!await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('enabled', true)) {
+            debug.log();
             return;
         }
 
         // Check API connection for SillyTavern mode
-        const llmConfig = await (0,core_settings/* getLLMConfig */.eU)();
+        const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
         if (llmConfig.source === 'sillytavern') {
-            const context = core_context.stContext.getContext();
+            const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
             if (!context.onlineStatus) {
-                processing_notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
+                notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
                 return;
             }
         }
 
-        const context = core_context.stContext.getContext();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         if (!context.chat || context.chat.length === 0) {
-            processing_debug.log();
-            processing_notifications.info('No messages in chat to analyze');
+            debug.log();
+            notifications.info('No messages in chat to analyze');
             return;
         }
 
@@ -8773,7 +8686,7 @@ async function harvestMessages(messageCount, showProgress = true) {
         let processedMessages = 0;
 
         // Check if messages fit in context window
-        const maxPromptResult = await (0,llm.getMaxPromptLength)();
+        const maxPromptResult = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__.getMaxPromptLength)();
         const maxPromptTokens = maxPromptResult.maxPrompt;
         const availableTokens = calculateAvailableTokens(maxPromptTokens);
 
@@ -8782,7 +8695,7 @@ async function harvestMessages(messageCount, showProgress = true) {
         debugLog(`[Batching] Estimated reserves: systemPrompt=~1000tok, response=~4000tok, messages=${availableTokens}tok`);
 
         // Calculate actual token count for the requested messages
-        const messageTokens = await (0,llm/* calculateMessageTokens */.au)(messagesToAnalyze);
+        const messageTokens = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .calculateMessageTokens */ .au)(messagesToAnalyze);
 
         debugLog(`[Batching] Total tokens for ${messagesToAnalyze.length} messages: ${messageTokens} tokens`);
 
@@ -8795,7 +8708,7 @@ async function harvestMessages(messageCount, showProgress = true) {
 
             // Log batch details for debugging
             const batchDetails = await Promise.all(batches.map(async (batch, i) => {
-                const tokens = await (0,llm/* calculateMessageTokens */.au)(batch);
+                const tokens = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .calculateMessageTokens */ .au)(batch);
                 return `Batch ${i + 1}: ${batch.length}msg/${tokens}tok`;
             }));
 
@@ -8837,7 +8750,7 @@ async function harvestMessages(messageCount, showProgress = true) {
                 if (abortScan) {
                     debugLog(`[BatchProcessing] User aborted at batch ${i + 1}/${batches.length}`);
                     hideProgressBar();
-                    processing_notifications.warning('Analysis aborted');
+                    notifications.warning('Analysis aborted');
                     return;
                 }
 
@@ -8854,10 +8767,10 @@ async function harvestMessages(messageCount, showProgress = true) {
                     showProgressBar(i + 1, batches.length, `Analyzing messages ${batchStart + 1}-${batchEnd}...`);
 
                     // Build roster of characters found so far
-                    const characterRoster = await (0,llm/* buildCharacterRoster */.fR)();
+                    const characterRoster = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .buildCharacterRoster */ .fR)();
 
                     // Call LLM for analysis
-                    const analysis = await (0,llm/* callLLMAnalysis */.Kr)(batch, characterRoster);
+                    const analysis = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .callLLMAnalysis */ .Kr)(batch, characterRoster);
 
                     console.log('[NT-Batch] 📊 LLM analysis returned');
                     console.log('[NT-Batch]    Type:', typeof analysis);
@@ -8910,7 +8823,7 @@ async function harvestMessages(messageCount, showProgress = true) {
                     debugLog(`[BatchProcessing] Context: messages ${batchStart}-${batchEnd - 1}, batch size ${batch.length}, token count calc error`);
                     console.error(`Error processing batch ${i + 1}:`, error);
                     failedBatches++;
-                    processing_notifications.error(`Batch ${i + 1} failed: ${error.message}`);
+                    notifications.error(`Batch ${i + 1} failed: ${error.message}`);
                     // Continue to next batch automatically to avoid blocking popups
                 }
             }
@@ -8928,38 +8841,38 @@ Failed batches: ${failedBatches}`;
             debugLog(`[BatchProcessing] Batch analysis complete: ${successfulBatches}/${batches.length} successful, ${failedBatches} failed, ${uniqueCharacters.size} characters found`);
 
             if (failedBatches > 0) {
-                processing_notifications.warning(summary, 'Batch Analysis', { timeOut: 8000 });
+                notifications.warning(summary, 'Batch Analysis', { timeOut: 8000 });
             } else {
-                processing_notifications.success(summary, 'Batch Analysis', { timeOut: 8000 });
+                notifications.success(summary, 'Batch Analysis', { timeOut: 8000 });
             }
 
             // Persist scan progress and update UI
             if (processedMessages > 0) {
-                const existingCount = await (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
-                await (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
-                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
+                const existingCount = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('messageCounter', 0);
+                await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('messageCounter', existingCount + processedMessages);
+                await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('lastScannedMessageId', endIdx - 1);
             }
 
             // Always update UI after batch processing (success or partial failure)
-            await ui_updateCharacterList();
-            await ui_updateStatusDisplay();
+            await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__/* .updateCharacterList */ .L2)();
+            await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__.updateStatusDisplay)();
 
             return;
         }
 
         // Messages fit in one batch - process normally
         if (showProgress) {
-            processing_notifications.info(`Analyzing ${messagesToAnalyze.length} messages for character information...`);
+            notifications.info(`Analyzing ${messagesToAnalyze.length} messages for character information...`);
         }
 
         try {
             // Build roster of characters found so far
-            const characterRoster = await (0,llm/* buildCharacterRoster */.fR)();
+            const characterRoster = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .buildCharacterRoster */ .fR)();
 
             // Call LLM for analysis with character context
-            const analysis = await (0,llm/* callLLMAnalysis */.Kr)(messagesToAnalyze, characterRoster);
+            const analysis = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .callLLMAnalysis */ .Kr)(messagesToAnalyze, characterRoster);
 
-            processing_debug.log();
+            debug.log();
 
             // Process the analysis
             if (analysis.characters && Array.isArray(analysis.characters)) {
@@ -8967,26 +8880,26 @@ Failed batches: ${failedBatches}`;
                 processedMessages += messagesToAnalyze.length;
 
                 if (showProgress) {
-                    processing_notifications.success(`Found ${analysis.characters.length} character(s) in messages`);
+                    notifications.success(`Found ${analysis.characters.length} character(s) in messages`);
                 }
             } else {
-                processing_debug.log();
+                debug.log();
             }
 
         } catch (error) {
             console.error('Error during harvest:', error);
-            processing_notifications.error(`Analysis failed: ${error.message}`, 'Name Tracker');
+            notifications.error(`Analysis failed: ${error.message}`, 'Name Tracker');
         } finally {
             // Always update UI after LLM processing (success or failure)
             // Persist scan progress
             if (processedMessages > 0) {
-                const existingCount = await (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
-                await (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
-                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', endIdx - 1);
+                const existingCount = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('messageCounter', 0);
+                await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('messageCounter', existingCount + processedMessages);
+                await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('lastScannedMessageId', endIdx - 1);
             }
 
-            await ui_updateCharacterList();
-            await ui_updateStatusDisplay();
+            await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__/* .updateCharacterList */ .L2)();
+            await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__.updateStatusDisplay)();
         }
     });
 }
@@ -8997,12 +8910,12 @@ Failed batches: ${failedBatches}`;
  * @returns {Promise<void>}
  */
 async function onMessageReceived(messageId) {
-    return (0,errors/* withErrorBoundary */.Xc)('onMessageReceived', async () => {
-        if (!await (0,core_settings/* get_settings */.TJ)('enabled', true) || !await (0,core_settings/* get_settings */.TJ)('autoAnalyze', true)) {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('onMessageReceived', async () => {
+        if (!await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('enabled', true) || !await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('autoAnalyze', true)) {
             return;
         }
 
-        const context = core_context.stContext.getContext();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         const chat = context.chat;
 
         if (!chat || chat.length === 0) {
@@ -9013,21 +8926,21 @@ async function onMessageReceived(messageId) {
         const currentMessageIndex = chat.length - 1;
 
         // Check if this message was already scanned
-        const lastScannedId = await (0,core_settings/* get_settings */.TJ)('lastScannedMessageId', -1);
+        const lastScannedId = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('lastScannedMessageId', -1);
         if (currentMessageIndex <= lastScannedId) {
-            processing_debug.log();
+            debug.log();
             return;
         }
 
         // Detect if messages were deleted (current index jumped backwards)
         if (lastScannedId >= 0 && currentMessageIndex < lastScannedId) {
-            processing_debug.log();
+            debug.log();
 
             // Prompt user for rescan decision
             const shouldRescan = await showRescanModal(currentMessageIndex, lastScannedId);
 
             if (shouldRescan.rescan) {
-                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', shouldRescan.fromMessage - 1);
+                await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('lastScannedMessageId', shouldRescan.fromMessage - 1);
 
                 // Queue a full scan from the specified message
                 await addToQueue(async () => {
@@ -9037,23 +8950,23 @@ async function onMessageReceived(messageId) {
                 return;
             } else {
                 // Reset to current position without scanning
-                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
+                await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('lastScannedMessageId', currentMessageIndex);
                 return;
             }
         }
 
         // Check if we've reached the next scan milestone
-        const messageFreq = await (0,core_settings/* get_settings */.TJ)('messageFrequency', 10);
+        const messageFreq = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('messageFrequency', 10);
         const messagesSinceLastScan = currentMessageIndex - lastScannedId;
 
         if (messagesSinceLastScan >= messageFreq) {
-            processing_debug.log();
+            debug.log();
 
             // Queue harvest
             await addToQueue(async () => {
                 await harvestMessages(messageFreq, true);
                 // Update last scanned message ID after successful harvest
-                await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', currentMessageIndex);
+                await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('lastScannedMessageId', currentMessageIndex);
             });
         }
     });
@@ -9153,7 +9066,7 @@ function showProgressBar(current, total, status = '') {
     bar.find('button').on('click', function() {
         abortScan = true;
         hideProgressBar();
-        processing_notifications.warning('Scan aborted by user');
+        notifications.warning('Scan aborted by user');
     });
 
     // Append to the main chat area (#sheld)
@@ -9178,25 +9091,25 @@ function hideProgressBar() {
  * @returns {Promise<void>}
  */
 async function scanEntireChat() {
-    return (0,errors/* withErrorBoundary */.Xc)('scanEntireChat', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('scanEntireChat', async () => {
         // CRITICAL: Ensure lorebook is initialized BEFORE processing
         console.log('[NT-Processing] 🔧 Ensuring lorebook is initialized before scan...');
         const { initializeLorebook } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 158));
         await initializeLorebook();
         console.log('[NT-Processing] ✅ Lorebook initialization complete');
 
-        const context = core_context.stContext.getContext();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
 
         if (!context.chat || context.chat.length === 0) {
-            processing_notifications.warning('No chat messages to scan');
+            notifications.warning('No chat messages to scan');
             return;
         }
 
         // Check API connection for SillyTavern mode
-        const llmConfig = await (0,core_settings/* getLLMConfig */.eU)();
+        const llmConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLLMConfig */ .eU)();
         if (llmConfig.source === 'sillytavern') {
             if (!context.onlineStatus) {
-                processing_notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
+                notifications.warning('Please connect to an API (OpenAI, Claude, etc.) before analyzing messages');
                 return;
             }
         }
@@ -9204,7 +9117,7 @@ async function scanEntireChat() {
         const totalMessages = context.chat.length;
 
         // Calculate optimal batch size based on context window
-        const maxPromptResult = await (0,llm.getMaxPromptLength)();
+        const maxPromptResult = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__.getMaxPromptLength)();
         const maxPromptTokens = maxPromptResult.maxPrompt;
         const availableTokens = calculateAvailableTokens(maxPromptTokens);
 
@@ -9237,7 +9150,7 @@ async function scanEntireChat() {
         for (let i = 0; i < numBatches; i++) {
             // Check if user aborted
             if (abortScan) {
-                processing_debug.log();
+                debug.log();
                 break;
             }
 
@@ -9251,10 +9164,10 @@ async function scanEntireChat() {
                 showProgressBar(i + 1, numBatches, `Processing messages ${startIdx + 1}-${endIdx}...`);
 
                 // Build roster of characters found so far
-                const characterRoster = await (0,llm/* buildCharacterRoster */.fR)();
+                const characterRoster = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .buildCharacterRoster */ .fR)();
 
                 // Call LLM for analysis with character context
-                const analysis = await (0,llm/* callLLMAnalysis */.Kr)(batchMessages, characterRoster);
+                const analysis = await (0,_llm_js__WEBPACK_IMPORTED_MODULE_5__/* .callLLMAnalysis */ .Kr)(batchMessages, characterRoster);
 
                 // Process the analysis with null safety
                 if (!analysis) {
@@ -9297,7 +9210,7 @@ async function scanEntireChat() {
             } catch (error) {
                 console.error(`Error processing batch ${i + 1}:`, error);
                 failedBatches++;
-                processing_notifications.error(`Batch ${i + 1} failed: ${error.message}`);
+                notifications.error(`Batch ${i + 1} failed: ${error.message}`);
                 // Continue to next batch automatically to avoid blocking popups
             }
         }
@@ -9306,16 +9219,16 @@ async function scanEntireChat() {
         hideProgressBar();
 
         // Update scan completion status
-        await (0,core_settings/* set_settings */.nT)('lastScannedMessageId', totalMessages - 1);
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('lastScannedMessageId', totalMessages - 1);
 
         if (processedMessages > 0) {
-            const existingCount = await (0,core_settings/* get_settings */.TJ)('messageCounter', 0);
-            await (0,core_settings/* set_settings */.nT)('messageCounter', existingCount + processedMessages);
+            const existingCount = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('messageCounter', 0);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('messageCounter', existingCount + processedMessages);
         }
 
         // Always update UI after scan (success, partial failure, or abort)
-        await ui_updateCharacterList();
-        await ui_updateStatusDisplay();
+        await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__/* .updateCharacterList */ .L2)();
+        await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__.updateStatusDisplay)();
 
         // Show summary
         const summary = `Full chat scan complete!\n\nMessages: ${totalMessages}\nBatches: ${successfulBatches}/${numBatches}\nCharacters found: ${uniqueCharacters.size}\nFailed: ${failedBatches}`;
@@ -9324,9 +9237,9 @@ async function scanEntireChat() {
         const safeSummary = String(summary || 'Scan completed');
 
         if (failedBatches > 0) {
-            processing_notifications.warning(safeSummary, 'Scan Complete', { timeOut: 10000 });
+            notifications.warning(safeSummary, 'Scan Complete', { timeOut: 10000 });
         } else {
-            processing_notifications.success(safeSummary, 'Scan Complete', { timeOut: 10000 });
+            notifications.success(safeSummary, 'Scan Complete', { timeOut: 10000 });
         }
     });
 }
@@ -9337,7 +9250,7 @@ async function scanEntireChat() {
  * @returns {Promise<void>}
  */
 async function addToQueue(task) {
-    return (0,errors/* withErrorBoundary */.Xc)('addToQueue', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('addToQueue', async () => {
         processingQueue.push(task);
 
         if (!isProcessing) {
@@ -9351,7 +9264,7 @@ async function addToQueue(task) {
  * @returns {Promise<void>}
  */
 async function processQueue() {
-    return (0,errors/* withErrorBoundary */.Xc)('processQueue', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('processQueue', async () => {
         if (isProcessing || processingQueue.length === 0) {
             return;
         }
@@ -9377,7 +9290,7 @@ async function processQueue() {
  */
 async function onChatChanged() {
     return withErrorBoundary('onChatChanged', async () => {
-        processing_debug.log();
+        debug.log();
 
         // Clear processing state
         processingQueue = [];
@@ -9392,7 +9305,7 @@ async function onChatChanged() {
         await updateCharacterList();
         await updateStatusDisplay();
 
-        processing_debug.log();
+        debug.log();
     });
 }
 
@@ -9402,7 +9315,7 @@ async function onChatChanged() {
 function clearProcessingQueue() {
     processingQueue = [];
     isProcessing = false;
-    processing_debug.log();
+    debug.log();
 }
 
 /**
@@ -9423,9 +9336,145 @@ function getProcessingStatus() {
 function abortCurrentScan() {
     abortScan = true;
     hideProgressBar();
-    processing_debug.log();
+    debug.log();
 }
 
+
+/***/ }
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			id: moduleId,
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/nonce */
+/******/ 	(() => {
+/******/ 		__webpack_require__.nc = undefined;
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+
+// UNUSED EXPORTS: default
+
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js
+var injectStylesIntoStyleTag = __webpack_require__(72);
+var injectStylesIntoStyleTag_default = /*#__PURE__*/__webpack_require__.n(injectStylesIntoStyleTag);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/styleDomAPI.js
+var styleDomAPI = __webpack_require__(825);
+var styleDomAPI_default = /*#__PURE__*/__webpack_require__.n(styleDomAPI);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/insertBySelector.js
+var insertBySelector = __webpack_require__(659);
+var insertBySelector_default = /*#__PURE__*/__webpack_require__.n(insertBySelector);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/setAttributesWithoutAttributes.js
+var setAttributesWithoutAttributes = __webpack_require__(56);
+var setAttributesWithoutAttributes_default = /*#__PURE__*/__webpack_require__.n(setAttributesWithoutAttributes);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/insertStyleElement.js
+var insertStyleElement = __webpack_require__(540);
+var insertStyleElement_default = /*#__PURE__*/__webpack_require__.n(insertStyleElement);
+// EXTERNAL MODULE: ./node_modules/style-loader/dist/runtime/styleTagTransform.js
+var styleTagTransform = __webpack_require__(113);
+var styleTagTransform_default = /*#__PURE__*/__webpack_require__.n(styleTagTransform);
+// EXTERNAL MODULE: ./node_modules/css-loader/dist/cjs.js!./style.css
+var cjs_js_style = __webpack_require__(83);
+;// ./style.css
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+var options = {};
+
+options.styleTagTransform = (styleTagTransform_default());
+options.setAttributes = (setAttributesWithoutAttributes_default());
+options.insert = insertBySelector_default().bind(null, "head");
+options.domAPI = (styleDomAPI_default());
+options.insertStyleElement = (insertStyleElement_default());
+
+var update = injectStylesIntoStyleTag_default()(cjs_js_style/* default */.A, options);
+
+
+
+
+       /* harmony default export */ const style = (cjs_js_style/* default */.A && cjs_js_style/* default */.A.locals ? cjs_js_style/* default */.A.locals : undefined);
+
+// EXTERNAL MODULE: ./src/core/debug.js
+var debug = __webpack_require__(806);
+// EXTERNAL MODULE: ./src/core/errors.js
+var errors = __webpack_require__(462);
+// EXTERNAL MODULE: ./src/core/context.js
+var core_context = __webpack_require__(102);
+// EXTERNAL MODULE: ./src/core/settings.js
+var settings = __webpack_require__(548);
+// EXTERNAL MODULE: ./src/utils/notifications.js
+var notifications = __webpack_require__(695);
+// EXTERNAL MODULE: ./src/utils/helpers.js
+var helpers = __webpack_require__(854);
+// EXTERNAL MODULE: ./src/modules/characters.js
+var characters = __webpack_require__(551);
+// EXTERNAL MODULE: ./src/modules/llm.js + 1 modules
+var llm = __webpack_require__(248);
+// EXTERNAL MODULE: ./src/modules/processing.js
+var processing = __webpack_require__(972);
+// EXTERNAL MODULE: ./src/modules/ui.js
+var ui = __webpack_require__(897);
 ;// ./src/index.js
 /**
  * Name Tracker Extension for SillyTavern - Modular Version
@@ -9454,10 +9503,10 @@ function abortCurrentScan() {
 
 // Immediate import validation
 console.log('[STnametracker] Main index.js: Import validation');
-console.log('[STnametracker] Main index.js: initializeUIHandlers import =', typeof initializeUIHandlers, initializeUIHandlers);
-console.log('[STnametracker] Main index.js: initializeMenuButtons import =', typeof initializeMenuButtons, initializeMenuButtons);
-console.log('[STnametracker] Main index.js: bindSettingsHandlers import =', typeof bindSettingsHandlers, bindSettingsHandlers);
-console.log('[STnametracker] Main index.js: updateUI import =', typeof updateUI, updateUI);
+console.log('[STnametracker] Main index.js: initializeUIHandlers import =', typeof ui/* initializeUIHandlers */.Ow, ui/* initializeUIHandlers */.Ow);
+console.log('[STnametracker] Main index.js: initializeMenuButtons import =', typeof ui/* initializeMenuButtons */.Fo, ui/* initializeMenuButtons */.Fo);
+console.log('[STnametracker] Main index.js: bindSettingsHandlers import =', typeof ui/* bindSettingsHandlers */.oy, ui/* bindSettingsHandlers */.oy);
+console.log('[STnametracker] Main index.js: updateUI import =', typeof ui/* updateUI */.AG, ui/* updateUI */.AG);
 
 // Extension name constant - MUST match manifest
 const extensionName = 'STnametracker';
@@ -9548,7 +9597,7 @@ class NameTrackerExtension {
 
         // Connect debug system to settings
         console.log('[STnametracker] initializeCore: Connecting debug system...');
-        debug/* default */.Ay.isDebugEnabled = () => (0,core_settings/* getSetting */.PL)('debugMode', false);
+        debug/* default */.Ay.isDebugEnabled = () => (0,settings/* getSetting */.PL)('debugMode', false);
         console.log('[STnametracker] initializeCore: Debug system connected');
 
         // Settings are auto-initialized when accessed
@@ -9600,21 +9649,21 @@ class NameTrackerExtension {
 
             // Initialize UI handlers
             console.log('[STnametracker] initializeUI: Initializing UI handlers...');
-            await initializeUIHandlers();
+            await (0,ui/* initializeUIHandlers */.Ow)();
             console.log('[STnametracker] initializeUI: UI handlers initialized');
 
             console.log('[STnametracker] initializeUI: Initializing menu buttons...');
-            await initializeMenuButtons();
+            await (0,ui/* initializeMenuButtons */.Fo)();
             console.log('[STnametracker] initializeUI: Menu buttons initialized');
 
             // Bind settings form handlers
             console.log('[STnametracker] initializeUI: Binding settings handlers...');
-            await bindSettingsHandlers();
+            await (0,ui/* bindSettingsHandlers */.oy)();
             console.log('[STnametracker] initializeUI: Settings handlers bound');
 
             // Update UI to reflect current settings
             console.log('[STnametracker] initializeUI: Updating UI...');
-            await updateUI();
+            await (0,ui/* updateUI */.AG)();
             console.log('[STnametracker] initializeUI: UI updated');
 
             logger.debug('UI initialized');
@@ -9644,18 +9693,25 @@ class NameTrackerExtension {
             // Register for SillyTavern events
             eventSource.on(event_types.MESSAGE_RECEIVED, async (messageId) => {
                 logger.debug('Message received event:', messageId);
-                await onMessageReceived(messageId);
+                await (0,processing/* onMessageReceived */.Wu)(messageId);
             });
 
             eventSource.on(event_types.MESSAGE_SENT, async (messageId) => {
                 logger.debug('Message sent event:', messageId);
-                await onMessageReceived(messageId);
+                await (0,processing/* onMessageReceived */.Wu)(messageId);
             });
 
             eventSource.on(event_types.CHAT_CHANGED, async () => {
                 logger.debug('Chat changed event received');
                 // Reset chat-level data when chat changes
-                await (0,core_settings/* setChatData */.nF)({ characters: {}, lastScannedMessageId: -1 });
+                await (0,settings/* setChatData */.nF)({ characters: {}, lastScannedMessageId: -1 });
+            });
+
+            eventSource.on(event_types.CHAT_LOADED, async () => {
+                logger.debug('Chat loaded event received - updating status display');
+                // Import updateStatusDisplay dynamically to avoid circular dependency
+                const { updateStatusDisplay } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 897));
+                await updateStatusDisplay();
             });
 
             logger.debug('Event listeners registered');
@@ -9697,7 +9753,7 @@ class NameTrackerExtension {
         return {
             initialized: this.initialized,
             context: core_context/* default */.A.getStatus(),
-            settings: { initialized: true, moduleCount: Object.keys(await (0,core_settings/* get_settings */.TJ)()).length },
+            settings: { initialized: true, moduleCount: Object.keys(await (0,settings/* get_settings */.TJ)()).length },
             debug: debug/* default */.Ay.getPerformanceSummary(),
             errors: errors/* errorHandler */.r_.getRecentErrors(5).length,
         };
@@ -9744,7 +9800,7 @@ jQuery(async () => {
 
         // Call get_settings() to trigger default merge and persistence
         console.log('[STnametracker] Initializing defaults...');
-        const initialSettings = await (0,core_settings/* get_settings */.TJ)();
+        const initialSettings = await (0,settings/* get_settings */.TJ)();
         console.log('[STnametracker] Settings initialized with defaults.');
         console.log('[STnametracker]   llmSource:', initialSettings.llmSource);
         console.log('[STnametracker]   messageFrequency:', initialSettings.messageFrequency);
@@ -9765,8 +9821,8 @@ jQuery(async () => {
         window.ntDebug = {
             status: () => nameTrackerExtension.getStatus(),
             errors: () => errors/* errorHandler */.r_.getRecentErrors(),
-            settings: async () => await (0,core_settings/* get_settings */.TJ)(),
-            chatData: async () => await (0,core_settings/* getChatData */.zB)(),
+            settings: async () => await (0,settings/* get_settings */.TJ)(),
+            chatData: async () => await (0,settings/* getChatData */.zB)(),
             clear: () => debug/* default */.Ay.clear(),
         };
 

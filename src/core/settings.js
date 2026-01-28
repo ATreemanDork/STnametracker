@@ -49,7 +49,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     confidenceThreshold: 70,
     lorebookPosition: 0, // after character defs
     lorebookDepth: 1,
-    lorebookCooldown: 5,
+    lorebookCooldown: 10,
     lorebookScanDepth: 1,
     lorebookProbability: 100,
     lorebookEnabled: true,
@@ -182,7 +182,7 @@ async function setCharacters(characters) {
             metadata[MODULE_NAME].characters = characters;
 
             // CRITICAL: AWAIT the save to complete before returning
-            await stContext.saveChatMetadata();
+            await stContext.saveMetadata();
         } catch (error) {
             debug.warn('Failed to set characters:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -230,7 +230,7 @@ async function setChatData(data) {
             Object.assign(metadata[MODULE_NAME], data);
 
             // CRITICAL: AWAIT the save to complete before returning
-            await stContext.saveChatMetadata();
+            await stContext.saveMetadata();
         } catch (error) {
             debug.warn('Failed to set chat data:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -427,7 +427,7 @@ function set_chat_metadata(key, value) {
             metadata[MODULE_NAME][key] = value;
             debug.log(`Updated chat data ${key}`);
 
-            stContext.saveChatMetadata().catch(err => {
+            stContext.saveMetadata().catch(err => {
                 debug.warn('Failed to save chat metadata:', err.message);
             });
         } catch (error) {

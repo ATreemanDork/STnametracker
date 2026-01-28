@@ -111,10 +111,11 @@ class SillyTavernContext {
     async saveMetadata() {
         return errorHandler.withErrorBoundary('Context', async () => {
             const context = this.getContext();
-            if (context.saveMetadata) {
-                await context.saveMetadata();
+            // SillyTavern context provides saveChatMetadata() method
+            if (context.saveChatMetadata) {
+                await context.saveChatMetadata();
             } else {
-                logger.warn('saveMetadata not available');
+                logger.warn('saveChatMetadata not available on SillyTavern context');
             }
         }, { silent: true });
     }
@@ -214,9 +215,9 @@ class SillyTavernContext {
 
             context.chatMetadata.world_info = lorebookName;
 
-            // Save the metadata
-            if (context.saveMetadata && typeof context.saveMetadata === 'function') {
-                await context.saveMetadata();
+            // Save the metadata using SillyTavern's saveChatMetadata method
+            if (context.saveChatMetadata && typeof context.saveChatMetadata === 'function') {
+                await context.saveChatMetadata();
             }
 
             logger.debug(`Selected world info: ${lorebookName}`);
