@@ -1,0 +1,9 @@
+{
+  "display_name": "RawGen & Preset Demo",
+  "author": "YourName",
+  "version": "0.0.1",
+  "minimum_client_version": "1.14.0",
+  "js": "extensions/rawgen-preset-demo/extension.js",
+  "loading_order": 10,
+  "generate_interceptor": false
+}
