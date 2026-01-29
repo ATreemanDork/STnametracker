@@ -433,6 +433,26 @@ export async function findExistingCharacter(name) {
 }
 
 /**
+ * Find character by unique ID (UID)
+ * Required for REC-15 chat lifecycle management and lorebook synchronization
+ * @param {string} uid - Character UID to search for
+ * @returns {Promise<CharacterData|null>} Character data if found, null otherwise
+ */
+export async function findCharacterByUid(uid) {
+    return withErrorBoundary('findCharacterByUid', async () => {
+        if (!uid) {
+            debugLog('[FindChar] No UID provided');
+            return null;
+        }
+
+        const chars = await getCharacters();
+        const found = Object.values(chars).find(char => char.uid === uid) || null;
+        debugLog(`[FindChar] Searching for UID '${uid}': ${found ? 'FOUND as ' + found.preferredName : 'NOT FOUND'}`);
+        return found;
+    });
+}
+
+/**
  * Find potential match for a new character based on confidence threshold
  * @param {Object} analyzedChar - Character data from LLM analysis
  * @returns {Promise<CharacterData|null>} Potential match if found

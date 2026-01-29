@@ -7,12 +7,12 @@
 
 import { createModuleLogger } from '../core/debug.js';
 import { withErrorBoundary, NameTrackerError } from '../core/errors.js';
-import { get_settings, set_settings, getLLMConfig, getCharacters } from '../core/settings.js';
+import { get_settings, set_settings, getLLMConfig, getCharacters, setCharacters } from '../core/settings.js';
 import { stContext } from '../core/context.js';
 import { NotificationManager } from '../utils/notifications.js';
 import { callLLMAnalysis, buildCharacterRoster, getMaxPromptLength, calculateMessageTokens } from './llm.js';
 import { createCharacter, updateCharacter, findExistingCharacter, findPotentialMatch, isIgnoredCharacter, detectMergeOpportunities, mergeCharacters } from './characters.js';
-import { updateLorebookEntry } from './lorebook.js';
+import { updateLorebookEntry, loadCharactersFromLorebook } from './lorebook.js';
 import { updateCharacterList, updateStatusDisplay } from './ui.js';
 
 const debug = createModuleLogger('processing');
@@ -1190,7 +1190,7 @@ export async function processQueue() {
  */
 export async function onChatChanged() {
     return withErrorBoundary('onChatChanged', async () => {
-        debug.log();
+        debug.log('🔄 Chat changed - clearing and reloading characters from lorebook');
 
         // Clear processing state
         processingQueue = [];
@@ -1201,11 +1201,26 @@ export async function onChatChanged() {
         await set_settings('lastScannedMessageId', -1);
         await set_settings('messageCounter', 0);
 
+        // REC-15: Clear in-memory characters and reload from lorebook
+        // This ensures each chat has isolated character state persisted in its lorebook
+        debug.log('🗑️ Clearing in-memory characters...');
+        await setCharacters({});
+        
+        debug.log('📖 Loading characters from chat lorebook...');
+        const lorebookCharacters = await loadCharactersFromLorebook();
+        
+        if (Object.keys(lorebookCharacters).length > 0) {
+            await setCharacters(lorebookCharacters);
+            debug.log(`✅ Loaded ${Object.keys(lorebookCharacters).length} characters from lorebook`);
+        } else {
+            debug.log('ℹ️ No characters in lorebook - starting fresh');
+        }
+
         // Always update UI when chat changes
         await updateCharacterList();
         await updateStatusDisplay();
 
-        debug.log();
+        debug.log('✅ Chat change complete');
     });
 }
 

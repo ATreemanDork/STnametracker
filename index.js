@@ -917,123 +917,22 @@ module.exports = styleTagTransform;
 
 /***/ },
 
-/***/ 158
+/***/ 134
 (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, {
-  getLorebookStats: () => (/* binding */ getLorebookStats),
-  initializeLorebook: () => (/* binding */ initializeLorebook),
-  updateLorebookEntry: () => (/* binding */ updateLorebookEntry),
-  _Z: () => (/* binding */ viewInLorebook)
-});
-
-// UNUSED EXPORTS: adoptExistingEntries, createLorebookContent, deleteLorebookEntry, getCurrentLorebookName, purgeLorebookEntries, resetLorebookState
-
-// EXTERNAL MODULE: ./src/core/debug.js
-var debug = __webpack_require__(806);
-// EXTERNAL MODULE: ./src/core/errors.js
-var errors = __webpack_require__(462);
-// EXTERNAL MODULE: ./src/core/settings.js
-var settings = __webpack_require__(548);
-// EXTERNAL MODULE: ./src/core/context.js
-var core_context = __webpack_require__(102);
-;// ./src/core/world-info.js
-/**
- * SillyTavern World Info (Lorebook) Integration Layer
- *
- * Provides access to the world-info module functions for managing
- * the editor state and lorebook selection in the UI.
- *
- * References the official SillyTavern world-info.js module:
- * https://github.com/SillyTavern/SillyTavern/blob/staging/public/scripts/world-info.js
- */
-
-
-
-
-
-const logger = (0,debug/* createModuleLogger */.Xv)('WorldInfo');
-
-/**
- * Reload the world info editor with the specified file
- * Makes the specified world info (lorebook) active in the editor
- *
- * Calls the SillyTavern world-info.js reloadEditor() function:
- * - Updates the #world_editor_select dropdown value
- * - Triggers 'change' event to load the lorebook in the editor
- * - Only reloads if the file exists and either loadIfNotSelected is true
- *   or the file is already currently selected
- *
- * @param {string} file - The world info file name to load
- * @param {boolean} [loadIfNotSelected=false] - Load even if not currently selected
- * @returns {boolean} True if successful, false otherwise
- */
-function reloadEditor(file, loadIfNotSelected = false) {
-    return errors/* errorHandler */.r_.withErrorBoundary('WorldInfo', () => {
-        try {
-            const context = core_context.stContext.getContext();
-
-            // Use the official SillyTavern reloadWorldInfoEditor if available
-            if (typeof context.reloadWorldInfoEditor === 'function') {
-                context.reloadWorldInfoEditor(file, loadIfNotSelected);
-                logger.log(`Reloaded editor with lorebook: ${file}`);
-                return true;
-            }
-
-            // Fallback: Manipulate the editor directly via jQuery
-            // This mirrors the official implementation from world-info.js
-            const currentIndex = Number($('#world_editor_select').val());
-            const world_names = context.currentWorldNames || window.world_names || [];
-            const selectedIndex = world_names.indexOf(file);
-
-            if (selectedIndex !== -1 && (loadIfNotSelected || currentIndex === selectedIndex)) {
-                $('#world_editor_select').val(selectedIndex).trigger('change');
-                logger.log(`Editor reloaded with lorebook: ${file}`);
-                return true;
-            }
-
-            logger.warn(`Could not reload editor with lorebook: ${file}`);
-            return false;
-        } catch (error) {
-            logger.error(`Failed to reload editor: ${error.message}`);
-            return false;
-        }
-    }, false);
-}
-
-/**
- * Get the currently selected world info file
- * @returns {string|null} Current world info file name or null
- */
-function getCurrentWorldInfo() {
-    return errors/* errorHandler */.r_.withErrorBoundary('WorldInfo', () => {
-        try {
-            const currentIndex = Number($('#world_editor_select').val());
-            const world_names = window.world_names || [];
-
-            if (world_names[currentIndex]) {
-                return world_names[currentIndex];
-            }
-            return null;
-        } catch (error) {
-            logger.error(`Failed to get current world info: ${error.message}`);
-            return null;
-        }
-    }, null);
-}
-
-/* harmony default export */ const world_info = ({
-    reloadEditor,
-    getCurrentWorldInfo,
-});
-
-// EXTERNAL MODULE: ./src/utils/helpers.js
-var helpers = __webpack_require__(854);
-// EXTERNAL MODULE: ./src/utils/notifications.js
-var notifications = __webpack_require__(695);
-;// ./src/modules/lorebook.js
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   _Z: () => (/* binding */ viewInLorebook),
+/* harmony export */   getLorebookStats: () => (/* binding */ getLorebookStats),
+/* harmony export */   initializeLorebook: () => (/* binding */ initializeLorebook),
+/* harmony export */   updateLorebookEntry: () => (/* binding */ updateLorebookEntry)
+/* harmony export */ });
+/* unused harmony exports loadCharactersFromLorebook, createLorebookContent, deleteLorebookEntry, purgeLorebookEntries, adoptExistingEntries, getCurrentLorebookName, resetLorebookState */
+/* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
+/* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
+/* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
+/* harmony import */ var _core_context_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(102);
+/* harmony import */ var _utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(854);
+/* harmony import */ var _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(695);
 /**
  * Lorebook Management Module
  *
@@ -1051,31 +950,30 @@ console.log('[LOREBOOK] Starting module load...');
 
 
 
-
 // Post-import debugging
 console.log('[LOREBOOK] Imports completed. Types:');
-console.log('[LOREBOOK] createModuleLogger:', typeof debug/* createModuleLogger */.Xv);
-console.log('[LOREBOOK] withErrorBoundary:', typeof errors/* withErrorBoundary */.Xc);
-console.log('[LOREBOOK] NameTrackerError:', typeof errors/* NameTrackerError */.S_);
+console.log('[LOREBOOK] createModuleLogger:', typeof _core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* .createModuleLogger */ .Xv);
+console.log('[LOREBOOK] withErrorBoundary:', typeof _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc);
+console.log('[LOREBOOK] NameTrackerError:', typeof _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_);
 
 // Try to create debug logger with explicit error handling
-let lorebook_debug;
+let debug;
 try {
     console.log('[LOREBOOK] About to call createModuleLogger...');
-    lorebook_debug = (0,debug/* createModuleLogger */.Xv)('lorebook');
-    console.log('[LOREBOOK] Debug logger created successfully:', lorebook_debug);
+    debug = (0,_core_debug_js__WEBPACK_IMPORTED_MODULE_0__/* .createModuleLogger */ .Xv)('lorebook');
+    console.log('[LOREBOOK] Debug logger created successfully:', debug);
 } catch (error) {
     console.error('[LOREBOOK] Failed to create debug logger:', error);
     console.error('[LOREBOOK] Error stack:', error.stack);
     // Create fallback logger
-    lorebook_debug = {
+    debug = {
         log: console.log.bind(console, '[LOREBOOK]'),
         error: console.error.bind(console, '[LOREBOOK]'),
         warn: console.warn.bind(console, '[LOREBOOK]'),
         debug: console.debug.bind(console, '[LOREBOOK]'),
     };
 }
-const lorebook_notifications = new notifications/* NotificationManager */.h('Lorebook Management');
+const notifications = new _utils_notifications_js__WEBPACK_IMPORTED_MODULE_5__/* .NotificationManager */ .h('Lorebook Management');
 
 // Lorebook state
 let lorebookName = null;
@@ -1089,15 +987,15 @@ async function initializeLorebook() {
     console.log('[NT-Lorebook] ║ initializeLorebook() CALLED');
     console.log('[NT-Lorebook] ╚═══════════════════════════════════════════════════════════════════════════');
 
-    return (0,errors/* withErrorBoundary */.Xc)('initializeLorebook', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('initializeLorebook', async () => {
         console.log('[NT-Lorebook] ║ Inside withErrorBoundary, getting context...');
-        const context = core_context.stContext.getContext();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         console.log('[NT-Lorebook] ║ Got context:', !!context);
         console.log('[NT-Lorebook] ║ context.chatId:', context?.chatId);
 
         if (!context.chatId) {
             console.warn('[NT-Lorebook] ║ ⚠️  NO ACTIVE CHAT - Aborting initialization');
-            lorebook_debug.log('No active chat, skipping lorebook initialization');
+            debug.log('No active chat, skipping lorebook initialization');
             lorebookName = null;
             return null;
         }
@@ -1109,7 +1007,7 @@ async function initializeLorebook() {
 
         if (!chatMetadata) {
             console.warn('[NT-Lorebook] ║ ⚠️  NO CHAT METADATA - Aborting initialization');
-            lorebook_debug.log('No chat metadata available, skipping lorebook initialization');
+            debug.log('No chat metadata available, skipping lorebook initialization');
             lorebookName = null;
             return null;
         }
@@ -1126,10 +1024,12 @@ async function initializeLorebook() {
             console.log('[NT-Lorebook] ║ Lorebook Name:', lorebookName);
             console.log('[NT-Lorebook] ║ Module Variable Set: YES');
             console.log('[NT-Lorebook] ╚═══════════════════════════════════════════════════════════════════════════');
-            lorebook_debug.log(`Using existing chat lorebook: ${lorebookName}`);
+            debug.log(`Using existing chat lorebook: ${lorebookName}`);
 
-            // Load the lorebook in the editor and make it active
-            await reloadEditor(lorebookName, true);
+            // Load the lorebook in the editor and make it active (ST API)
+            if (typeof context.reloadWorldInfoEditor === 'function') {
+                context.reloadWorldInfoEditor(lorebookName, true);
+            }
             return lorebookName;
         }
 
@@ -1145,7 +1045,7 @@ async function initializeLorebook() {
         console.log('[NT-Lorebook] ║ Generated Name:', bookName);
         console.log('[NT-Lorebook] ║ Chat ID:', context.chatId);
         console.log('[NT-Lorebook] ╚═══════════════════════════════════════════════════════════════════════════');
-        lorebook_debug.log(`Creating new chat lorebook: ${bookName}`);
+        debug.log(`Creating new chat lorebook: ${bookName}`);
         lorebookName = bookName;
         console.log('[NT-Lorebook] ║ Module variable lorebookName SET TO:', lorebookName);
 
@@ -1156,7 +1056,7 @@ async function initializeLorebook() {
         try {
             await context.saveMetadata();
             console.log(`[NT-Lorebook] ✅ Bound lorebook to chat metadata: ${lorebookName}`);
-            lorebook_debug.log(`Bound lorebook to chat: ${lorebookName}`);
+            debug.log(`Bound lorebook to chat: ${lorebookName}`);
 
             // CRITICAL: Actually SELECT the lorebook so it's active for the chat
             await context.setSelectedWorldInfo(lorebookName);
@@ -1166,26 +1066,112 @@ async function initializeLorebook() {
             const worldInfo = await context.loadWorldInfo(lorebookName);
             if (!worldInfo) {
                 console.log(`[NT-Lorebook] 📝 Creating empty lorebook file: ${lorebookName}`);
-                lorebook_debug.log();
+                debug.log();
                 await context.saveWorldInfo(lorebookName, { entries: {} }, true);
                 console.log('[NT-Lorebook] ✅ Lorebook file created successfully');
             } else {
                 console.log(`[NT-Lorebook] ℹ️  Lorebook file already exists with ${Object.keys(worldInfo.entries || {}).length} entries`);
             }
 
-            // Load the new lorebook in the editor and make it active
-            await reloadEditor(lorebookName, true);
+            // Load the new lorebook in the editor and make it active (ST API)
+            if (typeof context.reloadWorldInfoEditor === 'function') {
+                context.reloadWorldInfoEditor(lorebookName, true);
+            }
+
+            // Refresh the lorebook dropdown list so user can see new lorebook immediately
+            // This is a global ST function, not on context object
+            if (typeof window.updateWorldInfoList === 'function') {
+                await window.updateWorldInfoList();
+                debug.log(`✅ Lorebook dropdown refreshed - ${lorebookName} now visible`);
+            } else if (typeof context.updateWorldInfoList === 'function') {
+                await context.updateWorldInfoList();
+                debug.log(`✅ Lorebook dropdown refreshed - ${lorebookName} now visible`);
+            }
 
             // Notify user
-            lorebook_notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
+            notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
             console.log('[NT-Lorebook] 🎉 Chat lorebook initialization complete');
         } catch (error) {
             console.error('Failed to initialize lorebook:', error);
             lorebookName = null;
-            throw new errors/* NameTrackerError */.S_(`Failed to initialize lorebook: ${error.message}`);
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_(`Failed to initialize lorebook: ${error.message}`);
         }
 
         return lorebookName;
+    });
+}
+
+/**
+ * REC-15: Load characters from lorebook entries on chat change
+ * Parses automation ID format: NT-AUTO-${uid}|||${JSON}
+ * @returns {Promise<Object>} Characters object indexed by preferredName
+ */
+async function loadCharactersFromLorebook() {
+    return withErrorBoundary('loadCharactersFromLorebook', async () => {
+        const context = stContext.getContext();
+        if (!context) {
+            debug.log('⚠️ Context not available - cannot load characters from lorebook');
+            return {};
+        }
+
+        const currentLorebookName = await initializeLorebook();
+        if (!currentLorebookName) {
+            debug.log('⚠️ No lorebook available - returning empty characters');
+            return {};
+        }
+
+        const worldInfo = await context.loadWorldInfo(currentLorebookName);
+        if (!worldInfo || !worldInfo.entries) {
+            debug.log('⚠️ No lorebook entries found');
+            return {};
+        }
+
+        const characters = {};
+        let loadedCount = 0;
+        let failedCount = 0;
+
+        // Filter entries managed by NameTracker extension
+        const nameTrackerEntries = Object.values(worldInfo.entries).filter(
+            entry => entry.automationId === 'NameTracker',
+        );
+
+        debug.log(`📖 Found ${nameTrackerEntries.length} NameTracker entries in lorebook`);
+
+        for (const entry of nameTrackerEntries) {
+            try {
+                if (!entry.comment || !entry.comment.startsWith('NT-AUTO-')) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - invalid comment format`);
+                    continue;
+                }
+
+                // Parse automation ID: NT-AUTO-${uid}|||${JSON}
+                const parts = entry.comment.split('|||');
+                if (parts.length !== 2) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - malformed automation ID`);
+                    continue;
+                }
+
+                const characterData = JSON.parse(parts[1]);
+                
+                // Validate required fields
+                if (!characterData.preferredName || !characterData.uid) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - missing required fields`);
+                    continue;
+                }
+
+                // Store indexed by preferredName
+                characters[characterData.preferredName] = characterData;
+                loadedCount++;
+
+                debug.log(`✅ Loaded character: ${characterData.preferredName} (UID: ${characterData.uid})`);
+            } catch (error) {
+                debug.error(`❌ Failed to parse entry ${entry.uid}:`, error);
+                failedCount++;
+            }
+        }
+
+        debug.log(`📊 Character load complete: ${loadedCount} loaded, ${failedCount} failed`);
+        return characters;
     });
 }
 
@@ -1196,7 +1182,7 @@ async function initializeLorebook() {
  * @returns {Promise<void>}
  */
 async function updateLorebookEntry(character, characterName) {
-    return (0,errors/* withErrorBoundary */.Xc)('updateLorebookEntry', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('updateLorebookEntry', async () => {
         console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
 ║ updateLorebookEntry CALLED
 ╠════════════════════════════════════════════════════════════════
@@ -1216,7 +1202,7 @@ async function updateLorebookEntry(character, characterName) {
 ║ Character: ${characterName}
 ║ SKIPPING LOREBOOK ENTRY UPDATE
 ╚════════════════════════════════════════════════════════════════`);
-            lorebook_debug.log('No lorebook initialized, skipping entry update');
+            debug.log('No lorebook initialized, skipping entry update');
             return;
         }
 
@@ -1229,11 +1215,11 @@ async function updateLorebookEntry(character, characterName) {
 ║ Existing Entry ID: ${character.lorebookEntryId || 'NONE'}
 ╚════════════════════════════════════════════════════════════════`);
 
-        lorebook_debug.log(`updateLorebookEntry called for: ${characterName}`);
-        lorebook_debug.log('  Character data:', character);
+        debug.log(`updateLorebookEntry called for: ${characterName}`);
+        debug.log('  Character data:', character);
 
-        const context = core_context.stContext.getContext();
-        const lorebookConfig = await (0,settings/* getLorebookConfig */.gf)();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
+        const lorebookConfig = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getLorebookConfig */ .gf)();
 
         // Build the entry content in a readable format
         const contentParts = [];
@@ -1287,11 +1273,17 @@ async function updateLorebookEntry(character, characterName) {
             keys.push(...character.aliases);
         }
 
+        // Ensure character has a UID (required for REC-15 chat lifecycle)
+        if (!character.uid) {
+            character.uid = (0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .generateUID */ .cv)();
+            debug.log(`Generated UID for character ${characterName}: ${character.uid}`);
+        }
+
         // Load the world info to check if entry exists
         let worldInfo = await context.loadWorldInfo(lorebookName);
 
         if (!worldInfo) {
-            lorebook_debug.log();
+            debug.log();
             // Match SillyTavern's world info structure
             worldInfo = {
                 entries: {},
@@ -1330,7 +1322,7 @@ async function updateLorebookEntry(character, characterName) {
         }
 
         // Calculate dynamic cooldown
-        const messageFreq = await (0,settings/* get_settings */.TJ)('messageFrequency', 10);
+        const messageFreq = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .get_settings */ .TJ)('messageFrequency', 10);
         const calculatedCooldown = Math.max(1, Math.floor(messageFreq * 0.75));
 
 
@@ -1355,11 +1347,15 @@ async function updateLorebookEntry(character, characterName) {
             existingEntry.depth = lorebookConfig.depth;
             existingEntry.scanDepth = lorebookConfig.scanDepth;
             existingEntry.cooldown = calculatedCooldown;
+            
+            // REC-15: Store full character JSON in comment for chat lifecycle persistence
+            existingEntry.automationId = 'NameTracker'; // Constant for filtering extension-managed entries
+            existingEntry.comment = `NT-AUTO-${character.uid}|||${JSON.stringify(character)}`;
 
-            lorebook_debug.log();
+            debug.log(`✅ Updated automation ID for character ${characterName} (UID: ${character.uid})`);
         } else {
             // Create new entry
-            const newUid = (0,helpers/* generateUID */.cv)();
+            const newUid = (0,_utils_helpers_js__WEBPACK_IMPORTED_MODULE_4__/* .generateUID */ .cv)();
 
             console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
 ║ CREATING NEW ENTRY
@@ -1375,7 +1371,7 @@ async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: character.preferredName,
+                comment: `NT-AUTO-${character.uid}|||${JSON.stringify(character)}`, // REC-15: Full JSON for chat lifecycle
                 content: content,
                 constant: false,
                 selective: true,
@@ -1404,7 +1400,7 @@ async function updateLorebookEntry(character, characterName) {
                 caseSensitive: null,
                 matchWholeWords: null,
                 useGroupScoring: null,
-                automationId: '',
+                automationId: 'NameTracker', // REC-15: Constant for filtering extension-managed entries
                 role: 0,
                 vectorized: false,
                 sticky: 0,
@@ -1432,7 +1428,7 @@ async function updateLorebookEntry(character, characterName) {
 ║ Lorebook Entry ID: ${newUid}
 ╚════════════════════════════════════════════════════════════════`);
 
-            await (0,settings/* setCharacter */.e7)(characterName, character);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setCharacter */ .e7)(characterName, character);
 
             console.log(`[NT-Lorebook] ╔════════════════════════════════════════════════════════════════
 ║ CHARACTER SAVE COMPLETE
@@ -1441,7 +1437,7 @@ async function updateLorebookEntry(character, characterName) {
 ║ Entry ID Saved: ${character.lorebookEntryId}
 ╚════════════════════════════════════════════════════════════════`);
 
-            lorebook_debug.log();
+            debug.log();
         }
 
         // Save the lorebook
@@ -1504,7 +1500,7 @@ async function updateLorebookEntry(character, characterName) {
                 console.log(`[NT-Lorebook] ║ ✅ VERIFICATION: SUCCESS
 ║ Entry Data: ${JSON.stringify(entryData, null, 2)}
 ╚════════════════════════════════════════════════════════════════`);
-                lorebook_debug.log();
+                debug.log();
             } else {
                 console.log(`[NT-Lorebook] ║ ❌ VERIFICATION: FAILED
 ║ Entry NOT found in reloaded lorebook!
@@ -1515,13 +1511,13 @@ async function updateLorebookEntry(character, characterName) {
                 console.error('[Name Tracker] WARNING: Lorebook verification failed - entries may not have been saved!');
             }
 
-            lorebook_debug.log();
+            debug.log();
         } catch (error) {
             console.error('[NT-Lorebook] ❌ Error saving lorebook:', error);
             console.error('[NT-Lorebook]    Lorebook name:', lorebookName);
             console.error('[NT-Lorebook]    Error details:', error.message);
             console.error('[Name Tracker] Error saving lorebook:', error);
-            lorebook_debug.log();
+            debug.log();
             throw error; // Re-throw so caller knows it failed
         }
     });
@@ -1552,34 +1548,34 @@ function createLorebookContent(character) {
  * @returns {Promise<void>}
  */
 async function viewInLorebook(characterName) {
-    return (0,errors/* withErrorBoundary */.Xc)('viewInLorebook', async () => {
-        const character = await (0,settings/* getCharacter */.qN)(characterName);
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('viewInLorebook', async () => {
+        const character = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacter */ .qN)(characterName);
 
         if (!character) {
-            throw new errors/* NameTrackerError */.S_('Character not found');
+            throw new _core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .NameTrackerError */ .S_('Character not found');
         }
 
         if (!lorebookName) {
-            lorebook_notifications.warning('No active chat or lorebook');
+            notifications.warning('No active chat or lorebook');
             return;
         }
 
         // Import the world info functions from context
-        const context = core_context.stContext.getContext();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
 
         // Open the lorebook editor and make this chat's lorebook active
         if (typeof context.reloadWorldInfoEditor === 'function') {
             // Use reloadWorldInfoEditor to ensure the chat lorebook is active in the editor
             context.reloadWorldInfoEditor(lorebookName, true);
-            lorebook_notifications.success(`Opened lorebook for ${characterName}`);
+            notifications.success(`Opened lorebook for ${characterName}`);
         } else if (typeof context.openWorldInfoEditor === 'function') {
             // Fallback to openWorldInfoEditor
             await context.openWorldInfoEditor(lorebookName);
-            lorebook_notifications.success(`Opened lorebook for ${characterName}`);
+            notifications.success(`Opened lorebook for ${characterName}`);
         } else {
             // Final fallback: show the world info panel
             $('#WorldInfo').click();
-            lorebook_notifications.info(`Please select "${lorebookName}" from the World Info panel`);
+            notifications.info(`Please select "${lorebookName}" from the World Info panel`);
         }
     });
 }
@@ -1592,7 +1588,7 @@ async function viewInLorebook(characterName) {
 async function deleteLorebookEntry(character) {
     return withErrorBoundary('deleteLorebookEntry', async () => {
         if (!lorebookName || !character.lorebookEntryId) {
-            lorebook_debug.log();
+            debug.log();
             return false;
         }
 
@@ -1605,7 +1601,7 @@ async function deleteLorebookEntry(character) {
                 const sanitizedWorldInfo = JSON.parse(JSON.stringify(worldInfo));
                 await context.saveWorldInfo(lorebookName, sanitizedWorldInfo, true);
 
-                lorebook_debug.log();
+                debug.log();
                 return true;
             }
         } catch (error) {
@@ -1625,7 +1621,7 @@ async function deleteLorebookEntry(character) {
 async function purgeLorebookEntries(characters) {
     return withErrorBoundary('purgeLorebookEntries', async () => {
         if (!lorebookName) {
-            lorebook_debug.log();
+            debug.log();
             return 0;
         }
 
@@ -1646,7 +1642,7 @@ async function purgeLorebookEntries(characters) {
                     if (worldInfo.entries[entryId]) {
                         delete worldInfo.entries[entryId];
                         deletedCount++;
-                        lorebook_debug.log();
+                        debug.log();
                     }
                 }
 
@@ -1671,7 +1667,7 @@ async function purgeLorebookEntries(characters) {
 async function adoptExistingEntries() {
     return withErrorBoundary('adoptExistingEntries', async () => {
         if (!lorebookName) {
-            lorebook_debug.log();
+            debug.log();
             return 0;
         }
 
@@ -1682,7 +1678,7 @@ async function adoptExistingEntries() {
             const worldInfo = await context.loadWorldInfo(lorebookName);
 
             if (!worldInfo || !worldInfo.entries) {
-                lorebook_debug.log();
+                debug.log();
                 return 0;
             }
 
@@ -1723,12 +1719,12 @@ async function adoptExistingEntries() {
                     await setCharacter(primaryName, character);
                     adoptedCount++;
 
-                    lorebook_debug.log();
+                    debug.log();
                 }
             }
 
             if (adoptedCount > 0) {
-                lorebook_notifications.success(`Adopted ${adoptedCount} existing lorebook entries`);
+                notifications.success(`Adopted ${adoptedCount} existing lorebook entries`);
             }
 
         } catch (error) {
@@ -1753,7 +1749,7 @@ function getCurrentLorebookName() {
  */
 function resetLorebookState() {
     lorebookName = null;
-    lorebook_debug.log();
+    debug.log();
 }
 
 /**
@@ -1761,7 +1757,7 @@ function resetLorebookState() {
  * @returns {Promise<Object>} Lorebook statistics
  */
 async function getLorebookStats() {
-    return (0,errors/* withErrorBoundary */.Xc)('getLorebookStats', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('getLorebookStats', async () => {
         if (!lorebookName) {
             return {
                 name: null,
@@ -1771,11 +1767,11 @@ async function getLorebookStats() {
             };
         }
 
-        const context = core_context.stContext.getContext();
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
 
         try {
             const worldInfo = await context.loadWorldInfo(lorebookName);
-            const characters = await (0,settings/* getCharacters */.bg)();
+            const characters = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getCharacters */ .bg)();
 
             if (!worldInfo || !worldInfo.entries) {
                 return {
@@ -4962,8 +4958,8 @@ function set_chat_metadata(key, value) {
 /* harmony export */   undoLastMerge: () => (/* binding */ undoLastMerge),
 /* harmony export */   vu: () => (/* binding */ purgeAllCharacters)
 /* harmony export */ });
-/* unused harmony exports validateCharacterLorebookSync, repairCharacterLorebookSync, calculateNameSimilarity, cleanAliases, detectMergeOpportunities, getUndoHistory, clearUndoHistory, exportCharacters, importCharacters */
-/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(158);
+/* unused harmony exports validateCharacterLorebookSync, repairCharacterLorebookSync, findCharacterByUid, calculateNameSimilarity, cleanAliases, detectMergeOpportunities, getUndoHistory, clearUndoHistory, exportCharacters, importCharacters */
+/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(134);
 /* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(806);
 /* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(462);
 /* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(548);
@@ -5065,7 +5061,7 @@ async function validateCharacterLorebookSync() {
 
         // Get lorebook stats to compare counts
         try {
-            const { getLorebookStats } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 158));
+            const { getLorebookStats } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 134));
             const stats = await getLorebookStats();
             const characterCount = Object.keys(characters).length;
 
@@ -5098,7 +5094,7 @@ async function validateCharacterLorebookSync() {
 async function repairCharacterLorebookSync() {
     return withErrorBoundary('repairCharacterLorebookSync', async () => {
         const characters = await getCharacters();
-        const { updateLorebookEntry } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 158));
+        const { updateLorebookEntry } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 134));
         let repaired = 0;
         const errors = [];
 
@@ -5395,6 +5391,26 @@ async function findExistingCharacter(name) {
             char => char.preferredName === name || char.aliases.includes(name),
         ) || null;
         debugLog(`[FindChar] Searching for '${name}': ${found ? 'FOUND as ' + found.preferredName : 'NOT FOUND'}`);
+        return found;
+    });
+}
+
+/**
+ * Find character by unique ID (UID)
+ * Required for REC-15 chat lifecycle management and lorebook synchronization
+ * @param {string} uid - Character UID to search for
+ * @returns {Promise<CharacterData|null>} Character data if found, null otherwise
+ */
+async function findCharacterByUid(uid) {
+    return withErrorBoundary('findCharacterByUid', async () => {
+        if (!uid) {
+            debugLog('[FindChar] No UID provided');
+            return null;
+        }
+
+        const chars = await getCharacters();
+        const found = Object.values(chars).find(char => char.uid === uid) || null;
+        debugLog(`[FindChar] Searching for UID '${uid}': ${found ? 'FOUND as ' + found.preferredName : 'NOT FOUND'}`);
         return found;
     });
 }
@@ -6940,7 +6956,7 @@ logger.debug('Utils module loaded');
 /* harmony import */ var _characters_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(551);
 /* harmony import */ var _llm_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(248);
 /* harmony import */ var _processing_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(972);
-/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(158);
+/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(134);
 /**
  * UI Management Module
  *
@@ -8096,7 +8112,7 @@ async function updateUI() {
 /* harmony import */ var _utils_notifications_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(695);
 /* harmony import */ var _llm_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(248);
 /* harmony import */ var _characters_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(551);
-/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(158);
+/* harmony import */ var _lorebook_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(134);
 /* harmony import */ var _ui_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(897);
 /**
  * Message Processing Module
@@ -9094,7 +9110,7 @@ async function scanEntireChat() {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('scanEntireChat', async () => {
         // CRITICAL: Ensure lorebook is initialized BEFORE processing
         console.log('[NT-Processing] 🔧 Ensuring lorebook is initialized before scan...');
-        const { initializeLorebook } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 158));
+        const { initializeLorebook } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 134));
         await initializeLorebook();
         console.log('[NT-Processing] ✅ Lorebook initialization complete');
 
@@ -9290,7 +9306,7 @@ async function processQueue() {
  */
 async function onChatChanged() {
     return withErrorBoundary('onChatChanged', async () => {
-        debug.log();
+        debug.log('🔄 Chat changed - clearing and reloading characters from lorebook');
 
         // Clear processing state
         processingQueue = [];
@@ -9301,11 +9317,26 @@ async function onChatChanged() {
         await set_settings('lastScannedMessageId', -1);
         await set_settings('messageCounter', 0);
 
+        // REC-15: Clear in-memory characters and reload from lorebook
+        // This ensures each chat has isolated character state persisted in its lorebook
+        debug.log('🗑️ Clearing in-memory characters...');
+        await setCharacters({});
+        
+        debug.log('📖 Loading characters from chat lorebook...');
+        const lorebookCharacters = await loadCharactersFromLorebook();
+        
+        if (Object.keys(lorebookCharacters).length > 0) {
+            await setCharacters(lorebookCharacters);
+            debug.log(`✅ Loaded ${Object.keys(lorebookCharacters).length} characters from lorebook`);
+        } else {
+            debug.log('ℹ️ No characters in lorebook - starting fresh');
+        }
+
         // Always update UI when chat changes
         await updateCharacterList();
         await updateStatusDisplay();
 
-        debug.log();
+        debug.log('✅ Chat change complete');
     });
 }
 

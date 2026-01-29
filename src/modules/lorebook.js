@@ -14,7 +14,6 @@ import {
     get_settings, getCharacters, getCharacter, setCharacter, getLorebookConfig,
 } from '../core/settings.js';
 import { stContext } from '../core/context.js';
-import { reloadEditor } from '../core/world-info.js';
 import { generateUID } from '../utils/helpers.js';
 import { NotificationManager } from '../utils/notifications.js';
 
@@ -94,8 +93,10 @@ export async function initializeLorebook() {
             console.log('[NT-Lorebook] ╚═══════════════════════════════════════════════════════════════════════════');
             debug.log(`Using existing chat lorebook: ${lorebookName}`);
 
-            // Load the lorebook in the editor and make it active
-            await reloadEditor(lorebookName, true);
+            // Load the lorebook in the editor and make it active (ST API)
+            if (typeof context.reloadWorldInfoEditor === 'function') {
+                context.reloadWorldInfoEditor(lorebookName, true);
+            }
             return lorebookName;
         }
 
@@ -139,8 +140,20 @@ export async function initializeLorebook() {
                 console.log(`[NT-Lorebook] ℹ️  Lorebook file already exists with ${Object.keys(worldInfo.entries || {}).length} entries`);
             }
 
-            // Load the new lorebook in the editor and make it active
-            await reloadEditor(lorebookName, true);
+            // Load the new lorebook in the editor and make it active (ST API)
+            if (typeof context.reloadWorldInfoEditor === 'function') {
+                context.reloadWorldInfoEditor(lorebookName, true);
+            }
+
+            // Refresh the lorebook dropdown list so user can see new lorebook immediately
+            // This is a global ST function, not on context object
+            if (typeof window.updateWorldInfoList === 'function') {
+                await window.updateWorldInfoList();
+                debug.log(`✅ Lorebook dropdown refreshed - ${lorebookName} now visible`);
+            } else if (typeof context.updateWorldInfoList === 'function') {
+                await context.updateWorldInfoList();
+                debug.log(`✅ Lorebook dropdown refreshed - ${lorebookName} now visible`);
+            }
 
             // Notify user
             notifications.info(`Chat lorebook "${lorebookName}" created and bound to this chat`, { timeOut: 5000 });
@@ -152,6 +165,80 @@ export async function initializeLorebook() {
         }
 
         return lorebookName;
+    });
+}
+
+/**
+ * REC-15: Load characters from lorebook entries on chat change
+ * Parses automation ID format: NT-AUTO-${uid}|||${JSON}
+ * @returns {Promise<Object>} Characters object indexed by preferredName
+ */
+export async function loadCharactersFromLorebook() {
+    return withErrorBoundary('loadCharactersFromLorebook', async () => {
+        const context = stContext.getContext();
+        if (!context) {
+            debug.log('⚠️ Context not available - cannot load characters from lorebook');
+            return {};
+        }
+
+        const currentLorebookName = await initializeLorebook();
+        if (!currentLorebookName) {
+            debug.log('⚠️ No lorebook available - returning empty characters');
+            return {};
+        }
+
+        const worldInfo = await context.loadWorldInfo(currentLorebookName);
+        if (!worldInfo || !worldInfo.entries) {
+            debug.log('⚠️ No lorebook entries found');
+            return {};
+        }
+
+        const characters = {};
+        let loadedCount = 0;
+        let failedCount = 0;
+
+        // Filter entries managed by NameTracker extension
+        const nameTrackerEntries = Object.values(worldInfo.entries).filter(
+            entry => entry.automationId === 'NameTracker',
+        );
+
+        debug.log(`📖 Found ${nameTrackerEntries.length} NameTracker entries in lorebook`);
+
+        for (const entry of nameTrackerEntries) {
+            try {
+                if (!entry.comment || !entry.comment.startsWith('NT-AUTO-')) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - invalid comment format`);
+                    continue;
+                }
+
+                // Parse automation ID: NT-AUTO-${uid}|||${JSON}
+                const parts = entry.comment.split('|||');
+                if (parts.length !== 2) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - malformed automation ID`);
+                    continue;
+                }
+
+                const characterData = JSON.parse(parts[1]);
+                
+                // Validate required fields
+                if (!characterData.preferredName || !characterData.uid) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - missing required fields`);
+                    continue;
+                }
+
+                // Store indexed by preferredName
+                characters[characterData.preferredName] = characterData;
+                loadedCount++;
+
+                debug.log(`✅ Loaded character: ${characterData.preferredName} (UID: ${characterData.uid})`);
+            } catch (error) {
+                debug.error(`❌ Failed to parse entry ${entry.uid}:`, error);
+                failedCount++;
+            }
+        }
+
+        debug.log(`📊 Character load complete: ${loadedCount} loaded, ${failedCount} failed`);
+        return characters;
     });
 }
 
@@ -253,6 +340,12 @@ export async function updateLorebookEntry(character, characterName) {
             keys.push(...character.aliases);
         }
 
+        // Ensure character has a UID (required for REC-15 chat lifecycle)
+        if (!character.uid) {
+            character.uid = generateUID();
+            debug.log(`Generated UID for character ${characterName}: ${character.uid}`);
+        }
+
         // Load the world info to check if entry exists
         let worldInfo = await context.loadWorldInfo(lorebookName);
 
@@ -321,8 +414,12 @@ export async function updateLorebookEntry(character, characterName) {
             existingEntry.depth = lorebookConfig.depth;
             existingEntry.scanDepth = lorebookConfig.scanDepth;
             existingEntry.cooldown = calculatedCooldown;
+            
+            // REC-15: Store full character JSON in comment for chat lifecycle persistence
+            existingEntry.automationId = 'NameTracker'; // Constant for filtering extension-managed entries
+            existingEntry.comment = `NT-AUTO-${character.uid}|||${JSON.stringify(character)}`;
 
-            debug.log();
+            debug.log(`✅ Updated automation ID for character ${characterName} (UID: ${character.uid})`);
         } else {
             // Create new entry
             const newUid = generateUID();
@@ -341,7 +438,7 @@ export async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: character.preferredName,
+                comment: `NT-AUTO-${character.uid}|||${JSON.stringify(character)}`, // REC-15: Full JSON for chat lifecycle
                 content: content,
                 constant: false,
                 selective: true,
@@ -370,7 +467,7 @@ export async function updateLorebookEntry(character, characterName) {
                 caseSensitive: null,
                 matchWholeWords: null,
                 useGroupScoring: null,
-                automationId: '',
+                automationId: 'NameTracker', // REC-15: Constant for filtering extension-managed entries
                 role: 0,
                 vectorized: false,
                 sticky: 0,
