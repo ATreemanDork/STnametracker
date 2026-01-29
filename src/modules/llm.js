@@ -1499,11 +1499,39 @@ export function parseJSONResponse(text) {
         }
 
         // Remove any remaining XML/HTML tags that may interfere
+        // REC-13: Remove thinking tags BEFORE generic tag removal to handle content properly
+        if (text.includes('<think>') || text.includes('</think>') || text.includes('<thinking>') || text.includes('</thinking>')) {
+            const beforeThinkRemoval = text;
+            const originalLength = text.length;
+            
+            // Remove complete thinking blocks with content: <think>...</think> or <thinking>...</thinking>
+            text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+            text = text.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+            
+            // Remove orphaned opening tags
+            text = text.replace(/<think>/gi, '');
+            text = text.replace(/<thinking>/gi, '');
+            
+            // Remove orphaned closing tags
+            text = text.replace(/<\/think>/gi, '');
+            text = text.replace(/<\/thinking>/gi, '');
+            
+            // Remove any text from start up to first closing think tag (handles truncated opening)
+            text = text.replace(/^[\s\S]*?<\/think>/i, '');
+            text = text.replace(/^[\s\S]*?<\/thinking>/i, '');
+            
+            console.log(`[NT-Parse] 🧹 Removed thinking tags, length change: ${originalLength} -> ${text.length}`);
+            
+            if (session) {
+                session.logTransform('Remove thinking tags (REC-13)', beforeThinkRemoval, text);
+            }
+        }
+        
         if (text.includes('<') || text.includes('>')) {
             const beforeTagRemoval = text;
             const originalLength = text.length;
             text = text.replace(/<[^>]*>/g, '');
-            console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
+            console.log(`[NT-Parse] 🧹 Removed remaining XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
 
             if (session) {
                 session.logTransform('Remove XML/HTML tags', beforeTagRemoval, text);

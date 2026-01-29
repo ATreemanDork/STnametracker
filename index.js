@@ -921,12 +921,13 @@ module.exports = styleTagTransform;
 (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   I5: () => (/* binding */ loadCharactersFromLorebook),
 /* harmony export */   _Z: () => (/* binding */ viewInLorebook),
 /* harmony export */   getLorebookStats: () => (/* binding */ getLorebookStats),
 /* harmony export */   initializeLorebook: () => (/* binding */ initializeLorebook),
 /* harmony export */   updateLorebookEntry: () => (/* binding */ updateLorebookEntry)
 /* harmony export */ });
-/* unused harmony exports loadCharactersFromLorebook, createLorebookContent, deleteLorebookEntry, purgeLorebookEntries, adoptExistingEntries, getCurrentLorebookName, resetLorebookState */
+/* unused harmony exports createLorebookContent, deleteLorebookEntry, purgeLorebookEntries, adoptExistingEntries, getCurrentLorebookName, resetLorebookState */
 /* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
 /* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
 /* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
@@ -1107,8 +1108,8 @@ async function initializeLorebook() {
  * @returns {Promise<Object>} Characters object indexed by preferredName
  */
 async function loadCharactersFromLorebook() {
-    return withErrorBoundary('loadCharactersFromLorebook', async () => {
-        const context = stContext.getContext();
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('loadCharactersFromLorebook', async () => {
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         if (!context) {
             debug.log('⚠️ Context not available - cannot load characters from lorebook');
             return {};
@@ -1139,19 +1140,20 @@ async function loadCharactersFromLorebook() {
 
         for (const entry of nameTrackerEntries) {
             try {
-                if (!entry.comment || !entry.comment.startsWith('NT-AUTO-')) {
-                    debug.log(`⚠️ Skipping entry ${entry.uid} - invalid comment format`);
+                if (!entry.content) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - no content field`);
                     continue;
                 }
 
-                // Parse automation ID: NT-AUTO-${uid}|||${JSON}
-                const parts = entry.comment.split('|||');
-                if (parts.length !== 2) {
-                    debug.log(`⚠️ Skipping entry ${entry.uid} - malformed automation ID`);
+                // REC-15: Parse JSON from content field (stored as HTML comment at end)
+                // Format: <!-- NameTracker Data: {...JSON...} -->
+                const dataMatch = entry.content.match(/<!-- NameTracker Data: ({.*?}) -->/);
+                if (!dataMatch || !dataMatch[1]) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - no NameTracker data in content`);
                     continue;
                 }
 
-                const characterData = JSON.parse(parts[1]);
+                const characterData = JSON.parse(dataMatch[1]);
                 
                 // Validate required fields
                 if (!characterData.preferredName || !characterData.uid) {
@@ -1266,6 +1268,11 @@ async function updateLorebookEntry(character, characterName) {
         }
 
         const content = contentParts.join('\n');
+        
+        // REC-15: Store full character JSON at end of content for persistence
+        // This allows round-trip serialization while keeping content human-readable
+        const characterJSON = JSON.stringify(character);
+        const contentWithData = `${content}\n\n<!-- NameTracker Data: ${characterJSON} -->`;
 
         // Build the keys array (name + aliases)
         const keys = [character.preferredName];
@@ -1340,7 +1347,7 @@ async function updateLorebookEntry(character, characterName) {
             console.log(`[NT-Lorebook]    Content length: ${content.length} chars`);
 
             existingEntry.key = keys;
-            existingEntry.content = content;
+            existingEntry.content = contentWithData; // REC-15: Includes JSON data at end
             existingEntry.enabled = lorebookConfig.enabled;
             existingEntry.position = lorebookConfig.position;
             existingEntry.probability = lorebookConfig.probability;
@@ -1348,9 +1355,9 @@ async function updateLorebookEntry(character, characterName) {
             existingEntry.scanDepth = lorebookConfig.scanDepth;
             existingEntry.cooldown = calculatedCooldown;
             
-            // REC-15: Store full character JSON in comment for chat lifecycle persistence
+            // REC-15: Use comment for human-readable name (ST UI), data stored in content
             existingEntry.automationId = 'NameTracker'; // Constant for filtering extension-managed entries
-            existingEntry.comment = `NT-AUTO-${character.uid}|||${JSON.stringify(character)}`;
+            existingEntry.comment = `${character.preferredName} (UID: ${character.uid})`;
 
             debug.log(`✅ Updated automation ID for character ${characterName} (UID: ${character.uid})`);
         } else {
@@ -1371,8 +1378,8 @@ async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: `NT-AUTO-${character.uid}|||${JSON.stringify(character)}`, // REC-15: Full JSON for chat lifecycle
-                content: content,
+                comment: `${character.preferredName} (UID: ${character.uid})`, // REC-15: Human-readable for ST UI
+                content: contentWithData, // REC-15: Includes JSON data at end
                 constant: false,
                 selective: true,
                 contextConfig: {
@@ -3597,11 +3604,39 @@ function parseJSONResponse(text) {
         }
 
         // Remove any remaining XML/HTML tags that may interfere
+        // REC-13: Remove thinking tags BEFORE generic tag removal to handle content properly
+        if (text.includes('<think>') || text.includes('</think>') || text.includes('<thinking>') || text.includes('</thinking>')) {
+            const beforeThinkRemoval = text;
+            const originalLength = text.length;
+            
+            // Remove complete thinking blocks with content: <think>...</think> or <thinking>...</thinking>
+            text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+            text = text.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+            
+            // Remove orphaned opening tags
+            text = text.replace(/<think>/gi, '');
+            text = text.replace(/<thinking>/gi, '');
+            
+            // Remove orphaned closing tags
+            text = text.replace(/<\/think>/gi, '');
+            text = text.replace(/<\/thinking>/gi, '');
+            
+            // Remove any text from start up to first closing think tag (handles truncated opening)
+            text = text.replace(/^[\s\S]*?<\/think>/i, '');
+            text = text.replace(/^[\s\S]*?<\/thinking>/i, '');
+            
+            console.log(`[NT-Parse] 🧹 Removed thinking tags, length change: ${originalLength} -> ${text.length}`);
+            
+            if (session) {
+                session.logTransform('Remove thinking tags (REC-13)', beforeThinkRemoval, text);
+            }
+        }
+        
         if (text.includes('<') || text.includes('>')) {
             const beforeTagRemoval = text;
             const originalLength = text.length;
             text = text.replace(/<[^>]*>/g, '');
-            console.log(`[NT-Parse] 🧹 Removed XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
+            console.log(`[NT-Parse] 🧹 Removed remaining XML/HTML tags, length change: ${originalLength} -> ${text.length}`);
 
             if (session) {
                 session.logTransform('Remove XML/HTML tags', beforeTagRemoval, text);
@@ -4488,14 +4523,14 @@ module.exports = insertStyleElement;
 /* harmony export */   e7: () => (/* binding */ setCharacter),
 /* harmony export */   eU: () => (/* binding */ getLLMConfig),
 /* harmony export */   gf: () => (/* binding */ getLorebookConfig),
-/* harmony export */   nF: () => (/* binding */ setChatData),
 /* harmony export */   nT: () => (/* binding */ set_settings),
 /* harmony export */   qN: () => (/* binding */ getCharacter),
 /* harmony export */   sr: () => (/* binding */ removeCharacter),
+/* harmony export */   vE: () => (/* binding */ setCharacters),
 /* harmony export */   yb: () => (/* binding */ set_chat_metadata),
 /* harmony export */   zB: () => (/* binding */ getChatData)
 /* harmony export */ });
-/* unused harmony exports MODULE_NAME, DEFAULT_SETTINGS, DEFAULT_CHAT_DATA, setCharacters, addCharacter, getSettings, get_chat_metadata */
+/* unused harmony exports MODULE_NAME, DEFAULT_SETTINGS, DEFAULT_CHAT_DATA, setChatData, addCharacter, getSettings, get_chat_metadata */
 /* harmony import */ var _errors_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(462);
 /* harmony import */ var _debug_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(806);
 /* harmony import */ var _context_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(102);
@@ -4718,9 +4753,9 @@ function getChatData() {
  * @param {Object} data - Data to update
  */
 async function setChatData(data) {
-    return _errors_js__WEBPACK_IMPORTED_MODULE_0__/* .errorHandler */ .r_.withErrorBoundary('Settings', async () => {
+    return errorHandler.withErrorBoundary('Settings', async () => {
         try {
-            const metadata = _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.getChatMetadata();
+            const metadata = stContext.getChatMetadata();
 
             // Initialize if not exists
             if (!metadata[MODULE_NAME]) {
@@ -4731,7 +4766,7 @@ async function setChatData(data) {
             Object.assign(metadata[MODULE_NAME], data);
 
             // CRITICAL: AWAIT the save to complete before returning
-            await _context_js__WEBPACK_IMPORTED_MODULE_2__.stContext.saveMetadata();
+            await stContext.saveMetadata();
         } catch (error) {
             debug.warn('Failed to set chat data:', error.message);
             throw error; // Re-throw so caller knows it failed
@@ -8102,9 +8137,10 @@ async function updateUI() {
 /* harmony export */   Wu: () => (/* binding */ onMessageReceived),
 /* harmony export */   Ye: () => (/* binding */ harvestMessages),
 /* harmony export */   bu: () => (/* binding */ scanEntireChat),
-/* harmony export */   gH: () => (/* binding */ clearProcessingQueue)
+/* harmony export */   gH: () => (/* binding */ clearProcessingQueue),
+/* harmony export */   onChatChanged: () => (/* binding */ onChatChanged)
 /* harmony export */ });
-/* unused harmony exports processAnalysisResults, scanForNewNames, processPhaseTwoAnalysis, addToQueue, processQueue, onChatChanged, getProcessingStatus, abortCurrentScan */
+/* unused harmony exports processAnalysisResults, scanForNewNames, processPhaseTwoAnalysis, addToQueue, processQueue, getProcessingStatus, abortCurrentScan */
 /* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
 /* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
 /* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
@@ -9305,7 +9341,7 @@ async function processQueue() {
  * @returns {Promise<void>}
  */
 async function onChatChanged() {
-    return withErrorBoundary('onChatChanged', async () => {
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('onChatChanged', async () => {
         debug.log('🔄 Chat changed - clearing and reloading characters from lorebook');
 
         // Clear processing state
@@ -9314,27 +9350,27 @@ async function onChatChanged() {
         abortScan = false;
 
         // Reset scan state
-        await set_settings('lastScannedMessageId', -1);
-        await set_settings('messageCounter', 0);
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('lastScannedMessageId', -1);
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('messageCounter', 0);
 
         // REC-15: Clear in-memory characters and reload from lorebook
         // This ensures each chat has isolated character state persisted in its lorebook
         debug.log('🗑️ Clearing in-memory characters...');
-        await setCharacters({});
+        await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setCharacters */ .vE)({});
         
         debug.log('📖 Loading characters from chat lorebook...');
-        const lorebookCharacters = await loadCharactersFromLorebook();
+        const lorebookCharacters = await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_7__/* .loadCharactersFromLorebook */ .I5)();
         
         if (Object.keys(lorebookCharacters).length > 0) {
-            await setCharacters(lorebookCharacters);
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setCharacters */ .vE)(lorebookCharacters);
             debug.log(`✅ Loaded ${Object.keys(lorebookCharacters).length} characters from lorebook`);
         } else {
             debug.log('ℹ️ No characters in lorebook - starting fresh');
         }
 
         // Always update UI when chat changes
-        await updateCharacterList();
-        await updateStatusDisplay();
+        await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__/* .updateCharacterList */ .L2)();
+        await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__.updateStatusDisplay)();
 
         debug.log('✅ Chat change complete');
     });
@@ -9603,6 +9639,16 @@ class NameTrackerExtension {
             this.registerEventListeners();
             console.log('[STnametracker] Step 4: Event listeners completed');
 
+            // REC-15: Load characters from lorebook on extension initialization
+            console.log('[STnametracker] Step 5: Loading characters from lorebook...');
+            try {
+                const { onChatChanged } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 972));
+                await onChatChanged();
+                console.log('[STnametracker] Step 5: Characters loaded from lorebook');
+            } catch (error) {
+                console.warn('[STnametracker] Step 5: Could not load characters (no chat active?):', error.message);
+            }
+
             this.initialized = true;
             console.log('[STnametracker] Marking as initialized');
             logger.log('Name Tracker Extension initialized successfully');
@@ -9734,8 +9780,9 @@ class NameTrackerExtension {
 
             eventSource.on(event_types.CHAT_CHANGED, async () => {
                 logger.debug('Chat changed event received');
-                // Reset chat-level data when chat changes
-                await (0,settings/* setChatData */.nF)({ characters: {}, lastScannedMessageId: -1 });
+                // REC-15: Use onChatChanged to clear and reload characters from lorebook
+                const { onChatChanged } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 972));
+                await onChatChanged();
             });
 
             eventSource.on(event_types.CHAT_LOADED, async () => {

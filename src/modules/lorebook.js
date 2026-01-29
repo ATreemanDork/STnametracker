@@ -206,19 +206,20 @@ export async function loadCharactersFromLorebook() {
 
         for (const entry of nameTrackerEntries) {
             try {
-                if (!entry.comment || !entry.comment.startsWith('NT-AUTO-')) {
-                    debug.log(`⚠️ Skipping entry ${entry.uid} - invalid comment format`);
+                if (!entry.content) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - no content field`);
                     continue;
                 }
 
-                // Parse automation ID: NT-AUTO-${uid}|||${JSON}
-                const parts = entry.comment.split('|||');
-                if (parts.length !== 2) {
-                    debug.log(`⚠️ Skipping entry ${entry.uid} - malformed automation ID`);
+                // REC-15: Parse JSON from content field (stored as HTML comment at end)
+                // Format: <!-- NameTracker Data: {...JSON...} -->
+                const dataMatch = entry.content.match(/<!-- NameTracker Data: ({.*?}) -->/);
+                if (!dataMatch || !dataMatch[1]) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - no NameTracker data in content`);
                     continue;
                 }
 
-                const characterData = JSON.parse(parts[1]);
+                const characterData = JSON.parse(dataMatch[1]);
                 
                 // Validate required fields
                 if (!characterData.preferredName || !characterData.uid) {
@@ -333,6 +334,11 @@ export async function updateLorebookEntry(character, characterName) {
         }
 
         const content = contentParts.join('\n');
+        
+        // REC-15: Store full character JSON at end of content for persistence
+        // This allows round-trip serialization while keeping content human-readable
+        const characterJSON = JSON.stringify(character);
+        const contentWithData = `${content}\n\n<!-- NameTracker Data: ${characterJSON} -->`;
 
         // Build the keys array (name + aliases)
         const keys = [character.preferredName];
@@ -407,7 +413,7 @@ export async function updateLorebookEntry(character, characterName) {
             console.log(`[NT-Lorebook]    Content length: ${content.length} chars`);
 
             existingEntry.key = keys;
-            existingEntry.content = content;
+            existingEntry.content = contentWithData; // REC-15: Includes JSON data at end
             existingEntry.enabled = lorebookConfig.enabled;
             existingEntry.position = lorebookConfig.position;
             existingEntry.probability = lorebookConfig.probability;
@@ -415,9 +421,9 @@ export async function updateLorebookEntry(character, characterName) {
             existingEntry.scanDepth = lorebookConfig.scanDepth;
             existingEntry.cooldown = calculatedCooldown;
             
-            // REC-15: Store full character JSON in comment for chat lifecycle persistence
+            // REC-15: Use comment for human-readable name (ST UI), data stored in content
             existingEntry.automationId = 'NameTracker'; // Constant for filtering extension-managed entries
-            existingEntry.comment = `NT-AUTO-${character.uid}|||${JSON.stringify(character)}`;
+            existingEntry.comment = `${character.preferredName} (UID: ${character.uid})`;
 
             debug.log(`✅ Updated automation ID for character ${characterName} (UID: ${character.uid})`);
         } else {
@@ -438,8 +444,8 @@ export async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: `NT-AUTO-${character.uid}|||${JSON.stringify(character)}`, // REC-15: Full JSON for chat lifecycle
-                content: content,
+                comment: `${character.preferredName} (UID: ${character.uid})`, // REC-15: Human-readable for ST UI
+                content: contentWithData, // REC-15: Includes JSON data at end
                 constant: false,
                 selective: true,
                 contextConfig: {
