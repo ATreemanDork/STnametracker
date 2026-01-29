@@ -94,16 +94,6 @@ class NameTrackerExtension {
             this.registerEventListeners();
             console.log('[STnametracker] Step 4: Event listeners completed');
 
-            // REC-15: Load characters from lorebook on extension initialization
-            console.log('[STnametracker] Step 5: Loading characters from lorebook...');
-            try {
-                const { onChatChanged } = await import('./modules/processing.js');
-                await onChatChanged();
-                console.log('[STnametracker] Step 5: Characters loaded from lorebook');
-            } catch (error) {
-                console.warn('[STnametracker] Step 5: Could not load characters (no chat active?):', error.message);
-            }
-
             this.initialized = true;
             console.log('[STnametracker] Marking as initialized');
             logger.log('Name Tracker Extension initialized successfully');

@@ -334,11 +334,6 @@ export async function updateLorebookEntry(character, characterName) {
         }
 
         const content = contentParts.join('\n');
-        
-        // REC-15: Store full character JSON at end of content for persistence
-        // This allows round-trip serialization while keeping content human-readable
-        const characterJSON = JSON.stringify(character);
-        const contentWithData = `${content}\n\n<!-- NameTracker Data: ${characterJSON} -->`;
 
         // Build the keys array (name + aliases)
         const keys = [character.preferredName];
@@ -413,7 +408,7 @@ export async function updateLorebookEntry(character, characterName) {
             console.log(`[NT-Lorebook]    Content length: ${content.length} chars`);
 
             existingEntry.key = keys;
-            existingEntry.content = contentWithData; // REC-15: Includes JSON data at end
+            existingEntry.content = content;
             existingEntry.enabled = lorebookConfig.enabled;
             existingEntry.position = lorebookConfig.position;
             existingEntry.probability = lorebookConfig.probability;
@@ -444,8 +439,8 @@ export async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: `${character.preferredName} (UID: ${character.uid})`, // REC-15: Human-readable for ST UI
-                content: contentWithData, // REC-15: Includes JSON data at end
+                comment: `${character.preferredName} (UID: ${character.uid})`,
+                content: content,
                 constant: false,
                 selective: true,
                 contextConfig: {
