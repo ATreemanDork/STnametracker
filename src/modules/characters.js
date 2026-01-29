@@ -167,28 +167,37 @@ const MERGE_CONFIDENCE_LOW = 0.5;       // 50%+ - No automatic action (may indic
 // ============================================================================
 
 /**
- * Parse and normalize relationship strings from the new natural language format
+ * Parse and normalize relationship strings from natural language format
  * Handles: "Character A is to Character B: relationship1, relationship2"
+ * Resolves aliases to preferred names and consolidates duplicates
  * @param {Array<string>} relationships - Raw relationship strings from LLM
  * @param {string} currentCharName - Name of the current character
  * @param {Object} allCharacters - All known characters for name resolution
- * @returns {Array<string>} Normalized relationship triplets
+ * @returns {Array<string>} Normalized "is to" format relationships (consolidated)
  */
 function parseNewRelationshipFormat(relationships, currentCharName, allCharacters) {
     if (!relationships || !Array.isArray(relationships)) {
         return [];
     }
 
-    debugLog(`🔄 Parsing ${relationships.length} new-format relationships for ${currentCharName}`);
-    const parsedTriplets = [];
+    debugLog(`🔄 Parsing ${relationships.length} relationships for ${currentCharName}`);
+    
+    // Map to consolidate: "CharA -> CharB" => Set of relationship types
+    const consolidationMap = new Map();
 
     for (const rel of relationships) {
         if (!rel || typeof rel !== 'string') continue;
 
+        // CRITICAL: Reject triplet format (old format we're trying to eliminate)
+        if (/^[^:]+,\s*[^:]+,\s*[^:]+$/.test(rel.trim())) {
+            debugLog(`❌ REJECTED TRIPLET FORMAT: "${rel}"`);
+            continue;
+        }
+
         // Parse format: "Character A is to Character B: relationship1, relationship2"
         const match = rel.match(/^(.+?)\s+is\s+to\s+(.+?):\s*(.+)$/i);
         if (!match) {
-            debugLog(`❌ Failed to parse relationship format: "${rel}"`);
+            debugLog(`❌ Invalid format (not "is to"): "${rel}"`);
             continue;
         }
 
@@ -196,29 +205,43 @@ function parseNewRelationshipFormat(relationships, currentCharName, allCharacter
         const char1Trimmed = char1.trim();
         const char2Trimmed = char2.trim();
 
-        // Normalize character names to preferred names
-        const normalizedChar1 = findPreferredName(char1Trimmed, allCharacters);
-        const normalizedChar2 = findPreferredName(char2Trimmed, allCharacters);
+        // CRITICAL: Resolve aliases to preferred names
+        const normalizedChar1 = findPreferredName(char1Trimmed, allCharacters) || char1Trimmed;
+        const normalizedChar2 = findPreferredName(char2Trimmed, allCharacters) || char2Trimmed;
 
-        if (!normalizedChar1 || !normalizedChar2) {
-            debugLog(`❌ Could not normalize names: "${char1Trimmed}" -> "${normalizedChar1}", "${char2Trimmed}" -> "${normalizedChar2}"`);
-            continue;
+        debugLog(`🔄 Name resolution: "${char1Trimmed}" -> "${normalizedChar1}", "${char2Trimmed}" -> "${normalizedChar2}"`);
+
+        // Split multiple relationships
+        const relationshipTypes = relationshipsPart.split(',').map(r => r.trim().toLowerCase());
+
+        // Create consolidation key
+        const key = `${normalizedChar1}|||${normalizedChar2}`;
+        
+        if (!consolidationMap.has(key)) {
+            consolidationMap.set(key, new Set());
         }
-
-        // Split multiple relationships and create individual triplets
-        const relationshipTypes = relationshipsPart.split(',').map(r => r.trim());
-
+        
+        // Add all relationship types to the set (automatic deduplication)
+        const relSet = consolidationMap.get(key);
         for (const relType of relationshipTypes) {
             if (relType) {
-                const triplet = `${normalizedChar1}, ${normalizedChar2}, ${relType.toLowerCase()}`;
-                parsedTriplets.push(triplet);
-                debugLog(`✅ Parsed: "${rel}" -> "${triplet}"`);
+                relSet.add(relType);
             }
         }
     }
 
-    debugLog(`📝 Converted ${relationships.length} relationships to ${parsedTriplets.length} triplets`);
-    return parsedTriplets;
+    // Convert consolidated map back to "is to" format strings
+    const consolidated = [];
+    for (const [key, relSet] of consolidationMap.entries()) {
+        const [char1, char2] = key.split('|||');
+        const relTypes = Array.from(relSet).join(', ');
+        const formatted = `${char1} is to ${char2}: ${relTypes}`;
+        consolidated.push(formatted);
+        debugLog(`✅ Consolidated: "${formatted}"`);
+    }
+
+    debugLog(`📝 Result: ${relationships.length} raw -> ${consolidated.length} consolidated`);
+    return consolidated;
 }
 /**
  * Normalize and deduplicate relationships while preserving "is to" format
@@ -234,65 +257,76 @@ function rationalizeRelationships(relationships, currentCharName, allCharacters)
 
     debugLog(`🔧 Rationalizing ${relationships.length} relationships for ${currentCharName}`);
 
-    // Check if we have "is to" format
-    const hasIsToFormat = relationships.some(rel => typeof rel === 'string' && /\s+is\s+to\s+.+:/.test(rel));
+    // Parse and consolidate - this handles alias resolution and deduplication
+    const consolidated = parseNewRelationshipFormat(relationships, currentCharName, allCharacters);
 
-    if (!hasIsToFormat) {
-        debugLog('⚠️ WARNING: No "is to" format detected. Expected format: "[Name] is to [Name]: [role]"');
+    if (consolidated.length === 0) {
+        debugLog('❌ No valid relationships after parsing/consolidation');
         return [];
     }
 
-    // Parse and normalize to "is to" format with canonical names
-    const normalized = parseNewRelationshipFormat(relationships, currentCharName, allCharacters);
-
-    if (normalized.length === 0) {
-        debugLog('❌ No valid relationships found after parsing');
-        return [];
-    }
-
-    // Deduplicate exact matches (case-insensitive)
-    const uniqueRelationships = [];
-    const seen = new Set();
-
-    for (const rel of normalized) {
-        const normalized_lower = rel.toLowerCase().trim();
-        if (!seen.has(normalized_lower)) {
-            seen.add(normalized_lower);
-            uniqueRelationships.push(rel);
-        } else {
-            debugLog(`🗑️ Removed duplicate: "${rel}"`);
-        }
-    }
-
-    debugLog(`✅ Deduplicated to ${uniqueRelationships.length} unique relationships (from ${normalized.length})`);
-
-    return uniqueRelationships;
+    debugLog(`✅ Rationalized to ${consolidated.length} unique relationships`);
+    return consolidated;
 }
 
 /**
  * Find the preferred canonical name for a character
+ * Handles exact matches, aliases, and partial name matching
  * @param {string} name - Name variant to resolve
  * @param {Object} allCharacters - All known characters
- * @returns {string|null} Preferred name or null if not found
+ * @returns {string|null} Preferred name or original name if not found
  */
 function findPreferredName(name, allCharacters) {
     if (!name || !allCharacters) return name;
 
-    // First, try exact match on preferred names
+    const nameLower = name.toLowerCase().trim();
+
+    // STEP 1: Exact match on preferred names (case-insensitive)
     for (const [preferredName] of Object.entries(allCharacters)) {
-        if (preferredName === name) {
+        if (preferredName.toLowerCase() === nameLower) {
+            debugLog(`🎯 Exact match: "${name}" -> "${preferredName}"`);
             return preferredName;
         }
     }
 
-    // Then try aliases
+    // STEP 2: Exact match on aliases (case-insensitive)
     for (const [preferredName, character] of Object.entries(allCharacters)) {
-        if (character.aliases && character.aliases.includes(name)) {
+        if (character.aliases && Array.isArray(character.aliases)) {
+            for (const alias of character.aliases) {
+                if (alias.toLowerCase() === nameLower) {
+                    debugLog(`🎯 Alias match: "${name}" -> "${preferredName}" (via alias "${alias}")`);
+                    return preferredName;
+                }
+            }
+        }
+    }
+
+    // STEP 3: Partial match - "John" matches "John Blackwood"
+    for (const [preferredName] of Object.entries(allCharacters)) {
+        const preferredLower = preferredName.toLowerCase();
+        
+        // Check if name is a substring of preferred name (e.g., "John" in "John Blackwood")
+        if (preferredLower.includes(nameLower) || nameLower.includes(preferredLower)) {
+            debugLog(`🎯 Partial match: "${name}" -> "${preferredName}"`);
             return preferredName;
         }
     }
 
-    // Return original if no match found
+    // STEP 4: Partial match on aliases
+    for (const [preferredName, character] of Object.entries(allCharacters)) {
+        if (character.aliases && Array.isArray(character.aliases)) {
+            for (const alias of character.aliases) {
+                const aliasLower = alias.toLowerCase();
+                if (aliasLower.includes(nameLower) || nameLower.includes(aliasLower)) {
+                    debugLog(`🎯 Partial alias match: "${name}" -> "${preferredName}" (via alias "${alias}")`);
+                    return preferredName;
+                }
+            }
+        }
+    }
+
+    // No match found - return original name
+    debugLog(`⚠️ No match found for "${name}" - using as-is`);
     return name;
 }
 
