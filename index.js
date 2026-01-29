@@ -3148,6 +3148,33 @@ async function callSillyTavern(systemPrompt, prompt, prefill = '', interactive =
                     throw new errors/* NameTrackerError */.S_('Empty or invalid response from SillyTavern LLM');
                 }
 
+                // REC-13: CRITICAL - Remove thinking tags BEFORE contamination check
+                // Must happen here so detectThinkingContamination() doesn't reject valid responses
+                const beforeThinkRemoval = resultText;
+                if (resultText.includes('<think>') || resultText.includes('</think>') || 
+                    resultText.includes('<thinking>') || resultText.includes('</thinking>')) {
+                    
+                    console.log('[NT-ST-Call] 🧹 Removing thinking tags from response...');
+                    
+                    // Remove complete thinking blocks with content
+                    resultText = resultText.replace(/<think>[\s\S]*?<\/think>/gi, '');
+                    resultText = resultText.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+                    
+                    // Remove orphaned opening tags
+                    resultText = resultText.replace(/<think>/gi, '');
+                    resultText = resultText.replace(/<thinking>/gi, '');
+                    
+                    // Remove orphaned closing tags
+                    resultText = resultText.replace(/<\/think>/gi, '');
+                    resultText = resultText.replace(/<\/thinking>/gi, '');
+                    
+                    // Remove any text from start up to first closing think tag (handles truncated opening)
+                    resultText = resultText.replace(/^[\s\S]*?<\/think>/i, '');
+                    resultText = resultText.replace(/^[\s\S]*?<\/thinking>/i, '');
+                    
+                    console.log(`[NT-ST-Call] ✅ Removed thinking tags, length: ${beforeThinkRemoval.length} -> ${resultText.length}`);
+                }
+
                 // Check for thinking contamination BEFORE attempting parse
                 const isContaminated = detectThinkingContamination(resultText, calculatedResponseLength);
                 if (isContaminated) {
@@ -3387,11 +3414,14 @@ function detectThinkingContamination(text, budgetTokens = 5000) {
         }
     }
 
-    // Check 5: XML-style thinking tags
+    // Check 5: XML-style thinking tags (DISABLED - handled upstream in REC-13)
+    // Tags are now removed BEFORE this function is called
+    /* DISABLED
     if (/<think>/i.test(text) || /<thinking>/i.test(text) || /<\/think>/i.test(text)) {
         console.log('[NT-Contamination] ❌ DETECTED: XML thinking tags');
         return true;
     }
+    */
 
     console.log('[NT-Contamination] ✅ No contamination detected');
     return false;
