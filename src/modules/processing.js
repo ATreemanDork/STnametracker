@@ -184,12 +184,42 @@ async function processCharacterData(analyzedChar) {
         debugLog('Processing character data', analyzedChar?.name);
 
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
-            console.warn('[NT-CharData] ⚠️  Character has no name, skipping');
+            console.warn('[NT-CharData] ⚠️ Character has no name, skipping');
             debug.log();
             return;
         }
 
         const characterName = analyzedChar.name.trim();
+        
+        // CRITICAL: Validate this is a single person, not a group
+        const invalidPatterns = [
+            /\btwin\b/i,
+            /\btwins\b/i,
+            /\bsisters\b/i,
+            /\bbrothers\b/i,
+            /\btwo \w+/i,        // "two girls", "two women"
+            /\bthree \w+/i,      // "three people"
+            /\bthe \w+s\b/i,     // "the girls", "the boys"
+            /\bgroup of/i,
+            /\bpair of/i,
+        ];
+
+        for (const pattern of invalidPatterns) {
+            if (pattern.test(characterName)) {
+                console.log(`[NT-Processing] ❌ REJECTED MULTI-PERSON ENTRY: "${characterName}"`);
+                console.log(`[NT-Processing]    Matched pattern: ${pattern}`);
+                console.log(`[NT-Processing]    LLM must create separate entries for each person`);
+                return;
+            }
+        }
+
+        // Reject generic/pronoun names
+        const genericNames = ['he', 'she', 'they', 'them', 'him', 'her', 'it', 'user', 'character'];
+        if (genericNames.includes(characterName.toLowerCase())) {
+            console.log(`[NT-Processing] ❌ REJECTED: Generic name: "${characterName}"`);
+            return;
+        }
+
         debugLog('Character name', characterName);
 
         // Check if character is ignored

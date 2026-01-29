@@ -1077,13 +1077,21 @@ async function initializeLorebook() {
             // Load the new lorebook in the editor and make it active (ST API)
             if (typeof context.reloadWorldInfoEditor === 'function') {
                 context.reloadWorldInfoEditor(lorebookName, true);
+                debug.log(`✅ Lorebook loaded in editor: ${lorebookName}`);
             }
 
-            // Refresh the lorebook dropdown list so user can see new lorebook immediately
-            // This is a global ST function, not on context object
+            // Refresh the lorebook dropdown list and select the new lorebook
             if (typeof window.updateWorldInfoList === 'function') {
                 await window.updateWorldInfoList();
                 debug.log(`✅ Lorebook dropdown refreshed - ${lorebookName} now visible`);
+                
+                // Select the newly created lorebook in the dropdown
+                const $lorebookSelect = $('#world_info');
+                if ($lorebookSelect.length > 0) {
+                    $lorebookSelect.val(lorebookName);
+                    $lorebookSelect.trigger('change');
+                    debug.log(`✅ Lorebook selected in dropdown: ${lorebookName}`);
+                }
             } else if (typeof context.updateWorldInfoList === 'function') {
                 await context.updateWorldInfoList();
                 debug.log(`✅ Lorebook dropdown refreshed - ${lorebookName} now visible`);
@@ -7350,7 +7358,10 @@ async function showSystemPromptEditor() {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('showSystemPromptEditor', async () => {
         // Get current system prompt
         let currentPrompt = await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .getSetting */ .PL)('systemPrompt');
-        currentPrompt = currentPrompt || '';
+        if (currentPrompt === null || currentPrompt === undefined) {
+            currentPrompt = '';
+        }
+        debug.log(`📝 Opening system prompt editor, current value: ${currentPrompt ? 'custom' : 'default'}`);
 
         // Create modal dialog
         const modal = $(`
@@ -7395,6 +7406,11 @@ async function showSystemPromptEditor() {
         `);
 
         $('body').append(overlay).append(modal);
+        
+        // Ensure textarea value is set correctly after DOM insertion
+        const $textarea = modal.find('#system_prompt_editor');
+        $textarea.val(currentPrompt);
+        debug.log(`✅ Textarea value set to: "${currentPrompt.substring(0, 50)}${currentPrompt.length > 50 ? '...' : ''}"}`);
 
         const removeModal = () => {
             modal.remove();
@@ -8405,12 +8421,42 @@ async function processCharacterData(analyzedChar) {
         debugLog('Processing character data', analyzedChar?.name);
 
         if (!analyzedChar.name || analyzedChar.name.trim() === '') {
-            console.warn('[NT-CharData] ⚠️  Character has no name, skipping');
+            console.warn('[NT-CharData] ⚠️ Character has no name, skipping');
             debug.log();
             return;
         }
 
         const characterName = analyzedChar.name.trim();
+        
+        // CRITICAL: Validate this is a single person, not a group
+        const invalidPatterns = [
+            /\btwin\b/i,
+            /\btwins\b/i,
+            /\bsisters\b/i,
+            /\bbrothers\b/i,
+            /\btwo \w+/i,        // "two girls", "two women"
+            /\bthree \w+/i,      // "three people"
+            /\bthe \w+s\b/i,     // "the girls", "the boys"
+            /\bgroup of/i,
+            /\bpair of/i,
+        ];
+
+        for (const pattern of invalidPatterns) {
+            if (pattern.test(characterName)) {
+                console.log(`[NT-Processing] ❌ REJECTED MULTI-PERSON ENTRY: "${characterName}"`);
+                console.log(`[NT-Processing]    Matched pattern: ${pattern}`);
+                console.log(`[NT-Processing]    LLM must create separate entries for each person`);
+                return;
+            }
+        }
+
+        // Reject generic/pronoun names
+        const genericNames = ['he', 'she', 'they', 'them', 'him', 'her', 'it', 'user', 'character'];
+        if (genericNames.includes(characterName.toLowerCase())) {
+            console.log(`[NT-Processing] ❌ REJECTED: Generic name: "${characterName}"`);
+            return;
+        }
+
         debugLog('Character name', characterName);
 
         // Check if character is ignored

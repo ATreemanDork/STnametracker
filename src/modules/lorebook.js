@@ -143,13 +143,21 @@ export async function initializeLorebook() {
             // Load the new lorebook in the editor and make it active (ST API)
             if (typeof context.reloadWorldInfoEditor === 'function') {
                 context.reloadWorldInfoEditor(lorebookName, true);
+                debug.log(`✅ Lorebook loaded in editor: ${lorebookName}`);
             }
 
-            // Refresh the lorebook dropdown list so user can see new lorebook immediately
-            // This is a global ST function, not on context object
+            // Refresh the lorebook dropdown list and select the new lorebook
             if (typeof window.updateWorldInfoList === 'function') {
                 await window.updateWorldInfoList();
                 debug.log(`✅ Lorebook dropdown refreshed - ${lorebookName} now visible`);
+                
+                // Select the newly created lorebook in the dropdown
+                const $lorebookSelect = $('#world_info');
+                if ($lorebookSelect.length > 0) {
+                    $lorebookSelect.val(lorebookName);
+                    $lorebookSelect.trigger('change');
+                    debug.log(`✅ Lorebook selected in dropdown: ${lorebookName}`);
+                }
             } else if (typeof context.updateWorldInfoList === 'function') {
                 await context.updateWorldInfoList();
                 debug.log(`✅ Lorebook dropdown refreshed - ${lorebookName} now visible`);

@@ -291,7 +291,10 @@ export async function showSystemPromptEditor() {
     return withErrorBoundary('showSystemPromptEditor', async () => {
         // Get current system prompt
         let currentPrompt = await getSetting('systemPrompt');
-        currentPrompt = currentPrompt || '';
+        if (currentPrompt === null || currentPrompt === undefined) {
+            currentPrompt = '';
+        }
+        debug.log(`📝 Opening system prompt editor, current value: ${currentPrompt ? 'custom' : 'default'}`);
 
         // Create modal dialog
         const modal = $(`
@@ -336,6 +339,11 @@ export async function showSystemPromptEditor() {
         `);
 
         $('body').append(overlay).append(modal);
+        
+        // Ensure textarea value is set correctly after DOM insertion
+        const $textarea = modal.find('#system_prompt_editor');
+        $textarea.val(currentPrompt);
+        debug.log(`✅ Textarea value set to: "${currentPrompt.substring(0, 50)}${currentPrompt.length > 50 ? '...' : ''}"}`);
 
         const removeModal = () => {
             modal.remove();
