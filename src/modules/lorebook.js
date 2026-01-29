@@ -206,20 +206,30 @@ export async function loadCharactersFromLorebook() {
 
         for (const entry of nameTrackerEntries) {
             try {
-                if (!entry.content) {
-                    debug.log(`⚠️ Skipping entry ${entry.uid} - no content field`);
+                if (!entry.key || !Array.isArray(entry.key) || entry.key.length === 0) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - no keys`);
                     continue;
                 }
 
-                // REC-15: Parse JSON from content field (stored as HTML comment at end)
-                // Format: <!-- NameTracker Data: {...JSON...} -->
-                const dataMatch = entry.content.match(/<!-- NameTracker Data: ({.*?}) -->/);
-                if (!dataMatch || !dataMatch[1]) {
-                    debug.log(`⚠️ Skipping entry ${entry.uid} - no NameTracker data in content`);
-                    continue;
-                }
+                // REC-15: Reconstruct character from lorebook entry
+                // Primary name from first key, rest are aliases
+                const preferredName = entry.key[0];
+                const aliases = entry.key.slice(1);
 
-                const characterData = JSON.parse(dataMatch[1]);
+                const characterData = {
+                    preferredName,
+                    aliases,
+                    uid: entry.uid, // Use lorebook entry UID as character UID
+                    lorebookEntryId: entry.uid,
+                    // Parse content fields if present
+                    physical: '', // Will be populated if we add content parsing
+                    personality: '',
+                    relationships: [],
+                    // Set flags for user review
+                    needsReview: true,
+                    ignored: false,
+                    isMainChar: false, // User will need to manually set if needed
+                };
                 
                 // Validate required fields
                 if (!characterData.preferredName || !characterData.uid) {
@@ -416,9 +426,9 @@ export async function updateLorebookEntry(character, characterName) {
             existingEntry.scanDepth = lorebookConfig.scanDepth;
             existingEntry.cooldown = calculatedCooldown;
             
-            // REC-15: Use comment for human-readable name (ST UI), data stored in content
-            existingEntry.automationId = 'NameTracker'; // Constant for filtering extension-managed entries
-            existingEntry.comment = `${character.preferredName} (UID: ${character.uid})`;
+            // REC-15: automationId for filtering, comment for display
+            existingEntry.automationId = 'NameTracker';
+            existingEntry.comment = character.preferredName;
 
             debug.log(`✅ Updated automation ID for character ${characterName} (UID: ${character.uid})`);
         } else {
@@ -439,7 +449,7 @@ export async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: `${character.preferredName} (UID: ${character.uid})`,
+                comment: character.preferredName,
                 content: content,
                 constant: false,
                 selective: true,

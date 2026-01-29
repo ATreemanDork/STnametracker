@@ -921,12 +921,13 @@ module.exports = styleTagTransform;
 (__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   I5: () => (/* binding */ loadCharactersFromLorebook),
 /* harmony export */   _Z: () => (/* binding */ viewInLorebook),
 /* harmony export */   getLorebookStats: () => (/* binding */ getLorebookStats),
 /* harmony export */   initializeLorebook: () => (/* binding */ initializeLorebook),
 /* harmony export */   updateLorebookEntry: () => (/* binding */ updateLorebookEntry)
 /* harmony export */ });
-/* unused harmony exports loadCharactersFromLorebook, createLorebookContent, deleteLorebookEntry, purgeLorebookEntries, adoptExistingEntries, getCurrentLorebookName, resetLorebookState */
+/* unused harmony exports createLorebookContent, deleteLorebookEntry, purgeLorebookEntries, adoptExistingEntries, getCurrentLorebookName, resetLorebookState */
 /* harmony import */ var _core_debug_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(806);
 /* harmony import */ var _core_errors_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(462);
 /* harmony import */ var _core_settings_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(548);
@@ -1107,8 +1108,8 @@ async function initializeLorebook() {
  * @returns {Promise<Object>} Characters object indexed by preferredName
  */
 async function loadCharactersFromLorebook() {
-    return withErrorBoundary('loadCharactersFromLorebook', async () => {
-        const context = stContext.getContext();
+    return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('loadCharactersFromLorebook', async () => {
+        const context = _core_context_js__WEBPACK_IMPORTED_MODULE_3__.stContext.getContext();
         if (!context) {
             debug.log('⚠️ Context not available - cannot load characters from lorebook');
             return {};
@@ -1139,20 +1140,30 @@ async function loadCharactersFromLorebook() {
 
         for (const entry of nameTrackerEntries) {
             try {
-                if (!entry.content) {
-                    debug.log(`⚠️ Skipping entry ${entry.uid} - no content field`);
+                if (!entry.key || !Array.isArray(entry.key) || entry.key.length === 0) {
+                    debug.log(`⚠️ Skipping entry ${entry.uid} - no keys`);
                     continue;
                 }
 
-                // REC-15: Parse JSON from content field (stored as HTML comment at end)
-                // Format: <!-- NameTracker Data: {...JSON...} -->
-                const dataMatch = entry.content.match(/<!-- NameTracker Data: ({.*?}) -->/);
-                if (!dataMatch || !dataMatch[1]) {
-                    debug.log(`⚠️ Skipping entry ${entry.uid} - no NameTracker data in content`);
-                    continue;
-                }
+                // REC-15: Reconstruct character from lorebook entry
+                // Primary name from first key, rest are aliases
+                const preferredName = entry.key[0];
+                const aliases = entry.key.slice(1);
 
-                const characterData = JSON.parse(dataMatch[1]);
+                const characterData = {
+                    preferredName,
+                    aliases,
+                    uid: entry.uid, // Use lorebook entry UID as character UID
+                    lorebookEntryId: entry.uid,
+                    // Parse content fields if present
+                    physical: '', // Will be populated if we add content parsing
+                    personality: '',
+                    relationships: [],
+                    // Set flags for user review
+                    needsReview: true,
+                    ignored: false,
+                    isMainChar: false, // User will need to manually set if needed
+                };
                 
                 // Validate required fields
                 if (!characterData.preferredName || !characterData.uid) {
@@ -1349,9 +1360,9 @@ async function updateLorebookEntry(character, characterName) {
             existingEntry.scanDepth = lorebookConfig.scanDepth;
             existingEntry.cooldown = calculatedCooldown;
             
-            // REC-15: Use comment for human-readable name (ST UI), data stored in content
-            existingEntry.automationId = 'NameTracker'; // Constant for filtering extension-managed entries
-            existingEntry.comment = `${character.preferredName} (UID: ${character.uid})`;
+            // REC-15: automationId for filtering, comment for display
+            existingEntry.automationId = 'NameTracker';
+            existingEntry.comment = character.preferredName;
 
             debug.log(`✅ Updated automation ID for character ${characterName} (UID: ${character.uid})`);
         } else {
@@ -1372,7 +1383,7 @@ async function updateLorebookEntry(character, characterName) {
                 uid: newUid,
                 key: keys,
                 keysecondary: [],
-                comment: `${character.preferredName} (UID: ${character.uid})`,
+                comment: character.preferredName,
                 content: content,
                 constant: false,
                 selective: true,
@@ -9336,7 +9347,7 @@ async function processQueue() {
  */
 async function onChatChanged() {
     return (0,_core_errors_js__WEBPACK_IMPORTED_MODULE_1__/* .withErrorBoundary */ .Xc)('onChatChanged', async () => {
-        debug.log('🔄 Chat changed - clearing character state');
+        debug.log('🔄 Chat changed - reloading characters from lorebook');
 
         // Clear processing state
         processingQueue = [];
@@ -9347,17 +9358,25 @@ async function onChatChanged() {
         await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('lastScannedMessageId', -1);
         await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .set_settings */ .nT)('messageCounter', 0);
 
-        // REC-15: Clear in-memory characters
-        // Lorebook entries with automationId='NameTracker' remain for context injection
-        // Characters can be regenerated by reprocessing messages
+        // REC-15: Clear and reload characters from lorebook
         debug.log('🗑️ Clearing in-memory characters...');
         await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setCharacters */ .vE)({});
+        
+        debug.log('📖 Loading characters from lorebook entries...');
+        const lorebookCharacters = await (0,_lorebook_js__WEBPACK_IMPORTED_MODULE_7__/* .loadCharactersFromLorebook */ .I5)();
+        
+        if (Object.keys(lorebookCharacters).length > 0) {
+            await (0,_core_settings_js__WEBPACK_IMPORTED_MODULE_2__/* .setCharacters */ .vE)(lorebookCharacters);
+            debug.log(`✅ Loaded ${Object.keys(lorebookCharacters).length} characters (flagged for review)`);
+        } else {
+            debug.log('ℹ️ No NameTracker entries in lorebook');
+        }
 
-        // Update UI to reflect empty state
+        // Update UI
         await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__/* .updateCharacterList */ .L2)();
         await (0,_ui_js__WEBPACK_IMPORTED_MODULE_8__.updateStatusDisplay)();
 
-        debug.log('✅ Chat change complete - reprocess messages to rebuild characters');
+        debug.log('✅ Chat change complete - characters loaded from lorebook');
     });
 }
 
@@ -9623,6 +9642,16 @@ class NameTrackerExtension {
             console.log('[STnametracker] Step 4: Registering event listeners...');
             this.registerEventListeners();
             console.log('[STnametracker] Step 4: Event listeners completed');
+
+            // REC-15: Load characters from lorebook on extension init
+            console.log('[STnametracker] Step 5: Loading characters from lorebook...');
+            try {
+                const { onChatChanged } = await Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, 972));
+                await onChatChanged();
+                console.log('[STnametracker] Step 5: Characters loaded from lorebook');
+            } catch (error) {
+                console.warn('[STnametracker] Step 5: Could not load characters:', error.message);
+            }
 
             this.initialized = true;
             console.log('[STnametracker] Marking as initialized');
